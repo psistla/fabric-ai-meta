@@ -1,0 +1,34 @@
+# .fabric-ai-meta.toml
+
+[auth]
+method = "interactive"  # "interactive", "service_principal", "notebook"
+tenant_id = "your-tenant-id"  # Required for service_principal
+client_id = "your-client-id"  # Required for service_principal
+
+[extraction]
+default_workspace = "Production Analytics"
+include_sample_values = true
+sample_value_count = 10
+extraction_method = "semantic_link"  # "semantic_link" or "xmla"
+
+[llm]
+provider = "anthropic"
+model = "claude-sonnet-4-6"           # Current model string — update as new versions release
+api_key_env = "ANTHROPIC_API_KEY"    # Environment variable name
+cache_enabled = true
+cache_dir = ".fabric-ai-meta-cache"
+max_cost_per_run = 5.00  # USD — abort if cumulative cost exceeds this
+
+[output]
+default_format = "json"
+output_dir = "./output"
+include_raw_extraction = false
+
+[scoring]
+weights.description_coverage = 0.25
+weights.measure_documentation = 0.20
+weights.relationship_completeness = 0.15
+weights.naming_consistency = 0.15
+weights.sample_values_available = 0.10
+weights.business_rules_documented = 0.15
+# Weights sum: 1.00 ✓

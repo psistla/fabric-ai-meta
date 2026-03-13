@@ -1,0 +1,38 @@
+[project]
+name = "fabric-ai-meta"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+dependencies = [
+    "click>=8.1",                      # CLI framework
+    "anthropic>=0.40",                 # Claude API client
+    "azure-identity>=1.15",            # Entra ID authentication
+    "semantic-link-sempy>=0.8",        # Fabric Semantic Link
+    "pydantic>=2.0",                   # Data validation
+    "rich>=13.0",                      # CLI output formatting (includes progress bars)
+    "networkx>=3.0",                   # DAX dependency graph analysis
+    # Note: tqdm removed — rich.progress covers all progress bar needs
+    # Adding both creates redundancy; use rich.progress throughout
+]
+
+[project.optional-dependencies]
+xmla = [
+    "pyadomd>=0.1",                    # XMLA connectivity — Windows-only (requires ADOMD.NET)
+                                       # Not available on Linux/macOS without additional setup
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+fabric-ai-meta = "fabric_ai_meta.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
