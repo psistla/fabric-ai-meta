@@ -1,0 +1,403 @@
+{
+  "name": "Adventure Works",
+  "workspace": "Production Analytics",
+  "description": "Adventure Works sales and product analytics semantic model.",
+  "tables": [
+    {
+      "name": "FactInternetSales",
+      "description": "Internet sales transactions at the order line level.",
+      "ai_description": null,
+      "table_type": "fact",
+      "grain": "One row per internet sales order line item.",
+      "is_hidden": false,
+      "source_partition_type": "Import",
+      "row_count_estimate": 60398,
+      "columns": [
+        {
+          "name": "SalesOrderNumber",
+          "data_type": "string",
+          "description": "Unique identifier for the sales order.",
+          "ai_description": null,
+          "role": "key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": ["SO43697", "SO43698", "SO43699"],
+          "is_nullable": false,
+          "synonyms": ["Order Number", "Order ID"]
+        },
+        {
+          "name": "ProductKey",
+          "data_type": "int64",
+          "description": "Foreign key to DimProduct.",
+          "ai_description": null,
+          "role": "foreign_key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "CustomerKey",
+          "data_type": "int64",
+          "description": "Foreign key to DimCustomer.",
+          "ai_description": null,
+          "role": "foreign_key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "OrderDateKey",
+          "data_type": "int64",
+          "description": "Foreign key to DimDate (order date).",
+          "ai_description": null,
+          "role": "foreign_key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "SalesAmount",
+          "data_type": "double",
+          "description": "Total sales amount for the order line in the model currency.",
+          "ai_description": null,
+          "role": "measure_column",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": "#,0.00",
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": true,
+          "synonyms": ["Revenue", "Sales"]
+        },
+        {
+          "name": "OrderQuantity",
+          "data_type": "int64",
+          "description": "Number of units ordered on the line item.",
+          "ai_description": null,
+          "role": "measure_column",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": "#,0",
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": true,
+          "synonyms": ["Quantity", "Units Sold"]
+        }
+      ],
+      "measures": [
+        {
+          "name": "[Internet Total Sales]",
+          "dax_expression": "SUM(FactInternetSales[SalesAmount])",
+          "description": "Total internet sales amount.",
+          "ai_description": null,
+          "category": "additive",
+          "display_folder": "Sales Metrics",
+          "format_string": "$#,0.00",
+          "depends_on_measures": [],
+          "depends_on_columns": ["FactInternetSales[SalesAmount]"],
+          "implicit_filters": [],
+          "is_hidden": false
+        },
+        {
+          "name": "[Internet Sales Amount YTD]",
+          "dax_expression": "CALCULATE([Internet Total Sales], DATESYTD('DimDate'[Date]))",
+          "description": null,
+          "ai_description": null,
+          "category": "time_intelligence",
+          "display_folder": "Time Intelligence",
+          "format_string": "$#,0.00",
+          "depends_on_measures": ["[Internet Total Sales]"],
+          "depends_on_columns": ["DimDate[Date]"],
+          "implicit_filters": [],
+          "is_hidden": false
+        },
+        {
+          "name": "[Internet Distinct Count Customers]",
+          "dax_expression": "DISTINCTCOUNT(FactInternetSales[CustomerKey])",
+          "description": "Count of unique customers who made internet purchases.",
+          "ai_description": null,
+          "category": "non_additive",
+          "display_folder": "Customer Metrics",
+          "format_string": "#,0",
+          "depends_on_measures": [],
+          "depends_on_columns": ["FactInternetSales[CustomerKey]"],
+          "implicit_filters": [],
+          "is_hidden": false
+        }
+      ],
+      "hierarchies": []
+    },
+    {
+      "name": "DimProduct",
+      "description": "Product dimension with category and subcategory.",
+      "ai_description": null,
+      "table_type": "dimension",
+      "grain": null,
+      "is_hidden": false,
+      "source_partition_type": "Import",
+      "row_count_estimate": 606,
+      "columns": [
+        {
+          "name": "ProductKey",
+          "data_type": "int64",
+          "description": "Surrogate key for the product dimension.",
+          "ai_description": null,
+          "role": "key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "EnglishProductName",
+          "data_type": "string",
+          "description": "English product name.",
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": ["Mountain-100 Silver, 38", "Road-150 Red, 62", "Touring-1000 Blue, 60"],
+          "is_nullable": true,
+          "synonyms": ["Product", "Product Name"]
+        },
+        {
+          "name": "EnglishProductCategoryName",
+          "data_type": "string",
+          "description": null,
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": ["Bikes", "Components", "Clothing", "Accessories"],
+          "is_nullable": true,
+          "synonyms": ["Category"]
+        }
+      ],
+      "measures": [],
+      "hierarchies": [
+        {
+          "name": "Product Categories",
+          "table": "DimProduct",
+          "levels": ["EnglishProductCategoryName", "EnglishProductName"]
+        }
+      ]
+    },
+    {
+      "name": "DimCustomer",
+      "description": null,
+      "ai_description": null,
+      "table_type": "dimension",
+      "grain": null,
+      "is_hidden": false,
+      "source_partition_type": "Import",
+      "row_count_estimate": 18484,
+      "columns": [
+        {
+          "name": "CustomerKey",
+          "data_type": "int64",
+          "description": "Surrogate key for the customer dimension.",
+          "ai_description": null,
+          "role": "key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "FirstName",
+          "data_type": "string",
+          "description": "Customer first name.",
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": true,
+          "synonyms": []
+        },
+        {
+          "name": "LastName",
+          "data_type": "string",
+          "description": "Customer last name.",
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": true,
+          "synonyms": []
+        },
+        {
+          "name": "EnglishEducation",
+          "data_type": "string",
+          "description": null,
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": ["Bachelors", "Graduate Degree", "High School", "Partial College"],
+          "is_nullable": true,
+          "synonyms": ["Education Level"]
+        }
+      ],
+      "measures": [],
+      "hierarchies": []
+    },
+    {
+      "name": "DimDate",
+      "description": "Date dimension supporting time intelligence calculations.",
+      "ai_description": null,
+      "table_type": "dimension",
+      "grain": null,
+      "is_hidden": false,
+      "source_partition_type": "Import",
+      "row_count_estimate": 3652,
+      "columns": [
+        {
+          "name": "DateKey",
+          "data_type": "int64",
+          "description": "Integer surrogate key in YYYYMMDD format.",
+          "ai_description": null,
+          "role": "key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "Date",
+          "data_type": "datetime",
+          "description": "Full date value.",
+          "ai_description": null,
+          "role": "date",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": "M/d/yyyy",
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": ["Calendar Date"]
+        },
+        {
+          "name": "EnglishMonthName",
+          "data_type": "string",
+          "description": "Month name in English.",
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": "MonthNumberOfYear",
+          "sample_values": ["January", "February", "March", "April"],
+          "is_nullable": true,
+          "synonyms": ["Month"]
+        },
+        {
+          "name": "MonthNumberOfYear",
+          "data_type": "int64",
+          "description": "Month number (1–12) used as sort column for EnglishMonthName.",
+          "ai_description": null,
+          "role": "sort",
+          "is_hidden": true,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
+        },
+        {
+          "name": "CalendarYear",
+          "data_type": "int64",
+          "description": null,
+          "ai_description": null,
+          "role": "attribute",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": ["2020", "2021", "2022", "2023"],
+          "is_nullable": true,
+          "synonyms": ["Year", "Fiscal Year"]
+        }
+      ],
+      "measures": [],
+      "hierarchies": [
+        {
+          "name": "Calendar",
+          "table": "DimDate",
+          "levels": ["CalendarYear", "EnglishMonthName", "Date"]
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from_table": "FactInternetSales",
+      "from_column": "ProductKey",
+      "to_table": "DimProduct",
+      "to_column": "ProductKey",
+      "cardinality": "many-to-one",
+      "cross_filter_direction": "single",
+      "is_active": true,
+      "security_filtering": null
+    },
+    {
+      "from_table": "FactInternetSales",
+      "from_column": "CustomerKey",
+      "to_table": "DimCustomer",
+      "to_column": "CustomerKey",
+      "cardinality": "many-to-one",
+      "cross_filter_direction": "single",
+      "is_active": true,
+      "security_filtering": null
+    },
+    {
+      "from_table": "FactInternetSales",
+      "from_column": "OrderDateKey",
+      "to_table": "DimDate",
+      "to_column": "DateKey",
+      "cardinality": "many-to-one",
+      "cross_filter_direction": "single",
+      "is_active": true,
+      "security_filtering": null
+    }
+  ],
+  "ai_readiness_score": null,
+  "scoring_breakdown": {},
+  "extraction_timestamp": "2026-03-13T00:00:00Z",
+  "extraction_method": "mock"
+}
