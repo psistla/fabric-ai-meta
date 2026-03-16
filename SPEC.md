@@ -1,10 +1,10 @@
 # Technical Specification: Fabric Semantic Model → AI-Ready Metadata Generator
 
 > **Document Type:** Product Requirements Document + Technical Design Spec
-> **Version:** 1.1 (Reviewed + Corrected)
-> **Date:** March 12, 2026
+> **Version:** 1.2 (Open Question #1 Resolved)
+> **Date:** March 13, 2026
 > **Purpose:** Drive Claude Code implementation — this document is the single source of truth for what to build, why, and how.
-> **Changelog from v1.0:** See [Correction Log](#correction-log) at bottom for all hallucinations and inconsistencies resolved.
+> **Changelog from v1.1:** `sempy.fabric` requires Fabric notebook runtime — local execution is not supported. Two-mode architecture (Fabric runtime vs local dev/mock) is now the confirmed design. See [Correction Log](#correction-log) for full details.
 
 ---
 
@@ -16,6 +16,24 @@ A Python-based tool (CLI + library) that connects to Microsoft Fabric semantic m
 
 1. **Auto-generated Prep for AI configurations** — accelerating what Microsoft expects teams to do manually
 2. **Framework-agnostic AI-ready schemas** — exporting structured metadata for LangChain, Semantic Kernel, AutoGen, OpenAI function calling, and custom agent pipelines
+
+### Runtime Environment Model (Confirmed)
+
+> **RESOLVED — Open Question #1:** `sempy.fabric` requires the Microsoft Fabric notebook runtime. It cannot be used in a local Python environment.
+
+This means the tool operates in two distinct modes:
+
+| Mode | Where it runs | Extractor used | Use case |
+|------|--------------|----------------|----------|
+| **Fabric mode** | Inside a Fabric notebook | `SemanticLinkExtractor` | Production — real model extraction |
+| **Local dev mode** | Any local machine | `MockExtractor` only | Development, testing, CI/CD |
+
+The CLI must detect which mode it is in at startup and behave accordingly:
+- **Fabric mode detected** (env var `FABRIC_NOTEBOOK_ID` present, or `notebookutils` importable): use `SemanticLinkExtractor`
+- **Local mode detected**: all commands that require live extraction must fail with a clear `FabricEnvironmentError` unless `--mock` flag is passed
+- **`--mock` flag**: always available on all extraction commands; bypasses the environment check and uses `MockExtractor` with fixture files
+
+This is not a limitation to work around — it is the confirmed architecture. All CLI design, testing strategy, and documentation must reflect it.
 
 ### Why This Exists
 
@@ -101,6 +119,13 @@ Microsoft Fabric's native AI features (Prep for AI, Copilot descriptions, Data A
 └──────┬───────┴──────────┬───────────┴────────────┬───────────────┘
        │                  │                        │
 ┌──────▼──────────────────▼────────────────────────▼───────────────┐
+│                 Environment Detection (startup)                    │
+│  Fabric runtime? → SemanticLinkExtractor                         │
+│  Local + --mock? → MockExtractor                                 │
+│  Local, no --mock? → FabricEnvironmentError (clear message)      │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────────┐
 │                      Core Engine                                  │
 ├─────────────────────────────────────────────────────────────────-─┤
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
@@ -124,6 +149,8 @@ Microsoft Fabric's native AI features (Prep for AI, Copilot descriptions, Data A
 │                    Data Access Layer                              │
 ├─────────────────────────────────────────────────────────────────-─┤
 │  Primary: Semantic Link (sempy.fabric)                           │
+│  ⚠️  CONFIRMED: Requires Fabric notebook runtime.               │
+│      Does NOT work in local Python environments.                 │
 │  ├── list_datasets() — enumerate models in workspace             │
 │  ├── list_tables(dataset) — table metadata                       │
 │  ├── list_measures(dataset) — measures with DAX expressions      │
@@ -133,14 +160,21 @@ Microsoft Fabric's native AI features (Prep for AI, Copilot descriptions, Data A
 │      ⚠️  NOT evaluate_measure() — that function does not exist   │
 │          in the sempy.fabric public API                          │
 │                                                                   │
+│  Local dev / CI/CD: MockExtractor                                │
+│  └── Loads SemanticModelMeta from JSON fixture files             │
+│      No Fabric connection required                               │
+│      Activated by --mock flag on all extraction commands         │
+│                                                                   │
 │  Fallback: XMLA via TOM (.NET interop or pyadomd)               │
 │  └── Full fidelity: calc groups, perspectives, translations,     │
 │      object-level security, partitions                           │
 │  ⚠️  pyadomd requires Windows (ADOMD.NET dependency).            │
 │      On Linux/macOS, use pythonnet + Microsoft.AnalysisServices  │
 │      or document as Windows-only fallback.                       │
+│  ⚠️  XMLA also only usable inside Fabric/XMLA-enabled network.  │
 │                                                                   │
 │  Auth: Entra ID (Azure AD) — user token or service principal     │
+│  ⚠️  Auth only required in Fabric mode — skipped in mock mode   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -148,28 +182,37 @@ Microsoft Fabric's native AI features (Prep for AI, Copilot descriptions, Data A
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Primary extraction API | Semantic Link (`sempy.fabric`) | Python-native, no XMLA dependency, works in Fabric notebooks AND local environments |
-| Fallback extraction | XMLA via `pyadomd` (Windows) or TOM interop | Required for calc groups, perspectives, translations — Semantic Link doesn't expose these. **pyadomd is Windows-only.** |
+| Primary extraction API | Semantic Link (`sempy.fabric`) | Python-native, no XMLA dependency. **Confirmed: requires Fabric notebook runtime — does not work locally.** |
+| Local dev / CI/CD extraction | `MockExtractor` + JSON fixtures | Only viable extraction path outside Fabric runtime. All local development and testing uses this path. |
+| Runtime detection | Env var `FABRIC_NOTEBOOK_ID` + `notebookutils` import check | Determines which extractor to use at startup; fails fast with clear error in local mode without `--mock` |
+| Fallback extraction | XMLA via `pyadomd` (Windows) or TOM interop | Required for calc groups, perspectives, translations — Semantic Link doesn't expose these. **pyadomd is Windows-only. Also requires Fabric/XMLA network access — not usable locally.** |
 | LLM provider | Claude API (Anthropic) | Best reasoning for DAX analysis and classification tasks; model: `claude-sonnet-4-6` |
 | Output format | JSON (primary), YAML (optional) | JSON is universal; every framework can consume it |
 | CLI framework | `click` | Simple, well-documented, supports nested commands |
-| Package distribution | PyPI (`pip install fabric-ai-meta`) | Maximum reach for both notebook and local users |
+| Package distribution | PyPI (`pip install fabric-ai-meta`) | Maximum reach for notebook users; local users use mock mode only |
 | Config management | TOML (`pyproject.toml` + `.fabric-ai-meta.toml`) | Modern Python standard |
 
 ### 4.3 Authentication Architecture
 
 ```
 Authentication Flow:
-1. CLI: Interactive browser login via `azure-identity` DefaultAzureCredential
-2. Notebook: Automatic — uses Fabric notebook's ambient credential
-3. Service Principal: Client ID + Secret / Certificate for CI/CD pipelines
+1. Fabric mode (notebook): Automatic — uses Fabric notebook's ambient credential
+   sempy.fabric picks this up automatically; no explicit auth code needed
+2. Fabric mode (service principal): Client ID + Secret / Certificate for CI/CD
+   pipelines running inside Fabric (e.g., Fabric pipelines, scheduled notebooks)
+3. Local mock mode: No authentication required — MockExtractor reads from fixture
+   files only; no Fabric connection is made
 
-Required Permissions:
+⚠️  Interactive browser login (azure-identity InteractiveBrowserCredential) is
+    NOT needed for sempy.fabric — it handles auth internally within the Fabric
+    runtime. The auth/entra.py module exists for service principal config only.
+
+Required Permissions (Fabric mode only):
 - Semantic Model: Read.All (minimum)
 - Workspace: Read.All (for cross-workspace scanning)
 - XMLA: Read-only enabled on capacity (for fallback extraction)
 
-Required Fabric SKU:
+Required Fabric SKU (Fabric mode only):
 - Semantic Link: Any F SKU or Pro license (for basic metadata)
 - XMLA endpoint: F/P SKU with XMLA read-only enabled
 - Minimum viable: F2 ($262.80/month PAYG at $0.36/hr × 730 hrs)
@@ -443,6 +486,8 @@ This is the output format consumed by AI agents and frameworks.
 
 ```python
 # Semantic Link extraction pattern
+# ⚠️  This code only runs inside a Fabric notebook runtime.
+#     It will fail with ImportError or ConnectionError in local Python environments.
 import sempy.fabric as fabric
 
 # List all models in workspace
@@ -465,7 +510,39 @@ sample_query = """
 samples = fabric.evaluate_dax("Contoso Sales", sample_query, workspace="Production Analytics")
 ```
 
-> **Open Question (resolve early — see Section 13, item 1):** Confirm whether `sempy.fabric` functions work outside a Fabric notebook runtime in a local Python environment. The `workspace` parameter behavior and auth token handling may differ. Test against a real workspace before building the local CLI path.
+**Environment Detection (required at CLI startup):**
+
+```python
+def detect_fabric_runtime() -> bool:
+    """
+    Returns True if running inside a Fabric notebook runtime.
+    sempy.fabric is only usable when this returns True.
+    """
+    import os
+    import sys
+    # Check 1: Fabric sets this env var in all notebook runtimes
+    if os.environ.get("FABRIC_NOTEBOOK_ID"):
+        return True
+    # Check 2: notebookutils is injected by Fabric into the notebook kernel
+    if "notebookutils" in sys.modules:
+        return True
+    return False
+
+
+class FabricEnvironmentError(Exception):
+    """
+    Raised when a live extraction command is run outside Fabric notebook runtime.
+    Always includes a remediation message directing the user to --mock or Fabric.
+    """
+    DEFAULT_MESSAGE = (
+        "This command requires the Microsoft Fabric notebook runtime.\n"
+        "sempy.fabric is not available in local Python environments.\n\n"
+        "Options:\n"
+        "  1. Run this command inside a Fabric notebook\n"
+        "  2. Use --mock flag for local development with fixture data:\n"
+        "     fabric-ai-meta analyze \"Model Name\" --workspace \"ws\" --mock\n"
+    )
+```
 
 **XMLA Fallback** (`src/fabric_ai_meta/extractor/xmla.py`):
 - Use `pyadomd` (Windows only — requires ADOMD.NET) or `pythonnet` with `Microsoft.AnalysisServices.Tabular`
@@ -995,6 +1072,7 @@ Feed generated AI-ready schema to a text-to-SQL agent (Claude or GPT) and measur
 |------|----------|------------|
 | Semantic Link API changes or deprecation | High | Abstract behind interface; XMLA fallback ready |
 | Microsoft ships automated Prep for AI (makes Phase 2 redundant) | High | Monitor Fabric roadmap monthly; pivot to export-only if needed |
+| sempy.fabric not usable locally — limits developer experience | High | **CONFIRMED RISK.** Mitigation: MockExtractor + fixture-driven dev workflow. All tests run locally via mock. Real extraction only tested inside Fabric notebooks. |
 | Fabric IQ Ontology subsumes AI-ready schema concept | Medium | Position as complementary (Ontology = runtime, our schema = development-time) |
 | LLM classification hallucinations on complex DAX | Medium | Heuristic-first approach; LLM only for ambiguous cases; confidence scoring |
 | Large models exceed token limits | Medium | Chunked analysis with merge strategy (already designed) |
@@ -1006,7 +1084,7 @@ Feed generated AI-ready schema to a text-to-SQL agent (Claude or GPT) and measur
 
 ## 13. Open Questions (Resolve During Implementation)
 
-1. **Semantic Link outside Fabric notebooks:** Does `sempy.fabric` work reliably in a local Python environment, or does it require the Fabric notebook runtime? Test early — if local doesn't work, Path A (web app) needs rethinking. **This is the highest-priority question to resolve before writing the CLI path.**
+1. ~~**Semantic Link outside Fabric notebooks:** Does `sempy.fabric` work reliably in a local Python environment?~~ **✅ RESOLVED (March 13, 2026):** `sempy.fabric` requires the Fabric notebook runtime. It does not work in local Python environments. Architecture updated accordingly — see Section 1.1 (Runtime Environment Model) and Section 6.1 (FabricEnvironmentError).
 
 2. **Calculation group extraction via Semantic Link:** Confirm whether `list_measures()` returns calculation group items or only standard measures. If not, XMLA fallback is required earlier than planned.
 
@@ -1058,11 +1136,13 @@ Step 7: LLM integration
   → Prompt templates for classification, description generation, grain detection
   → Token budget management (190K operational budget, 200K actual window)
 
-Step 8: Semantic Link extractor (requires Fabric access)
-  → Real extraction via sempy.fabric
-  → Normalize to internal data model
+Step 8: Semantic Link extractor (Fabric notebook runtime required)
+  → CONFIRMED: sempy.fabric only works inside Fabric notebook runtime
+  → Implement SemanticLinkExtractor — this code runs in Fabric notebooks only
+  → Implement FabricEnvironmentError and detect_fabric_runtime() in auth/entra.py
+  → CLI startup must call detect_fabric_runtime() and gate extraction commands
+  → --mock flag must bypass environment check on all extraction commands
   → Error handling and retry logic
-  → Resolve Open Question #1 first
 
 Step 9: CLI polish
   → Rich output formatting (use rich.progress for progress bars)
@@ -1207,3 +1287,27 @@ weights.business_rules_documented = 0.15
 
 **12. Open Question #6 added (Section 13)**
 - Added explicit question about cross-platform XMLA access path, tracking the `pyadomd` Windows-only issue.
+
+---
+
+## v1.2 Changes (March 13, 2026)
+
+### 🔴 Architecture Change — sempy.fabric Runtime Constraint (Confirmed)
+
+**Open Question #1 resolved by live testing.**
+
+- **Finding:** `sempy.fabric` requires the Microsoft Fabric notebook runtime. It does not work in local Python environments. Import succeeds but API calls fail without the Fabric ambient credential and runtime context.
+- **Impact:** Every section that assumed local CLI execution with live Fabric data was incorrect.
+
+**Changes applied across the spec:**
+
+| Section | Change |
+|---------|--------|
+| Section 1.1 | New "Runtime Environment Model" table documenting Fabric mode vs Local dev mode as the confirmed two-mode architecture |
+| Section 4.1 | Architecture diagram updated — Environment Detection layer added; MockExtractor added to Data Access Layer; sempy marked as Fabric-runtime-only |
+| Section 4.2 | Design decisions table — sempy entry corrected; MockExtractor added as a first-class design decision for local dev/CI/CD |
+| Section 4.3 | Auth section rewritten — interactive browser login removed (sempy handles auth internally); auth module scoped to service principal only |
+| Section 6.1 | `FabricEnvironmentError` class and `detect_fabric_runtime()` function fully specified with implementation code |
+| Section 12 | Risk register — new confirmed High severity row for local execution limitation |
+| Section 13 | Open Question #1 struck through and marked ✅ RESOLVED with date |
+| Section 14 | Step 8 rewritten — "requires Fabric notebook runtime" is the confirmed constraint, not an open question |
