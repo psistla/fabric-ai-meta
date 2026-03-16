@@ -1,8 +1,11 @@
-"""Tests for the AI-ready JSON schema generator (Task 06)."""
+"""Tests for generators: AI-ready JSON schema (Task 06) and framework exports (Task 07)."""
 
 import json
 
 from fabric_ai_meta.generator.schema import generate_ai_ready_schema, write_schema_to_file
+from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
+from fabric_ai_meta.generator.export_openai import to_openai_function
+from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
 
 
 EXPECTED_TOP_LEVEL_KEYS = {
@@ -141,3 +144,117 @@ def test_time_intelligence_measure_has_requires_date_filter(adventure_works_mode
     assert len(ti_measures) > 0
     for m in ti_measures:
         assert m.get("requires_date_filter") is True
+
+
+# ---------------------------------------------------------------------------
+# Task 07 — LangChain export tests
+# ---------------------------------------------------------------------------
+
+
+def test_langchain_export_valid_dict(adventure_works_model):
+    """LangChain export produces a dict with name, description, parameters, metadata."""
+    result = to_langchain_tool_definition(adventure_works_model)
+    assert isinstance(result, dict)
+    assert "name" in result
+    assert "description" in result
+    assert "parameters" in result
+    assert "metadata" in result
+
+
+def test_langchain_export_name_sanitized(adventure_works_model):
+    result = to_langchain_tool_definition(adventure_works_model)
+    assert result["name"].startswith("query_")
+    # Name should be lowercase with underscores, no spaces
+    name_part = result["name"][len("query_"):]
+    assert " " not in name_part
+    assert name_part == name_part.lower()
+
+
+def test_langchain_export_is_json_serializable(adventure_works_model):
+    result = to_langchain_tool_definition(adventure_works_model)
+    raw = json.dumps(result)
+    parsed = json.loads(raw)
+    assert isinstance(parsed, dict)
+
+
+def test_langchain_metadata_has_expected_keys(adventure_works_model):
+    result = to_langchain_tool_definition(adventure_works_model)
+    metadata = result["metadata"]
+    assert "model_context" in metadata
+    assert "valid_filter_paths" in metadata
+    assert "common_pitfalls" in metadata
+
+
+# ---------------------------------------------------------------------------
+# Task 07 — OpenAI export tests
+# ---------------------------------------------------------------------------
+
+
+def test_openai_export_valid_dict(adventure_works_model):
+    """OpenAI export produces a dict with type == 'function'."""
+    result = to_openai_function(adventure_works_model)
+    assert isinstance(result, dict)
+    assert result["type"] == "function"
+
+
+def test_openai_export_function_structure(adventure_works_model):
+    result = to_openai_function(adventure_works_model)
+    func = result["function"]
+    assert "name" in func
+    assert "description" in func
+    assert "parameters" in func
+
+
+def test_openai_export_required_question(adventure_works_model):
+    """Parameters must have required: ['question']."""
+    result = to_openai_function(adventure_works_model)
+    params = result["function"]["parameters"]
+    assert params["required"] == ["question"]
+
+
+def test_openai_export_is_json_serializable(adventure_works_model):
+    result = to_openai_function(adventure_works_model)
+    raw = json.dumps(result)
+    parsed = json.loads(raw)
+    assert isinstance(parsed, dict)
+
+
+# ---------------------------------------------------------------------------
+# Task 07 — Semantic Kernel export tests
+# ---------------------------------------------------------------------------
+
+
+def test_semantic_kernel_export_valid_dict(adventure_works_model):
+    """Semantic Kernel export has schema_version and functions list."""
+    result = to_semantic_kernel_plugin(adventure_works_model)
+    assert isinstance(result, dict)
+    assert "schema_version" in result
+    assert "functions" in result
+    assert isinstance(result["functions"], list)
+
+
+def test_semantic_kernel_export_schema_version(adventure_works_model):
+    result = to_semantic_kernel_plugin(adventure_works_model)
+    assert result["schema_version"] == "v1"
+
+
+def test_semantic_kernel_export_has_query_function(adventure_works_model):
+    result = to_semantic_kernel_plugin(adventure_works_model)
+    func_names = [f["name"] for f in result["functions"]]
+    assert "query" in func_names
+
+
+def test_semantic_kernel_export_query_parameters(adventure_works_model):
+    result = to_semantic_kernel_plugin(adventure_works_model)
+    query_func = result["functions"][0]
+    param_names = [p["name"] for p in query_func["parameters"]]
+    assert "question" in param_names
+    assert "tables" in param_names
+    assert "measures" in param_names
+
+
+def test_semantic_kernel_export_is_json_serializable(adventure_works_model):
+    result = to_semantic_kernel_plugin(adventure_works_model)
+    raw = json.dumps(result)
+    parsed = json.loads(raw)
+    assert isinstance(parsed, dict)
