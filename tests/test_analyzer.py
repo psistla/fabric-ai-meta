@@ -1,4 +1,4 @@
-"""Tests for heuristic classifier and AI readiness scorer (Task 04)."""
+"""Tests for heuristic classifier, AI readiness scorer (Task 04), and DAX parser (Task 05)."""
 
 import pytest
 
@@ -6,6 +6,7 @@ from fabric_ai_meta.analyzer.classifier import (
     classify_measure_heuristic,
     classify_table_heuristic,
 )
+from fabric_ai_meta.analyzer.dax_parser import build_dependency_graph, parse_measure_dependencies
 from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, score_model
 from fabric_ai_meta.models.metadata import MeasureCategory, TableType
 
@@ -98,3 +99,83 @@ def test_scorer_second_fixture(contoso_model):
     score, breakdown = score_model(contoso_model)
     assert 0.0 <= score <= 1.0
     assert set(breakdown.keys()) == set(SCORING_WEIGHTS.keys())
+
+
+# ---------------------------------------------------------------------------
+# DAX dependency parser (Task 05)
+# ---------------------------------------------------------------------------
+
+def _all_measures_dict(model):
+    return {m.name: m.dax_expression for t in model.tables for m in t.measures}
+
+
+def _get_measure(model, name):
+    for t in model.tables:
+        for m in t.measures:
+            if m.name == name:
+                return m
+    raise KeyError(f"Measure not found: {name}")
+
+
+def test_ytd_depends_on_total_sales(adventure_works_model):
+    """[Internet Sales Amount YTD] must depend on [Internet Total Sales]."""
+    m = _get_measure(adventure_works_model, "[Internet Sales Amount YTD]")
+    result = parse_measure_dependencies(m.name, m.dax_expression, _all_measures_dict(adventure_works_model))
+    assert "[Internet Total Sales]" in result["depends_on_measures"]
+
+
+def test_ytd_column_refs(adventure_works_model):
+    """Column refs for YTD measure should include DimDate[Date]."""
+    m = _get_measure(adventure_works_model, "[Internet Sales Amount YTD]")
+    result = parse_measure_dependencies(m.name, m.dax_expression, _all_measures_dict(adventure_works_model))
+    assert "DimDate[Date]" in result["depends_on_columns"]
+
+
+def test_ytd_ti_and_filter_functions(adventure_works_model):
+    """YTD measure should report DATESYTD as TI function and CALCULATE as filter mod."""
+    m = _get_measure(adventure_works_model, "[Internet Sales Amount YTD]")
+    result = parse_measure_dependencies(m.name, m.dax_expression, _all_measures_dict(adventure_works_model))
+    assert "DATESYTD" in result["time_intelligence_functions"]
+    assert "CALCULATE" in result["filter_modifications"]
+
+
+def test_additive_measure_no_measure_deps(adventure_works_model):
+    """[Internet Total Sales] has no measure dependencies and one column ref."""
+    m = _get_measure(adventure_works_model, "[Internet Total Sales]")
+    result = parse_measure_dependencies(m.name, m.dax_expression, _all_measures_dict(adventure_works_model))
+    assert result["depends_on_measures"] == []
+    assert "FactInternetSales[SalesAmount]" in result["depends_on_columns"]
+
+
+def test_distinct_count_no_measure_deps(adventure_works_model):
+    """[Internet Distinct Count Customers] has no measure dependencies."""
+    m = _get_measure(adventure_works_model, "[Internet Distinct Count Customers]")
+    result = parse_measure_dependencies(m.name, m.dax_expression, _all_measures_dict(adventure_works_model))
+    assert result["depends_on_measures"] == []
+    assert "FactInternetSales[CustomerKey]" in result["depends_on_columns"]
+
+
+def test_build_dependency_graph_structure(adventure_works_model):
+    """build_dependency_graph returns a dict keyed by measure name with required keys."""
+    all_measures = [m for t in adventure_works_model.tables for m in t.measures]
+    graph = build_dependency_graph(all_measures)
+    assert set(graph.keys()) == {m.name for m in all_measures}
+    expected_keys = {
+        "measure_name",
+        "depends_on_measures",
+        "depends_on_columns",
+        "time_intelligence_functions",
+        "filter_modifications",
+        "implicit_business_rules",
+    }
+    for entry in graph.values():
+        assert set(entry.keys()) == expected_keys
+
+
+def test_build_dependency_graph_ytd_entry(adventure_works_model):
+    """Graph entry for YTD measure reflects correct dependencies."""
+    all_measures = [m for t in adventure_works_model.tables for m in t.measures]
+    graph = build_dependency_graph(all_measures)
+    ytd_entry = graph["[Internet Sales Amount YTD]"]
+    assert "[Internet Total Sales]" in ytd_entry["depends_on_measures"]
+    assert "DimDate[Date]" in ytd_entry["depends_on_columns"]
