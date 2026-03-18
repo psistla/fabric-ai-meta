@@ -13,7 +13,14 @@ from rich.table import Table
 
 from fabric_ai_meta.config import load_config
 
-console = Console()
+# Ensure stdout/stderr use UTF-8 on Windows (default is cp1252), so Rich's
+# spinner glyphs and other Unicode output don't raise UnicodeEncodeError.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+console = Console(legacy_windows=False)
 
 
 def _slugify(name: str) -> str:
