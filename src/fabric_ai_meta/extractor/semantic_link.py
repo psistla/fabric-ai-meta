@@ -222,6 +222,26 @@ class SemanticLinkExtractor(BaseExtractor):
             is_active=bool(row.get("Active", row.get("is_active", True))),
         )
 
+    def list_models(self, workspace: str) -> list[str]:
+        """Return the names of all semantic models in the given workspace.
+
+        Args:
+            workspace: Fabric workspace name.
+
+        Returns:
+            List of dataset (semantic model) names.
+        """
+        fabric = self._fabric
+        datasets_df = self._with_retry(
+            fabric.list_datasets,
+            workspace=workspace,
+            _context=f"list_datasets(workspace={workspace!r})",
+        )
+        for col in ("Dataset Name", "dataset_name", "Name", "name"):
+            if col in datasets_df.columns:
+                return [str(v) for v in datasets_df[col].dropna().tolist()]
+        return []
+
     def _extract_sample_values(
         self, model_name: str, table: str, column: str
     ) -> list[str]:

@@ -81,6 +81,45 @@ def test_to_dict_is_json_serializable(adventure_works_model):
     assert len(result) > 0
 
 
+def test_list_models_returns_model_names():
+    """list_models calls fabric.list_datasets and returns model name strings."""
+    import pandas as pd
+    from unittest.mock import MagicMock
+    from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+
+    mock_fabric = MagicMock()
+    mock_df = pd.DataFrame({"Dataset Name": ["Adventure Works", "Contoso Sales"]})
+    mock_fabric.list_datasets.return_value = mock_df
+
+    # Bypass __init__ (requires Fabric runtime) by creating instance directly
+    extractor = object.__new__(SemanticLinkExtractor)
+    extractor.workspace = "test"
+    extractor._fabric = mock_fabric
+
+    names = extractor.list_models("test")
+
+    assert "Adventure Works" in names
+    assert "Contoso Sales" in names
+    assert len(names) == 2
+
+
+def test_list_models_empty_when_no_datasets():
+    """list_models returns empty list when no known column is present."""
+    import pandas as pd
+    from unittest.mock import MagicMock
+    from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+
+    mock_fabric = MagicMock()
+    mock_fabric.list_datasets.return_value = pd.DataFrame()
+
+    extractor = object.__new__(SemanticLinkExtractor)
+    extractor.workspace = "test"
+    extractor._fabric = mock_fabric
+
+    names = extractor.list_models("test")
+    assert names == []
+
+
 def test_mock_extractor_fixture_path(tmp_path):
     """MockExtractor uses the fixture_path provided at construction."""
     fixture = tmp_path / "model.json"

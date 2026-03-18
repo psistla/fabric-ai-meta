@@ -30,6 +30,24 @@ def _write_json(path: str, data: dict) -> None:
         json.dump(data, f, indent=2)
 
 
+def _list_mock_models() -> list[str]:
+    """List model names available from fixture files in the tests/fixtures directory."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    fixtures_dir = os.path.normpath(os.path.join(here, "..", "..", "tests", "fixtures"))
+    models = []
+    if os.path.isdir(fixtures_dir):
+        for fname in sorted(os.listdir(fixtures_dir)):
+            if fname.endswith(".json"):
+                fpath = os.path.join(fixtures_dir, fname)
+                try:
+                    with open(fpath, encoding="utf-8") as f:
+                        data = json.load(f)
+                    models.append(data.get("name", fname[:-5]))
+                except Exception:
+                    pass
+    return models
+
+
 def _get_fixture_path(model_name: str) -> str:
     """Return path to the best-matching fixture for mock mode."""
     here = os.path.dirname(__file__)
@@ -294,23 +312,26 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
 @click.option("--workspace", "-w", required=True, help="Fabric workspace name.")
 @click.option("--output", "-o", default=None, help="Output directory.")
 @click.option("--format", "fmt", default="json", type=click.Choice(["json"]))
-def scan(workspace, output, fmt):
+@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
+def scan(workspace, output, fmt, mock):
     """Scan all models in a workspace and generate AI-ready exports."""
     cfg = load_config()
     output = output or cfg.output.output_dir
 
     console.print(Panel(
-        f"[bold]scan[/bold]  workspace=[cyan]{workspace}[/cyan]",
+        f"[bold]scan[/bold]  workspace=[cyan]{workspace}[/cyan]  mock=[cyan]{mock}[/cyan]",
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
-    if not detect_notebook_environment():
-        raise FabricEnvironmentError()
-
-    from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-    extractor = SemanticLinkExtractor(workspace=workspace)
-    model_names = extractor.list_models(workspace)
+    if mock:
+        model_names = _list_mock_models()
+    else:
+        from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+        if not detect_notebook_environment():
+            raise FabricEnvironmentError()
+        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+        extractor = SemanticLinkExtractor(workspace=workspace)
+        model_names = extractor.list_models(workspace)
 
     console.print(f"Found [bold]{len(model_names)}[/bold] models in workspace.")
 
@@ -319,11 +340,21 @@ def scan(workspace, output, fmt):
         for name in model_names:
             task = progress.add_task(f"Analyzing {name}...", total=None)
             try:
-                result = _run_analysis(name, workspace, output, fmt, False, False, False)
+                result = _run_analysis(name, workspace, output, fmt, False, False, mock)
                 model, score = result
-                summary.append({"model": name, "score": score, "status": "ok"})
+                summary.append({
+                    "model": name,
+                    "score": score,
+                    "status": "ok",
+                    "extraction_timestamp": model.extraction_timestamp,
+                })
             except Exception as e:
-                summary.append({"model": name, "score": None, "status": f"error: {e}"})
+                summary.append({
+                    "model": name,
+                    "score": None,
+                    "status": f"error: {e}",
+                    "extraction_timestamp": None,
+                })
             progress.remove_task(task)
 
     # workspace-summary.json
