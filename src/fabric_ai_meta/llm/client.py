@@ -10,6 +10,7 @@ from fabric_ai_meta.llm.prompts import (
     TABLE_CLASSIFICATION_PROMPT,
     GRAIN_DETECTION_PROMPT,
     DESCRIPTION_GENERATION_PROMPT,
+    BATCH_DESCRIPTION_PROMPT,
 )
 from fabric_ai_meta.models.metadata import (
     TableMeta,
@@ -25,6 +26,17 @@ RESERVED_FOR_RESPONSE = 8_000
 MAX_MODEL_CONTEXT = MAX_CONTEXT_TOKENS - RESERVED_FOR_RESPONSE  # 182,000 tokens for input
 
 ANTHROPIC_MODEL = "claude-sonnet-4-6"  # Current production model string as of March 2026
+
+
+def _try_parse_batch_json(text: str) -> list | None:
+    """Attempt to parse a JSON array from LLM output. Returns None on failure."""
+    try:
+        parsed = json.loads(text.strip())
+        if isinstance(parsed, list):
+            return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass
+    return None
 
 
 class CostLimitExceededError(Exception):
@@ -162,6 +174,56 @@ class FabricLLMClient:
         result_text = self.call(prompt)
         parsed = json.loads(result_text)
         return parsed["grain"], float(parsed["confidence"])
+
+    def generate_descriptions_batch(
+        self, items: list[dict], model_name: str, batch_size: int = 15
+    ) -> dict[str, str]:
+        """Generate descriptions for multiple items in batches.
+
+        items: list of dicts with id, type, name, parent_table, data_type/dax, siblings.
+        Returns {id: description} merged across all batches.
+        On JSON parse failure, retries once; if still fails, skips batch and continues.
+        """
+        import logging
+        import warnings
+
+        results: dict[str, str] = {}
+
+        for i in range(0, len(items), batch_size):
+            batch = items[i : i + batch_size]
+
+            # Cost check before each batch
+            if self.max_cost_usd is not None and self._estimate_cost() >= self.max_cost_usd:
+                raise CostLimitExceededError(
+                    f"Cost limit ${self.max_cost_usd:.2f} reached before batch {i // batch_size + 1}"
+                )
+
+            prompt = BATCH_DESCRIPTION_PROMPT.format(
+                model_name=model_name,
+                items_json=json.dumps(batch, ensure_ascii=False),
+            )
+
+            raw = self.call(prompt, max_tokens=2000)
+
+            parsed = _try_parse_batch_json(raw)
+            if parsed is None:
+                # Retry once with explicit JSON reminder
+                retry_prompt = prompt + "\nReturn valid JSON array only, no other text."
+                raw2 = self.call(retry_prompt, max_tokens=2000)
+                parsed = _try_parse_batch_json(raw2)
+
+            if parsed is None:
+                warnings.warn(
+                    f"Batch {i // batch_size + 1}: JSON parse failed after retry — skipping batch",
+                    stacklevel=2,
+                )
+                continue
+
+            for entry in parsed:
+                if "id" in entry and "description" in entry:
+                    results[entry["id"]] = entry["description"]
+
+        return results
 
     def generate_description(self, obj_type: str, name: str, context: dict) -> str:
         """Use LLM to generate a missing description. Returns the description string."""

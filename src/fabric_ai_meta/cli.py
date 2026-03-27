@@ -126,9 +126,10 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
         model.scoring_breakdown = breakdown
 
         # Step 4: Optional LLM enrichment
+        backfill = None
         if llm_enrich:
             progress.update(task, description="Running LLM enrichment...")
-            _run_llm_enrichment(model, cfg)
+            backfill = _run_llm_enrichment(model, cfg)
 
         # Step 5: Generate outputs
         progress.update(task, description="Generating output files...")
@@ -189,11 +190,14 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
     return model, overall
 
 
-def _run_llm_enrichment(model, cfg) -> None:
-    """Run LLM enrichment for ambiguous tables and grain detection."""
-    from fabric_ai_meta.analyzer.classifier import classify_table_heuristic
+def _run_llm_enrichment(model, cfg):
+    """Run LLM enrichment: classify ambiguous tables, detect grain, backfill descriptions.
+
+    Returns the DescriptionBackfill produced (may be empty if no items needed backfill).
+    """
     from fabric_ai_meta.llm.client import FabricLLMClient
     from fabric_ai_meta.models.metadata import TableType
+    from fabric_ai_meta.generator.description_backfill import backfill_descriptions, apply_backfill
 
     api_key = os.environ.get(cfg.llm.api_key_env)
     llm = FabricLLMClient(
@@ -213,6 +217,10 @@ def _run_llm_enrichment(model, cfg) -> None:
                     table.grain = grain
             except Exception:
                 pass
+
+    backfill = backfill_descriptions(model, llm)
+    apply_backfill(model, backfill)
+    return backfill
 
 
 # ---------------------------------------------------------------------------

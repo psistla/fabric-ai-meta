@@ -19,6 +19,7 @@ from fabric_ai_meta.llm.prompts import AI_INSTRUCTIONS_PROMPT
 
 if TYPE_CHECKING:
     from fabric_ai_meta.llm.client import FabricLLMClient
+    from fabric_ai_meta.generator.description_backfill import DescriptionBackfill
 
 
 @dataclass
@@ -42,6 +43,7 @@ class PrepForAIConfig:
 def generate_prep_for_ai(
     model: SemanticModelMeta,
     llm_client: "FabricLLMClient",
+    backfill: "DescriptionBackfill | None" = None,
 ) -> PrepForAIConfig:
     """Generate a Prep for AI configuration from a semantic model.
 
@@ -60,7 +62,10 @@ def generate_prep_for_ai(
 
     verified_answers = _build_verified_answers(model)
 
-    generated_descriptions = _generate_missing_descriptions(model, llm_client)
+    if backfill is not None:
+        generated_descriptions = dict(backfill.column_descriptions)
+    else:
+        generated_descriptions = _generate_missing_descriptions(model, llm_client)
 
     return PrepForAIConfig(
         included_tables=included_tables,

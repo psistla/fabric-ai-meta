@@ -283,3 +283,112 @@ class TestPromptTemplates:
             possible_types="fact, dimension",
         )
         assert "TestTable" in result
+
+    def test_batch_description_prompt_has_placeholders(self):
+        from fabric_ai_meta.llm.prompts import BATCH_DESCRIPTION_PROMPT
+        assert "{model_name}" in BATCH_DESCRIPTION_PROMPT
+        assert "{items_json}" in BATCH_DESCRIPTION_PROMPT
+
+
+# ── generate_descriptions_batch tests ───────────────────────────────────────
+
+
+class TestGenerateDescriptionsBatch:
+    def _make_items(self, n: int) -> list[dict]:
+        return [
+            {
+                "id": f"column:Sales:Col{i}",
+                "type": "column",
+                "name": f"Col{i}",
+                "parent_table": "Sales",
+                "data_type": "string",
+                "siblings": "Col0, Col1",
+            }
+            for i in range(n)
+        ]
+
+    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
+    def test_returns_descriptions_mapped_by_id(self, mock_cls, tmp_path):
+        mock_client = MagicMock()
+        mock_cls.return_value = mock_client
+        items = self._make_items(3)
+        expected = [{"id": item["id"], "description": f"Desc {i}"} for i, item in enumerate(items)]
+        mock_client.messages.create.return_value = _make_mock_response(json.dumps(expected))
+
+        client = FabricLLMClient(api_key="k", cache_enabled=False)
+        result = client.generate_descriptions_batch(items, "TestModel")
+
+        assert len(result) == 3
+        for item in items:
+            assert item["id"] in result
+
+    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
+    def test_batches_split_correctly(self, mock_cls, tmp_path):
+        mock_client = MagicMock()
+        mock_cls.return_value = mock_client
+        items = self._make_items(30)
+
+        def make_response(*args, **kwargs):
+            # Parse which items are in this batch from the prompt and return matching ids
+            msgs = kwargs.get("messages", [])
+            prompt = msgs[0]["content"] if msgs else ""
+            # Return empty array — we only care about call count
+            return _make_mock_response("[]")
+
+        mock_client.messages.create.side_effect = make_response
+
+        client = FabricLLMClient(api_key="k", cache_enabled=False)
+        client.generate_descriptions_batch(items, "TestModel", batch_size=15)
+
+        assert mock_client.messages.create.call_count == 2
+
+    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
+    def test_parse_failure_retries_then_skips(self, mock_cls, tmp_path):
+        mock_client = MagicMock()
+        mock_cls.return_value = mock_client
+        # First call: bad batch (invalid JSON), second call: also invalid (retry), third call: good batch
+        items_bad = self._make_items(2)
+        items_good = self._make_items(1)
+        items_good[0]["id"] = "column:Sales:GoodCol"
+
+        all_items = items_bad + items_good
+
+        call_responses = [
+            _make_mock_response("not valid json"),   # batch 1 first try
+            _make_mock_response("still not json"),   # batch 1 retry
+            _make_mock_response(json.dumps([{"id": "column:Sales:GoodCol", "description": "Good"}])),  # batch 2
+        ]
+        mock_client.messages.create.side_effect = call_responses
+
+        client = FabricLLMClient(api_key="k", cache_enabled=False)
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = client.generate_descriptions_batch(all_items, "TestModel", batch_size=2)
+
+        assert "column:Sales:GoodCol" in result
+        assert result["column:Sales:GoodCol"] == "Good"
+        assert len(w) == 1
+        assert "skipping batch" in str(w[0].message).lower()
+
+    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
+    def test_id_round_trip(self, mock_cls, tmp_path):
+        mock_client = MagicMock()
+        mock_cls.return_value = mock_client
+        items = [
+            {"id": "table:DimProduct", "type": "table", "name": "DimProduct",
+             "parent_table": "DimProduct", "siblings": ""},
+            {"id": "column:Sales:Amount", "type": "column", "name": "Amount",
+             "parent_table": "Sales", "data_type": "decimal", "siblings": ""},
+            {"id": "measure:Sales:Total Sales", "type": "measure", "name": "Total Sales",
+             "parent_table": "Sales", "dax": "SUM(Sales[Amount])", "siblings": ""},
+        ]
+        expected = [{"id": item["id"], "description": f"Desc for {item['name']}"} for item in items]
+        mock_client.messages.create.return_value = _make_mock_response(json.dumps(expected))
+
+        client = FabricLLMClient(api_key="k", cache_enabled=False)
+        result = client.generate_descriptions_batch(items, "TestModel")
+
+        assert result["table:DimProduct"] == "Desc for DimProduct"
+        assert result["column:Sales:Amount"] == "Desc for Amount"
+        assert result["measure:Sales:Total Sales"] == "Desc for Total Sales"

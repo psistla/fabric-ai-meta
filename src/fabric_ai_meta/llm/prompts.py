@@ -48,6 +48,18 @@ Generate a clear, concise business description (max 150 characters) that explain
 Return your answer as JSON:
 {{"description": "concise business description, max 150 chars"}}"""
 
+BATCH_DESCRIPTION_PROMPT = """You are generating concise business descriptions for metadata objects in a Power BI semantic model named "{model_name}".
+
+For each item below, generate a clear description (max 150 characters) explaining its business meaning. Use surrounding context (table name, data type, sibling columns) to infer purpose.
+
+Items:
+{items_json}
+
+Each item: "id" (return unchanged), "type" (table|column|measure), "name", "parent_table", "data_type" or "dax", "siblings" (context).
+
+Return ONLY a JSON array: [{{"id": "...", "description": "..."}}]
+No preamble, no markdown fences."""
+
 AI_INSTRUCTIONS_PROMPT = """You are generating AI Instructions for a Power BI semantic model named "{model_name}".
 
 Model context:
