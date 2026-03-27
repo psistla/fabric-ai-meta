@@ -613,9 +613,9 @@ def test_bulk01_scan_mock_each_model_has_score(tmp_path):
     ])
     data = json.loads((tmp_path / "workspace-summary.json").read_text())
     for entry in data["models"]:
-        assert "model" in entry
-        assert "score" in entry
-        assert "status" in entry
+        assert "name" in entry
+        assert "ai_readiness_score" in entry
+        assert "errors" in entry
 
 
 # ---------------------------------------------------------------------------

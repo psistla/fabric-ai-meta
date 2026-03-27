@@ -138,3 +138,52 @@ def test_mock_extractor_fixture_path(tmp_path):
     model = extractor.extract("Test Model", "Test WS")
     assert model.name == "Test Model"
     assert model.tables == []
+
+
+# ── MockExtractor directory mode ─────────────────────────────────────────────
+
+
+def test_mock_extractor_dir_list_models_returns_both_fixture_names():
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    names = extractor.list_models("any")
+    assert "Adventure Works" in names
+    assert "Contoso Sales" in names
+
+
+def test_mock_extractor_dir_list_models_sorted():
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    names = extractor.list_models("any")
+    assert names == sorted(names)
+
+
+def test_mock_extractor_dir_extract_adventure_works():
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    model = extractor.extract("Adventure Works", "any")
+    assert model.name == "Adventure Works"
+    assert len(model.tables) == 4
+
+
+def test_mock_extractor_dir_extract_case_insensitive():
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    model = extractor.extract("adventure works", "any")
+    assert model.name == "Adventure Works"
+
+
+def test_mock_extractor_dir_extract_nonexistent_raises():
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    with pytest.raises(FileNotFoundError):
+        extractor.extract("Nonexistent Model", "any")
+
+
+def test_mock_extractor_fixture_path_list_models_single_item():
+    extractor = MockExtractor(fixture_path=os.path.join(FIXTURES_DIR, "adventure_works.json"))
+    names = extractor.list_models("any")
+    assert names == ["Adventure Works"]
+
+
+def test_mock_extractor_backward_compat_single_file():
+    """Phase 1 single-file usage must still work identically."""
+    extractor = MockExtractor(fixture_path=os.path.join(FIXTURES_DIR, "adventure_works.json"))
+    model = extractor.extract("Adventure Works", "test")
+    assert isinstance(model, SemanticModelMeta)
+    assert len(model.tables) == 4

@@ -12,3 +12,8 @@ class BaseExtractor(ABC):
     def extract(self, model_name: str, workspace: str) -> SemanticModelMeta:
         """Extract metadata for a semantic model and return a SemanticModelMeta."""
         ...
+
+    @abstractmethod
+    def list_models(self, workspace: str) -> list[str]:
+        """Return names of all semantic models available in the workspace."""
+        ...

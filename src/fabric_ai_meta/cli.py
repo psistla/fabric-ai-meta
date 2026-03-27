@@ -328,8 +328,11 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
 @click.option("--output", "-o", default=None, help="Output directory.")
 @click.option("--format", "fmt", default="json", type=click.Choice(["json"]))
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
-def scan(workspace, output, fmt, mock):
+@click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM-assisted enrichment for each model.")
+def scan(workspace, output, fmt, mock, llm_enrich):
     """Scan all models in a workspace and generate AI-ready exports."""
+    from datetime import datetime, timezone
+
     cfg = load_config()
     output = output or cfg.output.output_dir
 
@@ -339,7 +342,11 @@ def scan(workspace, output, fmt, mock):
     ))
 
     if mock:
-        model_names = _list_mock_models()
+        from fabric_ai_meta.extractor.mock import MockExtractor
+        here = os.path.dirname(os.path.abspath(__file__))
+        fixtures_dir = os.path.normpath(os.path.join(here, "..", "..", "tests", "fixtures"))
+        extractor = MockExtractor(fixture_dir=fixtures_dir)
+        model_names = extractor.list_models(workspace)
     else:
         from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
         if not detect_notebook_environment():
@@ -350,33 +357,101 @@ def scan(workspace, output, fmt, mock):
 
     console.print(f"Found [bold]{len(model_names)}[/bold] models in workspace.")
 
-    summary = []
+    scan_timestamp = datetime.now(timezone.utc).isoformat()
+    model_summaries = []
+    errors_by_model: dict[str, list[str]] = {}
+
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         for name in model_names:
             task = progress.add_task(f"Analyzing {name}...", total=None)
             try:
-                result = _run_analysis(name, workspace, output, fmt, False, False, mock)
+                result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock)
                 model, score = result
-                summary.append({
-                    "model": name,
-                    "score": score,
-                    "status": "ok",
+                slug = _slugify(name)
+                table_count = len(model.tables)
+                measure_count = sum(len(t.measures) for t in model.tables)
+                # Description coverage: fraction of columns + measures with any description
+                total_objs = sum(len(t.columns) + len(t.measures) for t in model.tables)
+                described = sum(
+                    sum(1 for c in t.columns if c.description or c.ai_description) +
+                    sum(1 for m in t.measures if m.description or m.ai_description)
+                    for t in model.tables
+                )
+                desc_coverage = round(described / total_objs, 4) if total_objs > 0 else 0.0
+                model_summaries.append({
+                    "name": name,
+                    "slug": slug,
+                    "ai_readiness_score": round(score, 4),
+                    "table_count": table_count,
+                    "measure_count": measure_count,
+                    "description_coverage": desc_coverage,
                     "extraction_timestamp": model.extraction_timestamp,
+                    "output_directory": f"{slug}/",
+                    "errors": [],
                 })
             except Exception as e:
-                summary.append({
-                    "model": name,
-                    "score": None,
-                    "status": f"error: {e}",
+                model_summaries.append({
+                    "name": name,
+                    "slug": _slugify(name),
+                    "ai_readiness_score": None,
+                    "table_count": None,
+                    "measure_count": None,
+                    "description_coverage": None,
                     "extraction_timestamp": None,
+                    "output_directory": f"{_slugify(name)}/",
+                    "errors": [str(e)],
                 })
+                console.print(f"[yellow]Warning:[/yellow] {name}: {e}")
             progress.remove_task(task)
 
-    # workspace-summary.json
+    # Build summary fields
+    scored = [m for m in model_summaries if m["ai_readiness_score"] is not None]
+    avg_score = round(sum(m["ai_readiness_score"] for m in scored) / len(scored), 4) if scored else 0.0
+    score_ranking = [m["name"] for m in sorted(scored, key=lambda x: x["ai_readiness_score"], reverse=True)]
+
+    recommendations = []
+    if scored:
+        lowest = min(scored, key=lambda x: x["ai_readiness_score"])
+        recommendations.append(
+            f"Lowest scoring model: '{lowest['name']}' ({lowest['ai_readiness_score']:.0%})"
+            f" — run with --llm-enrich to improve"
+        )
+    low_coverage = [m for m in scored if m["description_coverage"] is not None and m["description_coverage"] < 0.7]
+    if low_coverage:
+        recommendations.append(
+            f"{len(low_coverage)} of {len(model_summaries)} models have description coverage below 70%"
+        )
+
+    workspace_summary = {
+        "$schema": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
+        "version": "1.0",
+        "workspace": workspace,
+        "scan_timestamp": scan_timestamp,
+        "model_count": len(model_summaries),
+        "average_readiness_score": avg_score,
+        "models": model_summaries,
+        "score_ranking": score_ranking,
+        "recommendations": recommendations,
+    }
+
     _ensure_dir(output)
     summary_path = os.path.join(output, "workspace-summary.json")
-    _write_json(summary_path, {"workspace": workspace, "models": summary})
+    _write_json(summary_path, workspace_summary)
     console.print(f"[green]Workspace summary written to:[/green] {summary_path}")
+
+    # Rankings table
+    tbl = Table(title=f"Workspace: {workspace} — {len(model_summaries)} models", show_header=True)
+    tbl.add_column("Model")
+    tbl.add_column("Score", justify="right")
+    tbl.add_column("Tables", justify="right")
+    tbl.add_column("Measures", justify="right")
+    tbl.add_column("Desc Coverage", justify="right")
+    for m in sorted(model_summaries, key=lambda x: (x["ai_readiness_score"] or 0), reverse=True):
+        score_str = f"{m['ai_readiness_score']:.2%}" if m["ai_readiness_score"] is not None else "error"
+        cov_str = f"{m['description_coverage']:.0%}" if m["description_coverage"] is not None else "—"
+        tbl.add_row(m["name"], score_str, str(m["table_count"] or "—"),
+                    str(m["measure_count"] or "—"), cov_str)
+    console.print(tbl)
 
 
 # ---------------------------------------------------------------------------
@@ -446,39 +521,73 @@ def export_semantic_kernel(model_name, workspace):
 @export_group.command("prep-for-ai")
 @click.argument("model_name")
 @click.option("--workspace", "-w", default=None)
-def export_prep_for_ai(model_name, workspace):
-    """Export Prep for AI configuration (requires LLM)."""
+@click.option("--output", "-o", default=None, help="Output directory.")
+@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
+@click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM enrichment and description backfill.")
+def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
+    """Export Prep for AI configuration."""
+    import dataclasses
+    from fabric_ai_meta.analyzer.classifier import (
+        classify_table_heuristic, classify_column_role, classify_measure_heuristic,
+    )
+    from fabric_ai_meta.analyzer.scorer import score_model
+    from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
+
     cfg = load_config()
     workspace = workspace or cfg.extraction.default_workspace
+    output = output or cfg.output.output_dir
 
     console.print(Panel(
-        f"[bold]export prep-for-ai[/bold]  model=[cyan]{model_name}[/cyan]",
+        f"[bold]export prep-for-ai[/bold]  model=[cyan]{model_name}[/cyan]  mock=[cyan]{mock}[/cyan]",
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
-    if not detect_notebook_environment():
-        raise FabricEnvironmentError()
+    if mock:
+        from fabric_ai_meta.extractor.mock import MockExtractor
+        extractor = MockExtractor(fixture_path=_get_fixture_path(model_name))
+    else:
+        from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+        if not detect_notebook_environment():
+            raise FabricEnvironmentError()
+        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+        extractor = SemanticLinkExtractor(workspace=workspace)
 
-    from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-    from fabric_ai_meta.llm.client import FabricLLMClient
-    from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
-    import dataclasses
-
-    extractor = SemanticLinkExtractor(workspace=workspace)
     model = extractor.extract(model_name, workspace)
 
-    api_key = os.environ.get(cfg.llm.api_key_env)
-    llm = FabricLLMClient(
-        api_key=api_key,
-        cache_enabled=cfg.llm.cache_enabled,
-        cache_dir=cfg.llm.cache_dir,
-        max_cost_usd=cfg.llm.max_cost_per_run,
-    )
-    prep_config = generate_prep_for_ai(model, llm)
+    for table in model.tables:
+        table.table_type = classify_table_heuristic(table, model.relationships)
+        for col in table.columns:
+            col.role = classify_column_role(col, table, model.relationships)
+        for measure in table.measures:
+            measure.category = classify_measure_heuristic(measure)
+
+    backfill = None
+    llm = None
+    if llm_enrich:
+        from fabric_ai_meta.llm.client import FabricLLMClient
+        api_key = os.environ.get(cfg.llm.api_key_env)
+        llm = FabricLLMClient(
+            api_key=api_key,
+            cache_enabled=cfg.llm.cache_enabled,
+            cache_dir=cfg.llm.cache_dir,
+            max_cost_usd=cfg.llm.max_cost_per_run,
+        )
+        backfill = _run_llm_enrichment(model, cfg)
+
+    if llm is None:
+        from fabric_ai_meta.llm.client import FabricLLMClient
+        api_key = os.environ.get(cfg.llm.api_key_env) if not mock else None
+        llm = FabricLLMClient(
+            api_key=api_key,
+            cache_enabled=cfg.llm.cache_enabled,
+            cache_dir=cfg.llm.cache_dir,
+            max_cost_usd=cfg.llm.max_cost_per_run,
+        )
+
+    prep_config = generate_prep_for_ai(model, llm, backfill=backfill)
 
     slug = _slugify(model_name)
-    out_dir = os.path.join(cfg.output.output_dir, slug)
+    out_dir = os.path.join(output, slug)
     _ensure_dir(out_dir)
     path = os.path.join(out_dir, "prep-for-ai-config.json")
     _write_json(path, dataclasses.asdict(prep_config))

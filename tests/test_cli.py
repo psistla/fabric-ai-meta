@@ -210,3 +210,113 @@ def test_analyze_mock_extraction_raw_matches_model(runner, tmp_path):
         raw = json.load(f)
     model = from_dict(raw)
     assert len(model.tables) > 0
+
+
+# ---------------------------------------------------------------------------
+# scan --mock end-to-end
+# ---------------------------------------------------------------------------
+
+def test_scan_mock_exits_0(runner, tmp_path):
+    result = runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    assert result.exit_code == 0, f"Exit {result.exit_code}: {result.output}"
+
+
+def test_scan_mock_produces_model_subdirs(runner, tmp_path):
+    runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    slugs = {d for d in os.listdir(tmp_path) if (tmp_path / d).is_dir()}
+    assert "adventure-works" in slugs
+    assert "contoso-sales" in slugs
+
+
+def test_scan_mock_workspace_summary_exists_and_valid_json(runner, tmp_path):
+    runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    summary_path = tmp_path / "workspace-summary.json"
+    assert summary_path.exists(), "workspace-summary.json not found"
+    with open(summary_path) as f:
+        data = json.load(f)
+    assert isinstance(data, dict)
+
+
+def test_scan_mock_workspace_summary_top_level_keys(runner, tmp_path):
+    runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    with open(tmp_path / "workspace-summary.json") as f:
+        data = json.load(f)
+    for key in ["$schema", "version", "workspace", "scan_timestamp",
+                "model_count", "average_readiness_score", "models",
+                "score_ranking", "recommendations"]:
+        assert key in data, f"Missing key '{key}' in workspace-summary.json"
+
+
+def test_scan_mock_model_count_matches_fixtures(runner, tmp_path):
+    runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    with open(tmp_path / "workspace-summary.json") as f:
+        data = json.load(f)
+    assert data["model_count"] == 2
+
+
+def test_scan_mock_score_ranking_sorted_descending(runner, tmp_path):
+    runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    with open(tmp_path / "workspace-summary.json") as f:
+        data = json.load(f)
+    ranking = data["score_ranking"]
+    scores = {m["name"]: m["ai_readiness_score"] for m in data["models"] if m["ai_readiness_score"] is not None}
+    ranked_scores = [scores[n] for n in ranking if n in scores]
+    assert ranked_scores == sorted(ranked_scores, reverse=True)
+
+
+def test_scan_mock_per_model_fields(runner, tmp_path):
+    runner.invoke(main, [
+        "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+    ])
+    with open(tmp_path / "workspace-summary.json") as f:
+        data = json.load(f)
+    for model in data["models"]:
+        for key in ["name", "slug", "ai_readiness_score", "table_count",
+                    "measure_count", "description_coverage", "output_directory", "errors"]:
+            assert key in model, f"Model entry missing key '{key}'"
+
+
+# ---------------------------------------------------------------------------
+# export prep-for-ai --mock
+# ---------------------------------------------------------------------------
+
+def test_export_prep_for_ai_mock_exits_0(runner, tmp_path):
+    from unittest.mock import patch, MagicMock
+    import json as _json
+
+    mock_response = MagicMock()
+    mock_response.content = [MagicMock(text=_json.dumps({"description": "desc"}))]
+    mock_response.usage.input_tokens = 10
+    mock_response.usage.output_tokens = 5
+
+    with patch("fabric_ai_meta.llm.client.anthropic.Anthropic") as mock_cls:
+        mock_client = MagicMock()
+        mock_cls.return_value = mock_client
+        mock_client.messages.create.return_value = mock_response
+
+        result = runner.invoke(main, [
+            "export", "prep-for-ai", "Adventure Works",
+            "--workspace", "test",
+            "--output", str(tmp_path),
+            "--mock",
+        ])
+    assert result.exit_code == 0, f"Exit {result.exit_code}: {result.output}"
+    out_file = tmp_path / "adventure-works" / "prep-for-ai-config.json"
+    assert out_file.exists()
+    with open(out_file) as f:
+        data = json.load(f)
+    for key in ["included_tables", "excluded_columns", "ai_instructions",
+                "verified_answers", "generated_descriptions"]:
+        assert key in data, f"Missing key '{key}' in prep-for-ai-config.json"
