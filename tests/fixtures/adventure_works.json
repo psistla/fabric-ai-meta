@@ -137,6 +137,19 @@
           "depends_on_columns": ["FactInternetSales[CustomerKey]"],
           "implicit_filters": [],
           "is_hidden": false
+        },
+        {
+          "name": "[Sales YTD]",
+          "dax_expression": "CALCULATE([Total Sales], DATESYTD('DimDate'[Date]))",
+          "description": "Year-to-date total sales.",
+          "ai_description": null,
+          "category": "time_intelligence",
+          "display_folder": "Time Intelligence",
+          "format_string": "$#,0.00",
+          "depends_on_measures": ["[Total Sales]"],
+          "depends_on_columns": ["DimDate[Date]"],
+          "implicit_filters": [],
+          "is_hidden": false
         }
       ],
       "hierarchies": []

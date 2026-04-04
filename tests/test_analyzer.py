@@ -302,9 +302,10 @@ def test_find_duplicate_measures_no_false_positives():
 def test_generate_governance_report_structure(adventure_works_model, contoso_model):
     """Report must contain all required top-level keys."""
     report = generate_governance_report([adventure_works_model, contoso_model])
-    assert set(report.keys()) == {"summary", "naming_issues", "duplicate_measures", "score_ranking"}
+    for key in ("summary", "naming_inconsistencies", "duplicate_measures", "score_ranking", "recommendations"):
+        assert key in report
     assert report["summary"]["model_count"] == 2
-    assert isinstance(report["naming_issues"], list)
+    assert isinstance(report["naming_inconsistencies"], list)
     assert isinstance(report["duplicate_measures"], list)
     assert isinstance(report["score_ranking"], list)
 

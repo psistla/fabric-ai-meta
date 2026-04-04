@@ -684,8 +684,10 @@ def score(model_name, workspace, score_all, mock):
 
 @main.command("governance")
 @click.option("--workspace", "-w", required=True, help="Fabric workspace name.")
-@click.option("--report", default="governance-report.json", help="Output path for governance report.")
-def governance(workspace, report):
+@click.option("--report", default=None, help="Output file path for governance report JSON.")
+@click.option("--output", "-o", default="./output", show_default=True, help="Output directory (report defaults here).")
+@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture files.")
+def governance(workspace, report, output, mock):
     """Generate cross-model governance report for a workspace."""
     console.print(Panel(
         f"[bold]governance[/bold]  workspace=[cyan]{workspace}[/cyan]",
@@ -693,19 +695,23 @@ def governance(workspace, report):
     ))
 
     from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
-    if not detect_notebook_environment():
-        raise FabricEnvironmentError()
-
-    from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
     from fabric_ai_meta.analyzer.classifier import (
         classify_table_heuristic,
         classify_column_role,
         classify_measure_heuristic,
     )
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
-    from fabric_ai_meta.analyzer.governance import generate_governance_report
+    from fabric_ai_meta.analyzer.governance import generate_governance_report, write_governance_report
 
-    extractor = SemanticLinkExtractor(workspace=workspace)
+    if mock:
+        from fabric_ai_meta.extractor.mock import MockExtractor
+        extractor = MockExtractor(fixture_dir="tests/fixtures/")
+    elif detect_notebook_environment():
+        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+        extractor = SemanticLinkExtractor(workspace=workspace)
+    else:
+        raise FabricEnvironmentError()
+
     model_names = extractor.list_models(workspace)
 
     models = []
@@ -725,12 +731,28 @@ def governance(workspace, report):
                 m.scoring_breakdown = breakdown
                 models.append(m)
             except Exception as e:
-                console.print(f"[red]Error: {name}: {e}[/red]")
+                console.print(f"[yellow]Warning: could not process '{name}': {e}[/yellow]")
             progress.remove_task(t)
 
     gov_report = generate_governance_report(models)
-    _write_json(report, gov_report)
-    console.print(f"[green]Governance report written to:[/green] {report}")
+
+    report_path = report or os.path.join(output, "governance-report.json")
+    write_governance_report(gov_report, workspace, report_path)
+    console.print(f"[green]Governance report written to:[/green] {report_path}")
+
+    # Print summary table
+    from rich.table import Table
+    tbl = Table(title="Model Readiness Ranking")
+    tbl.add_column("Model", style="cyan")
+    tbl.add_column("Score", justify="right")
+    tbl.add_column("Tables", justify="right")
+    tbl.add_column("Measures", justify="right")
+    for entry in gov_report["score_ranking"]:
+        score_str = f"{entry['ai_readiness_score']:.2f}" if entry['ai_readiness_score'] is not None else "N/A"
+        tbl.add_row(entry["name"], score_str, str(entry["table_count"]), str(entry["measure_count"]))
+    console.print(tbl)
+    console.print(f"Naming issues: {gov_report['summary']['total_naming_issues']}  "
+                  f"Duplicate measures: {gov_report['summary']['total_duplicate_measures']}")
 
 
 if __name__ == "__main__":

@@ -96,6 +96,20 @@
           "sample_values": [],
           "is_nullable": true,
           "synonyms": ["Cost"]
+        },
+        {
+          "name": "Customer_Key",
+          "data_type": "int64",
+          "description": "Foreign key to customer dimension.",
+          "ai_description": null,
+          "role": "foreign_key",
+          "is_hidden": false,
+          "display_folder": null,
+          "format_string": null,
+          "sort_by_column": null,
+          "sample_values": [],
+          "is_nullable": false,
+          "synonyms": []
         }
       ],
       "measures": [

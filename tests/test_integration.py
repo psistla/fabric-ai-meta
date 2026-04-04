@@ -628,12 +628,12 @@ def test_gov01_02_03_governance_report_via_library(adventure_works_model, contos
     from fabric_ai_meta.analyzer.governance import generate_governance_report
 
     report = generate_governance_report([adventure_works_model, contoso_model])
-    assert "summary" in report                         # GOV-03
-    assert "naming_issues" in report                   # GOV-01
-    assert "duplicate_measures" in report              # GOV-02
-    assert "score_ranking" in report                   # GOV-03
+    assert "summary" in report                               # GOV-03
+    assert "naming_inconsistencies" in report                # GOV-01
+    assert "duplicate_measures" in report                    # GOV-02
+    assert "score_ranking" in report                         # GOV-03
     assert report["summary"]["model_count"] == 2
-    assert isinstance(report["naming_issues"], list)
+    assert isinstance(report["naming_inconsistencies"], list)
     assert isinstance(report["duplicate_measures"], list)
     assert isinstance(report["score_ranking"], list)
 
