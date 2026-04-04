@@ -1,93 +1,245 @@
-# fabric-ai-meta
+# ⚡ fabric-ai-meta
 
-A Python CLI and library that extracts metadata from Microsoft Fabric semantic models, performs AI-driven analysis, and generates AI-ready outputs — automating what Microsoft expects teams to do manually across 10–100+ models.
+![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-210%20passing-1a7f37?style=flat-square)
+![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
-## What it does
+Extract metadata from Microsoft Fabric semantic models and generate AI-ready outputs —
+automating what Microsoft expects teams to do manually across 10–100+ models.
 
-**AI-ready schema exports** — structured metadata for:
-- LangChain tool definitions
-- OpenAI function calling schemas
-- Semantic Kernel plugin manifests
+<br>
 
-**Prep for AI automation** — generates the `prep-for-ai-config.json` file you apply manually in Power BI Desktop or Fabric Service (no public API exists):
-- AI Data Schema (included tables, excluded columns)
-- AI Instructions (rule-based or LLM-generated)
-- Verified Answers (DAX-backed Q&A pairs)
-- Generated Descriptions (LLM batch backfill for undescribed columns and measures)
+<table>
+<tr>
+<td width="50%">
 
-**Bulk workspace scan** — process every model in a workspace in one command, producing per-model outputs and a `workspace-summary.json` with readiness scores and recommendations.
+**📊 AI Schema Exports**
+LangChain tool definitions · OpenAI function calling · Semantic Kernel plugin manifests
 
-## Architecture
+</td>
+<td width="50%">
+
+**🤖 Prep for AI Automation**
+AI Data Schema · AI Instructions · Verified Answers · LLM description backfill
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**🔍 Cross-Model Governance**
+Naming inconsistencies · Duplicate measures · Readiness scorecard
+
+</td>
+<td width="50%">
+
+**🔄 Bulk Workspace Scan**
+All models in one command · Per-model outputs · Score ranking
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📋 Contents
+
+| | |
+|---|---|
+| [🏗 Architecture](#-architecture) | [🚀 Installation](#-installation) |
+| [💻 Usage](#-usage) | [📂 Output Files](#-output-files) |
+| [🧠 LLM Enrichment](#-llm-enrichment) | [🛠 Development](#-development) |
+
+---
+
+## 🏗 Architecture
 
 `sempy.fabric` requires the Microsoft Fabric notebook runtime and does not work locally.
+The tool operates in two modes detected automatically at startup:
 
-| Mode | Where | Extractor |
-|------|-------|-----------|
-| **Fabric mode** | Fabric notebook | `SemanticLinkExtractor` (ambient credential) |
-| **Local/CI mode** | Any machine | `MockExtractor` + fixture JSON (`--mock` flag) |
+```mermaid
+flowchart TD
+    A([CLI command]) --> B{Environment?}
+    B -->|FABRIC_NOTEBOOK_ID set\nor notebookutils importable| C[Fabric Mode]
+    B -->|Local machine| D{--mock flag?}
+    D -->|Yes| E[Local/CI Mode]
+    D -->|No| F[FabricEnvironmentError]
 
-## Installation
+    C --> G[SemanticLinkExtractor\nAmbient credential]
+    E --> H[MockExtractor\nFixture JSON files]
+
+    G --> I[Core Engine]
+    H --> I
+
+    I --> J[Analyzer\nClassify · Score · Governance]
+    J --> K[Generator\nSchemas · Exports · Reports]
+```
+
+| Mode | Where it runs | Extractor | Auth |
+|------|--------------|-----------|------|
+| **Fabric mode** | Fabric notebook | `SemanticLinkExtractor` | Ambient (automatic) |
+| **Local/CI mode** | Any machine | `MockExtractor` + fixture JSON | None needed |
+
+> **Every command supports `--mock`** — `analyze`, `scan`, `export`, `score`, and `governance` all work locally without a Fabric connection.
+
+---
+
+## 🚀 Installation
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-## Usage
+Verify the install:
 
 ```bash
-# Analyze a single model (local dev with mock fixtures)
+fabric-ai-meta --help
+```
+
+---
+
+## 💻 Usage
+
+<details>
+<summary><strong>analyze</strong> — extract, classify, score, and export a single model</summary>
+
+```bash
+# Local dev with mock fixtures
 fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock
 
-# Export Prep for AI config (mock, no LLM)
+# With LLM enrichment (generates missing descriptions)
+fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --llm-enrich
+
+# Specify output directory
+fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --output ./output
+```
+</details>
+
+<details>
+<summary><strong>scan</strong> — bulk scan all models in a workspace</summary>
+
+```bash
+fabric-ai-meta scan --workspace "Production" --mock --output ./output
+```
+
+Produces per-model output directories and a `workspace-summary.json` with score ranking.
+</details>
+
+<details>
+<summary><strong>export prep-for-ai</strong> — generate Prep for AI config</summary>
+
+```bash
+# Rule-based (no LLM)
 fabric-ai-meta export prep-for-ai "Adventure Works" --workspace "Production" --mock
 
-# Export Prep for AI config with LLM enrichment
+# With LLM-generated AI instructions
 fabric-ai-meta export prep-for-ai "Adventure Works" --workspace "Production" --mock --llm-enrich
+```
 
-# Bulk scan all models in a workspace
-fabric-ai-meta scan --workspace "Production" --mock
+Output is a `prep-for-ai-config.json` you apply manually in Power BI Desktop or Fabric Service.
+No public API exists for programmatic application.
+</details>
 
-# Score a model
-fabric-ai-meta score "Adventure Works" --workspace "Production" --mock
+<details>
+<summary><strong>governance</strong> — cross-model analysis and scorecard</summary>
 
-# Cross-model governance report (with mock for local dev)
+```bash
 fabric-ai-meta governance --workspace "Production" --mock --report ./governance-report.json
 ```
 
-## Output files (per model)
+Detects naming inconsistencies, duplicate DAX expressions, and ranks models by AI readiness.
+</details>
+
+<details>
+<summary><strong>score</strong> — AI readiness score for a model</summary>
+
+```bash
+fabric-ai-meta score "Adventure Works" --workspace "Production" --mock
+```
+</details>
+
+<details>
+<summary><strong>export</strong> — framework-specific exports</summary>
+
+```bash
+fabric-ai-meta export langchain "Adventure Works" --workspace "Production" --mock
+fabric-ai-meta export openai "Adventure Works" --workspace "Production" --mock
+fabric-ai-meta export semantic-kernel "Adventure Works" --workspace "Production" --mock
+```
+</details>
+
+---
+
+## 📂 Output Files
+
+### Per-model (written to `{output}/{model-slug}/`)
 
 | File | Description |
 |------|-------------|
-| `ai-ready-schema.json` | Full AI-ready schema with tables, measures, and query guidance |
+| `ai-ready-schema.json` | Full AI-ready schema — tables, measures, query guidance, scoring |
 | `langchain-tool.json` | LangChain tool definition |
 | `openai-function.json` | OpenAI function calling schema |
 | `semantic-kernel-plugin.json` | Semantic Kernel plugin manifest |
-| `prep-for-ai-config.json` | Prep for AI settings with application guide |
-| `readiness-score.json` | AI readiness score and breakdown |
+| `prep-for-ai-config.json` | Prep for AI settings with step-by-step application guide |
+| `readiness-score.json` | AI readiness score and component breakdown |
 | `measure-dependency-graph.json` | DAX measure dependency graph |
 | `extraction-raw.json` | Raw extracted metadata |
 
-Bulk scan also produces `workspace-summary.json` with score ranking and recommendations across all models.
+### Workspace-level
 
 | File | Description |
 |------|-------------|
-| `governance-report.json` | Cross-model governance report with naming issues, duplicate measures, and recommendations |
+| `workspace-summary.json` | Score ranking, recommendations, model inventory across all models |
+| `governance-report.json` | Cross-model naming issues, duplicate measures, governance scorecard |
 
-## Development
+---
+
+## 🧠 LLM Enrichment
+
+Add `--llm-enrich` to any command to enable Claude-powered analysis:
 
 ```bash
-# Run full test suite
+export ANTHROPIC_API_KEY=sk-ant-...
+
+fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --llm-enrich
+```
+
+**What LLM enrichment adds:**
+- Missing table/column/measure descriptions (batch-generated, cached)
+- Natural-language grain detection for fact tables
+- AI Instructions text for Prep for AI configs
+
+**Cost controls** — configure in `.fabric-ai-meta.toml`:
+
+```toml
+[llm]
+max_cost_per_run = 0.20   # raises CostLimitExceededError if exceeded
+cache_enabled = true       # SHA-256 keyed file cache — no TTL
+```
+
+---
+
+## 🛠 Development
+
+```bash
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run full test suite (210 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
 pytest tests/ --cov=fabric_ai_meta
 ```
 
-All tests run locally — no Fabric runtime or real LLM calls required.
+All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and fixture JSON files in `tests/fixtures/`.
 
-## Environment variables
+---
 
-| Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Required for `--llm-enrich` |
-| `FABRIC_NOTEBOOK_ID` | Set automatically in Fabric notebooks |
+## ⚙️ Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | For `--llm-enrich` only | Claude API key |
+| `FABRIC_NOTEBOOK_ID` | Auto-set in Fabric | Signals Fabric notebook runtime |
