@@ -1,7 +1,7 @@
 # fabric-ai-meta — Claude Code Reference
 
 > **What this file is:** Context document for Claude Code sessions. Read this at the start of every session before reading the task file.
-> **Last updated:** Sprint 2 complete (March 26, 2026)
+> **Last updated:** Sprint 3 complete (April 4, 2026) — v1.0.0 released
 > **Spec:** `fabric-ai-metadata-spec-v1.2.md` (the canonical source of truth for all design decisions)
 
 ---
@@ -31,13 +31,21 @@ Repository: `C:\claude-projects\fabric-ai-meta` (Windows)
 - Env var `FABRIC_NOTEBOOK_ID` present OR `notebookutils` importable → Fabric mode
 - Otherwise → local mode; extraction commands require `--mock` or raise `FabricEnvironmentError`
 
+**Every extraction command supports `--mock`.** This includes `analyze`, `scan`, `export`, `score`, and `governance`.
+
 ---
 
 ## Current State
 
-### Phase 1 MVP — COMPLETE (Tasks 01–10, committed locally)
+### Phase 1 MVP — COMPLETE (Tasks 01–10)
+### Sprint 2 (Phase 2) — COMPLETE (Tasks S2-01 to S2-03)
+### Sprint 3 (Phase 3) — COMPLETE (Tasks S3-01 to S3-02) — v1.0.0 tagged
 
-All modules below are implemented and tested:
+All acceptance criteria met: AUTH-01 through LLM-02, PREP-01 through BULK-01, GOV-01 through GOV-03.
+
+---
+
+## Module Map
 
 ```
 src/fabric_ai_meta/
@@ -57,19 +65,23 @@ src/fabric_ai_meta/
 │   ├── classifier.py               # classify_table_heuristic(), classify_measure_heuristic(), classify_column_role()
 │   ├── dax_parser.py               # parse_measure_dependencies(), build_dependency_graph()
 │   ├── scorer.py                   # score_model() → (float, dict); weights sum to 1.0
-│   └── governance.py               # generate_governance_report(), find_naming_inconsistencies(), find_duplicate_measures()
+│   └── governance.py               # generate_governance_report(), find_naming_inconsistencies(),
+│                                   # find_duplicate_measures(), write_governance_report()
 │
 ├── generator/
 │   ├── schema.py                   # generate_ai_ready_schema(), write_schema_to_file()
-│   ├── prep_for_ai.py              # PrepForAIConfig, generate_prep_for_ai(), write_prep_for_ai_config()
+│   ├── prep_for_ai.py              # PrepForAIConfig, generate_prep_for_ai()
 │   ├── description_backfill.py     # DescriptionBackfill, backfill_descriptions(), apply_backfill()
 │   ├── export_langchain.py         # to_langchain_tool_definition()
 │   ├── export_openai.py            # to_openai_function()
 │   └── export_semantic_kernel.py   # to_semantic_kernel_plugin()
 │
 ├── llm/
-│   ├── client.py                   # FabricLLMClient — call(), classify_table(), detect_grain(), generate_description(), generate_descriptions_batch()
-│   ├── prompts.py                  # TABLE_CLASSIFICATION_PROMPT, GRAIN_DETECTION_PROMPT, DESCRIPTION_GENERATION_PROMPT, AI_INSTRUCTIONS_PROMPT, BATCH_DESCRIPTION_PROMPT
+│   ├── client.py                   # FabricLLMClient — call(), classify_table(), detect_grain(),
+│   │                               # generate_description(), generate_descriptions_batch()
+│   ├── prompts.py                  # TABLE_CLASSIFICATION_PROMPT, GRAIN_DETECTION_PROMPT,
+│   │                               # DESCRIPTION_GENERATION_PROMPT, AI_INSTRUCTIONS_PROMPT,
+│   │                               # BATCH_DESCRIPTION_PROMPT
 │   └── cache.py                    # LLMCache — file-based SHA-256 keyed cache
 │
 └── models/
@@ -78,20 +90,17 @@ src/fabric_ai_meta/
 tests/
 ├── conftest.py                     # adventure_works_model, contoso_model fixtures
 ├── fixtures/
-│   ├── adventure_works.json        # 4 tables, 3 measures, 3 relationships
-│   └── contoso_sales.json          # 3+ tables, 5+ measures, 2+ relationships
+│   ├── adventure_works.json        # 4 tables, 4 measures, 3 relationships
+│   └── contoso_sales.json          # 3 tables, 5 measures, 2 relationships
 ├── test_extractor.py
 ├── test_analyzer.py
 ├── test_generator.py
 ├── test_llm.py
 ├── test_cli.py
 ├── test_prep_for_ai.py
-└── test_integration.py
+├── test_governance.py              # GOV-01, GOV-02, GOV-03 coverage
+└── test_integration.py             # Full pipeline + all acceptance criteria
 ```
-
-### Sprint 2 (Phase 2) — COMPLETE
-
-Acceptance criteria met: PREP-01, PREP-02, PREP-03, DESC-01, BULK-01.
 
 ---
 
@@ -105,6 +114,7 @@ Acceptance criteria met: PREP-01, PREP-02, PREP-03, DESC-01, BULK-01.
 6. **Sample values are opt-in** — `--include-sample-values` flag; never default due to CU cost
 7. **LLM calls are cached** — SHA-256 hash of prompt → file-based cache; no TTL in v1
 8. **`max_cost_per_run`** in config caps LLM spend; raises `CostLimitExceededError` when exceeded
+9. **WEB-01 deferred** — Web UI dashboard is out of scope for v1; targeted for v1.1
 
 ---
 
@@ -130,9 +140,20 @@ fabric-ai-meta
 ├── scan     --workspace --output --format --mock --llm-enrich
 ├── export   langchain|openai|semantic-kernel [model] --workspace --mock
 │            prep-for-ai [model] --workspace --output --mock --llm-enrich
-├── score    [model] --workspace --all
-└── governance --workspace --report
+├── score    [model] --workspace --all --mock
+└── governance --workspace --report --output --mock
 ```
+
+---
+
+## Output Schemas
+
+| File | Schema URL |
+|------|-----------|
+| `ai-ready-schema.json` | `fabric-ai-meta.dev/schema/v1.json` |
+| `prep-for-ai-config.json` | `fabric-ai-meta.dev/schema/prep-for-ai/v1.json` |
+| `workspace-summary.json` | `fabric-ai-meta.dev/schema/workspace-summary/v1.json` |
+| `governance-report.json` | `fabric-ai-meta.dev/schema/governance-report/v1.json` |
 
 ---
 
@@ -144,6 +165,7 @@ fabric-ai-meta
 - Fixtures loaded via `MockExtractor` or conftest.py `@pytest.fixture`
 - CLI tests use `click.testing.CliRunner`
 - Run full suite before every commit: `pytest tests/ -x -q`
+- 210 tests, 0 failures as of v1.0.0
 
 ---
 
@@ -160,8 +182,8 @@ fabric-ai-meta
 
 ## Git Workflow
 
-- Branch per sprint: `sprint-2/phase-2-prep-for-ai`
+- Branch per sprint: `sprint-3/phase-3-governance`
 - One commit per task with prescribed message
 - Run full test suite before committing
 - Push to remote after each task is committed
-- Tag sprint completion: `git tag sprint-2-complete`
+- Tags: `sprint-3-complete`, `v1.0.0`

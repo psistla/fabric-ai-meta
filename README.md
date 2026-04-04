@@ -50,8 +50,8 @@ fabric-ai-meta scan --workspace "Production" --mock
 # Score a model
 fabric-ai-meta score "Adventure Works" --workspace "Production" --mock
 
-# Cross-model governance report (Fabric runtime required)
-fabric-ai-meta governance --workspace "Production"
+# Cross-model governance report (with mock for local dev)
+fabric-ai-meta governance --workspace "Production" --mock --report ./governance-report.json
 ```
 
 ## Output files (per model)
@@ -68,6 +68,10 @@ fabric-ai-meta governance --workspace "Production"
 | `extraction-raw.json` | Raw extracted metadata |
 
 Bulk scan also produces `workspace-summary.json` with score ranking and recommendations across all models.
+
+| File | Description |
+|------|-------------|
+| `governance-report.json` | Cross-model governance report with naming issues, duplicate measures, and recommendations |
 
 ## Development
 

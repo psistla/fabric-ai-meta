@@ -666,3 +666,117 @@ def test_prep_config_json_serializable_end_to_end(adventure_works_model):
     assert len(parsed["included_tables"]) > 0  # PREP-01
     assert len(parsed["ai_instructions"]) > 0  # PREP-02
     assert isinstance(parsed["verified_answers"], list)  # PREP-03
+
+
+# ---------------------------------------------------------------------------
+# Named pipeline integration tests (spec requirement: test_full_pipeline_*)
+# ---------------------------------------------------------------------------
+
+
+def test_full_pipeline_phase1(adventure_works_model, tmp_path):
+    """Phase 1: Extract → classify → score → generate all exports."""
+    from fabric_ai_meta.analyzer.classifier import (
+        classify_column_role,
+        classify_measure_heuristic,
+        classify_table_heuristic,
+    )
+    from fabric_ai_meta.analyzer.scorer import score_model
+    from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
+    from fabric_ai_meta.generator.export_openai import to_openai_function
+    from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
+    from fabric_ai_meta.generator.schema import generate_ai_ready_schema, write_schema_to_file
+
+    model = adventure_works_model
+    for tbl in model.tables:
+        tbl.table_type = classify_table_heuristic(tbl, model.relationships)
+        for c in tbl.columns:
+            c.role = classify_column_role(c, tbl, model.relationships)
+        for ms in tbl.measures:
+            ms.category = classify_measure_heuristic(ms)
+
+    score, breakdown = score_model(model)
+    model.ai_readiness_score = score
+    model.scoring_breakdown = breakdown
+
+    assert 0.0 <= score <= 1.0
+    assert breakdown
+
+    schema = generate_ai_ready_schema(model)
+    assert "$schema" in schema
+
+    lc = to_langchain_tool_definition(model)
+    oa = to_openai_function(model)
+    sk = to_semantic_kernel_plugin(model)
+
+    for export in (lc, oa, sk):
+        assert json.loads(json.dumps(export))  # must be JSON-serializable
+
+    out_path = write_schema_to_file(model, str(tmp_path / "ai-ready-schema.json"))
+    assert os.path.exists(out_path)
+
+
+def test_full_pipeline_phase2(adventure_works_model, tmp_path):
+    """Phase 2: Prep-for-AI config + verified answers (without LLM), via CLI."""
+    runner = CliRunner()
+    result = runner.invoke(main, [
+        "export", "prep-for-ai", "Adventure Works",
+        "--workspace", "test",
+        "--output", str(tmp_path),
+        "--mock",
+    ])
+    assert result.exit_code == 0, f"export prep-for-ai failed: {result.output}"
+
+    config_path = tmp_path / "adventure-works" / "prep-for-ai-config.json"
+    assert config_path.exists()
+    data = json.loads(config_path.read_text(encoding="utf-8"))
+
+    assert len(data["included_tables"]) > 0         # PREP-01
+    assert len(data["ai_instructions"]) > 0         # PREP-02
+    assert isinstance(data["verified_answers"], list)  # PREP-03
+    assert len(data["verified_answers"]) > 0
+
+
+def test_full_pipeline_scan(tmp_path):
+    """Phase 2 (BULK-01): Bulk scan across fixtures → workspace-summary.json."""
+    runner = CliRunner()
+    result = runner.invoke(main, [
+        "scan",
+        "--workspace", "test",
+        "--output", str(tmp_path),
+        "--mock",
+    ])
+    assert result.exit_code == 0, f"scan failed: {result.output}"
+
+    summary_path = tmp_path / "workspace-summary.json"
+    assert summary_path.exists()
+    data = json.loads(summary_path.read_text())
+
+    assert data["model_count"] >= 2
+    assert "score_ranking" in data
+    assert isinstance(data["score_ranking"], list)
+    scores = [m["ai_readiness_score"] for m in data["models"] if m["ai_readiness_score"] is not None]
+    assert len(scores) > 0
+
+
+def test_full_pipeline_governance(tmp_path):
+    """Phase 3 (GOV-01/02/03): Governance analysis → governance-report.json."""
+    runner = CliRunner()
+    report_path = str(tmp_path / "governance-report.json")
+    result = runner.invoke(main, [
+        "governance",
+        "--workspace", "test",
+        "--mock",
+        "--report", report_path,
+    ])
+    assert result.exit_code == 0, f"governance failed: {result.output}"
+
+    assert os.path.exists(report_path)
+    data = json.loads(open(report_path, encoding="utf-8").read())
+
+    assert "$schema" in data
+    assert "summary" in data
+    assert "score_ranking" in data
+    assert "naming_inconsistencies" in data
+    assert "duplicate_measures" in data
+    assert "recommendations" in data
+    assert data["summary"]["model_count"] >= 2
