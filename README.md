@@ -7,9 +7,9 @@
 
 Extract, classify, and export metadata from Microsoft Fabric semantic models for AI frameworks.
 
-**Automates Prep for AI** across 100+ models — no manual configuration.
-**Exports to LangChain, OpenAI, Semantic Kernel, AutoGen** — one extraction, every framework.
-**Governs at workspace scale** — naming inconsistencies, duplicate measures, readiness scores.
+**Automates Prep for AI** across 100+ models. No manual configuration.
+**Exports to LangChain, OpenAI, Semantic Kernel, AutoGen.** One extraction, every framework.
+**Governs at workspace scale:** naming inconsistencies, duplicate measures, readiness scores.
 
 ### Install
 
@@ -32,21 +32,21 @@ Produces `ai-ready-schema.json`, `readiness-score.json`, and `measure-dependency
 ---
 
 <details>
-<summary><strong>The Problem</strong> — why this exists</summary>
+<summary><strong>The Problem:</strong> why this exists</summary>
 
 <br>
 
 Microsoft Fabric has invested heavily in AI features for semantic models: Prep for AI, Copilot-generated descriptions, Data Agents, and the emerging Fabric IQ Ontology. These are powerful, but they share three limitations:
 
-**1. They don't scale.** Prep for AI requires manual configuration — selecting tables, writing AI Instructions, defining Verified Answers — one model at a time. An enterprise with 50 semantic models faces hundreds of hours of repetitive work. There is no bulk API.
+**1. They don't scale.** Prep for AI requires manual configuration (selecting tables, writing AI Instructions, defining Verified Answers), one model at a time. An enterprise with 50 semantic models faces hundreds of hours of repetitive work. There is no bulk API.
 
-**2. They don't leave Fabric.** Building a LangChain agent or an OpenAI function-calling pipeline against Fabric data? Microsoft offers no export path. Your AI application starts blind — no table types, no measure semantics, no relationship graph.
+**2. They don't leave Fabric.** Building a LangChain agent or an OpenAI function-calling pipeline against Fabric data? Microsoft offers no export path. Your AI application starts blind: no table types, no measure semantics, no relationship graph.
 
 **3. They don't govern across models.** Copilot can describe a single measure, but it can't tell you that `Total Sales` in Model A and `Sum of Sales` in Model B are the same calculation with different names.
 
 | Gap | What fabric-ai-meta does |
 |-----|--------------------------|
-| Manual Prep for AI | Auto-generates `prep-for-ai-config.json` — table selections, AI Instructions, Verified Answers, description backfill |
+| Manual Prep for AI | Auto-generates `prep-for-ai-config.json`: table selections, AI Instructions, Verified Answers, description backfill |
 | No external AI export | Produces framework-native schemas for LangChain, OpenAI, Semantic Kernel, and AutoGen |
 | No cross-model governance | Detects naming inconsistencies, duplicate DAX, ranks models by readiness, outputs governance report |
 
@@ -55,28 +55,28 @@ This is not a replacement for Microsoft's tools. It is an **automation layer on 
 </details>
 
 <details>
-<summary><strong>Who This Helps</strong> — three practitioner profiles</summary>
+<summary><strong>Who This Helps:</strong> three practitioner profiles</summary>
 
 <br>
 
-**Fabric Architects / Senior BI Developers** — You manage 10-100+ semantic models. You need Prep for AI configured, descriptions filled in, naming standards enforced — at scale, not one model at a time. fabric-ai-meta gives you bulk workspace scan, auto-generated Prep for AI configs, LLM-powered description backfill, and a governance report across your entire estate.
+**Fabric Architects / Senior BI Developers.** You manage 10-100+ semantic models. You need Prep for AI configured, descriptions filled in, naming standards enforced, at scale, not one model at a time. fabric-ai-meta gives you bulk workspace scan, auto-generated Prep for AI configs, LLM-powered description backfill, and a governance report across your entire estate.
 
-**AI/ML Engineers Building on Fabric Data** — You're building agents or RAG pipelines that query semantic models. You need structured metadata in your framework's native format. You don't have deep DAX expertise. fabric-ai-meta gives you one-command export to LangChain, OpenAI, Semantic Kernel, or AutoGen, plus an AI-ready schema with query guidance, pitfalls, and measure dependency graphs.
+**AI/ML Engineers Building on Fabric Data.** You're building agents or RAG pipelines that query semantic models. You need structured metadata in your framework's native format. You don't have deep DAX expertise. fabric-ai-meta gives you one-command export to LangChain, OpenAI, Semantic Kernel, or AutoGen, plus an AI-ready schema with query guidance, pitfalls, and measure dependency graphs.
 
-**Data Governance Teams** — You need visibility into documentation completeness, naming consistency, and model quality across the estate. fabric-ai-meta gives you a governance scorecard, automated naming violation detection, and AI readiness scores broken down by description coverage, naming consistency, and relationship completeness.
+**Data Governance Teams.** You need visibility into documentation completeness, naming consistency, and model quality across the estate. fabric-ai-meta gives you a governance scorecard, automated naming violation detection, and AI readiness scores broken down by description coverage, naming consistency, and relationship completeness.
 
 </details>
 
 <details>
-<summary><strong>Philosophy</strong> — five principles</summary>
+<summary><strong>Philosophy:</strong> five principles</summary>
 
 <br>
 
-1. **Extract everything** — tables, columns, measures, DAX, relationships, hierarchies, descriptions, formatting rules, hidden-object flags.
-2. **Classify automatically** — every table gets a type (fact, dimension, bridge). Every measure gets a category (additive, semi-additive, time intelligence). Heuristics first; LLM refines.
-3. **Score honestly** — AI Readiness Score (0.0-1.0) broken down by description coverage, naming consistency, relationship completeness, and business rule documentation. No vanity metrics.
-4. **Export universally** — one extraction produces LangChain, OpenAI, Semantic Kernel, AutoGen, and custom pipeline outputs.
-5. **Govern at scale** — naming inconsistencies, duplicate measures, documentation gaps across an entire workspace in a single command.
+1. **Extract everything.** Tables, columns, measures, DAX, relationships, hierarchies, descriptions, formatting rules, hidden-object flags.
+2. **Classify automatically.** Every table gets a type (fact, dimension, bridge). Every measure gets a category (additive, semi-additive, time intelligence). Heuristics first; LLM refines.
+3. **Score honestly.** AI Readiness Score (0.0-1.0) broken down by description coverage, naming consistency, relationship completeness, and business rule documentation. No vanity metrics.
+4. **Export universally.** One extraction produces LangChain, OpenAI, Semantic Kernel, AutoGen, and custom pipeline outputs.
+5. **Govern at scale.** Naming inconsistencies, duplicate measures, documentation gaps across an entire workspace in a single command.
 
 </details>
 
@@ -110,14 +110,14 @@ flowchart TD
 | **Fabric mode** | Fabric notebook | `SemanticLinkExtractor` | Ambient (automatic) |
 | **Local/CI mode** | Any machine | `MockExtractor` + fixture JSON | None needed |
 
-> **Every command supports `--mock`** — `analyze`, `scan`, `export`, `score`, and `governance` all work locally without a Fabric connection.
+> **Every command supports `--mock`:** `analyze`, `scan`, `export`, `score`, and `governance` all work locally without a Fabric connection.
 
 ---
 
 ## Usage
 
 <details>
-<summary><strong>analyze</strong> — extract, classify, score, and export a single model</summary>
+<summary><strong>analyze</strong>: extract, classify, score, and export a single model</summary>
 
 ```bash
 # Local dev with mock fixtures
@@ -132,7 +132,7 @@ fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --outpu
 </details>
 
 <details>
-<summary><strong>scan</strong> — bulk scan all models in a workspace</summary>
+<summary><strong>scan</strong>: bulk scan all models in a workspace</summary>
 
 ```bash
 fabric-ai-meta scan --workspace "Production" --mock --output ./output
@@ -142,7 +142,7 @@ Produces per-model output directories and a `workspace-summary.json` with score 
 </details>
 
 <details>
-<summary><strong>export prep-for-ai</strong> — generate Prep for AI config</summary>
+<summary><strong>export prep-for-ai</strong>: generate Prep for AI config</summary>
 
 ```bash
 # Rule-based (no LLM)
@@ -156,7 +156,7 @@ Output is a `prep-for-ai-config.json` you apply manually in Power BI Desktop or 
 </details>
 
 <details>
-<summary><strong>governance</strong> — cross-model analysis and scorecard</summary>
+<summary><strong>governance</strong>: cross-model analysis and scorecard</summary>
 
 ```bash
 fabric-ai-meta governance --workspace "Production" --mock --report ./governance-report.json
@@ -166,7 +166,7 @@ Detects naming inconsistencies, duplicate DAX expressions, and ranks models by A
 </details>
 
 <details>
-<summary><strong>score</strong> — AI readiness score for a model</summary>
+<summary><strong>score</strong>: AI readiness score for a model</summary>
 
 ```bash
 fabric-ai-meta score "Adventure Works" --workspace "Production" --mock
@@ -174,7 +174,7 @@ fabric-ai-meta score "Adventure Works" --workspace "Production" --mock
 </details>
 
 <details>
-<summary><strong>export</strong> — framework-specific exports</summary>
+<summary><strong>export</strong>: framework-specific exports</summary>
 
 ```bash
 fabric-ai-meta export langchain "Adventure Works" --workspace "Production" --mock
@@ -192,7 +192,7 @@ fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 
 | File | Description |
 |------|-------------|
-| `ai-ready-schema.json` | Full AI-ready schema — tables, measures, query guidance, scoring |
+| `ai-ready-schema.json` | Full AI-ready schema: tables, measures, query guidance, scoring |
 | `langchain-tool.json` | LangChain tool definition |
 | `openai-function.json` | OpenAI function calling schema |
 | `semantic-kernel-plugin.json` | Semantic Kernel plugin manifest |
@@ -226,19 +226,19 @@ fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --llm-e
 - Natural-language grain detection for fact tables
 - AI Instructions text for Prep for AI configs
 
-**Cost controls** — configure in `.fabric-ai-meta.toml`:
+**Cost controls** (configure in `.fabric-ai-meta.toml`):
 
 ```toml
 [llm]
 max_cost_per_run = 0.20   # raises CostLimitExceededError if exceeded
-cache_enabled = true       # SHA-256 keyed file cache — no TTL
+cache_enabled = true       # SHA-256 keyed file cache, no TTL
 ```
 
 ---
 
 ## Library API
 
-Use `fabric-ai-meta` as a Python library — all public functions are importable from the top-level package:
+All public functions are importable directly from the top-level package:
 
 ```python
 from fabric_ai_meta import (
