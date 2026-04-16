@@ -265,6 +265,99 @@ def test_semantic_kernel_export_is_json_serializable(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
+# S4-03 — AutoGen export tests
+# ---------------------------------------------------------------------------
+
+
+def test_autogen_export_valid_dict(adventure_works_model):
+    """AutoGen export produces a dict with type, function, and model_context."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(adventure_works_model)
+    assert isinstance(result, dict)
+    assert result["type"] == "function"
+    assert "function" in result
+    assert "model_context" in result
+
+
+def test_autogen_export_function_structure(adventure_works_model):
+    """Function section has name, description, and parameters."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(adventure_works_model)
+    fn = result["function"]
+    assert "name" in fn
+    assert fn["name"].startswith("query_")
+    assert "description" in fn
+    assert "parameters" in fn
+    assert fn["parameters"]["required"] == ["question"]
+
+
+def test_autogen_export_tables_in_context(adventure_works_model):
+    """model_context includes table schemas with columns and measures."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(adventure_works_model)
+    tables = result["model_context"]["tables"]
+    assert len(tables) > 0
+    for t in tables:
+        assert "name" in t
+        assert "type" in t
+        assert "columns" in t
+        assert "measures" in t
+
+
+def test_autogen_export_relationships_in_context(adventure_works_model):
+    """model_context includes relationships."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(adventure_works_model)
+    rels = result["model_context"]["relationships"]
+    assert isinstance(rels, list)
+    assert len(rels) > 0
+    for r in rels:
+        assert "from" in r
+        assert "to" in r
+        assert "cardinality" in r
+
+
+def test_autogen_export_pitfalls_in_context(adventure_works_model):
+    """model_context includes pitfalls list."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(adventure_works_model)
+    assert "pitfalls" in result["model_context"]
+    assert isinstance(result["model_context"]["pitfalls"], list)
+
+
+def test_autogen_export_is_json_serializable(adventure_works_model):
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(adventure_works_model)
+    raw = json.dumps(result)
+    parsed = json.loads(raw)
+    assert isinstance(parsed, dict)
+
+
+def test_autogen_export_contoso(contoso_model):
+    """AutoGen export works with Contoso fixture too."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(contoso_model)
+    assert result["type"] == "function"
+    tables = result["model_context"]["tables"]
+    assert len(tables) > 0
+
+
+def test_autogen_export_hidden_tables_excluded(adventure_works_model):
+    """Hidden tables should not appear in model_context."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    # Mark a table hidden
+    target = adventure_works_model.tables[0]
+    original = target.is_hidden
+    target.is_hidden = True
+
+    result = to_autogen_tool(adventure_works_model)
+    table_names = [t["name"] for t in result["model_context"]["tables"]]
+    assert target.name not in table_names
+
+    target.is_hidden = original  # restore
+
+
+# ---------------------------------------------------------------------------
 # Task 11 — Prep for AI config tests
 # ---------------------------------------------------------------------------
 

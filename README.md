@@ -1,7 +1,7 @@
 # ⚡ fabric-ai-meta
 
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-214%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-222%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -15,7 +15,7 @@ automating what Microsoft expects teams to do manually across 10–100+ models.
 <td width="50%">
 
 **📊 AI Schema Exports**
-LangChain tool definitions · OpenAI function calling · Semantic Kernel plugin manifests
+LangChain tool definitions · OpenAI function calling · Semantic Kernel plugin manifests · AutoGen tool definitions
 
 </td>
 <td width="50%">
@@ -166,6 +166,7 @@ fabric-ai-meta score "Adventure Works" --workspace "Production" --mock
 fabric-ai-meta export langchain "Adventure Works" --workspace "Production" --mock
 fabric-ai-meta export openai "Adventure Works" --workspace "Production" --mock
 fabric-ai-meta export semantic-kernel "Adventure Works" --workspace "Production" --mock
+fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 ```
 </details>
 
@@ -181,6 +182,7 @@ fabric-ai-meta export semantic-kernel "Adventure Works" --workspace "Production"
 | `langchain-tool.json` | LangChain tool definition |
 | `openai-function.json` | OpenAI function calling schema |
 | `semantic-kernel-plugin.json` | Semantic Kernel plugin manifest |
+| `autogen-tool.json` | AutoGen tool definition with full model context |
 | `prep-for-ai-config.json` | Prep for AI settings with step-by-step application guide |
 | `readiness-score.json` | AI readiness score and component breakdown |
 | `measure-dependency-graph.json` | DAX measure dependency graph |
@@ -257,7 +259,7 @@ See `fabric_ai_meta.__all__` for the full list of 25 public exports.
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (214 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (222 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage

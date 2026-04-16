@@ -520,6 +520,15 @@ def export_semantic_kernel(model_name, workspace):
     _export_single(model_name, workspace, "semantic-kernel-plugin.json", to_semantic_kernel_plugin, "semantic-kernel")
 
 
+@export_group.command("autogen")
+@click.argument("model_name")
+@click.option("--workspace", "-w", default=None)
+def export_autogen(model_name, workspace):
+    """Export AutoGen tool definition."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    _export_single(model_name, workspace, "autogen-tool.json", to_autogen_tool, "autogen")
+
+
 @export_group.command("prep-for-ai")
 @click.argument("model_name")
 @click.option("--workspace", "-w", default=None)

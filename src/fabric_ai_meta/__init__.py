@@ -39,6 +39,7 @@ from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
 from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
+from fabric_ai_meta.generator.export_autogen import to_autogen_tool
 
 __all__ = [
     # Version
@@ -71,4 +72,5 @@ __all__ = [
     "to_langchain_tool_definition",
     "to_openai_function",
     "to_semantic_kernel_plugin",
+    "to_autogen_tool",
 ]
