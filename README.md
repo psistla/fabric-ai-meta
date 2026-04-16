@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-263%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-284%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -185,6 +185,23 @@ fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 ```
 </details>
 
+<details>
+<summary><strong>diff</strong>: compare two workspace scans</summary>
+
+```bash
+# JSON output (default)
+fabric-ai-meta diff baseline.json current.json
+
+# Human-readable text
+fabric-ai-meta diff baseline.json current.json --format text
+
+# Save to file
+fabric-ai-meta diff baseline.json current.json --output delta-report.json
+```
+
+Compares two `workspace-summary.json` files and reports: models added/removed, score changes, table/measure count changes, and per-model improvement or regression status.
+</details>
+
 ---
 
 ## Output Files
@@ -254,7 +271,7 @@ from fabric_ai_meta import (
 
 # Load a model from fixture
 extractor = MockExtractor(fixture_path="tests/fixtures/adventure_works.json")
-model = extractor.extract()
+model = extractor.extract("Adventure Works")
 
 # Score it
 score, breakdown = score_model(model)
@@ -264,7 +281,7 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-See `fabric_ai_meta.__all__` for the full list of 26 public exports.
+See `fabric_ai_meta.__all__` for the full list of 27 public exports.
 
 ---
 
@@ -274,7 +291,7 @@ See `fabric_ai_meta.__all__` for the full list of 26 public exports.
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (222 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (284 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
@@ -282,6 +299,20 @@ pytest tests/ --cov=fabric_ai_meta
 ```
 
 All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and fixture JSON files in `tests/fixtures/`.
+
+### Fabric Quickstart Notebook
+
+A ready-to-run Jupyter notebook for Microsoft Fabric is available at [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb). It walks through authentication, model listing, analysis, export, and governance inside a Fabric notebook session.
+
+### Output Schemas
+
+JSON Schema files for all output formats are in [`schemas/`](schemas/):
+
+| Schema | Validates |
+|--------|-----------|
+| `schemas/v1.json` | `ai-ready-schema.json` output |
+| `schemas/workspace-summary/v1.json` | `workspace-summary.json` output |
+| `schemas/governance-report/v1.json` | `governance-report.json` output |
 
 ---
 

@@ -13,6 +13,7 @@ from fabric_ai_meta.analyzer.dax_parser import (
     build_dependency_graph,
     parse_measure_dependencies,
 )
+from fabric_ai_meta.analyzer.delta import compare_workspace_summaries
 from fabric_ai_meta.analyzer.governance import generate_governance_report
 from fabric_ai_meta.analyzer.scorer import score_model
 
@@ -63,6 +64,7 @@ __all__ = [
     "classify_table_heuristic",
     "build_dependency_graph",
     "parse_measure_dependencies",
+    "compare_workspace_summaries",
     "generate_governance_report",
     "score_model",
     # Generators

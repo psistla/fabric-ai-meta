@@ -319,3 +319,80 @@ def test_export_prep_for_ai_mock_exits_0(runner, tmp_path):
     for key in ["included_tables", "excluded_columns", "ai_instructions",
                 "verified_answers", "generated_descriptions"]:
         assert key in data, f"Missing key '{key}' in prep-for-ai-config.json"
+
+
+# ---------------------------------------------------------------------------
+# diff command
+# ---------------------------------------------------------------------------
+
+
+def _write_summary(path, models, timestamp="2026-04-01T00:00:00Z"):
+    """Write a minimal workspace-summary.json for diff testing."""
+    scores = [m["ai_readiness_score"] for m in models if m.get("ai_readiness_score") is not None]
+    avg = sum(scores) / len(scores) if scores else None
+    data = {
+        "$schema": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
+        "version": "1.0",
+        "workspace": "test",
+        "scan_timestamp": timestamp,
+        "model_count": len(models),
+        "average_readiness_score": avg,
+        "models": models,
+        "score_ranking": [m["name"] for m in models],
+        "recommendations": [],
+    }
+    with open(path, "w") as f:
+        json.dump(data, f)
+
+
+def _model_entry(name, score=0.7, tables=4, measures=5):
+    return {
+        "name": name, "slug": name.lower().replace(" ", "-"),
+        "ai_readiness_score": score, "table_count": tables,
+        "measure_count": measures, "description_coverage": 0.8,
+        "extraction_timestamp": "2026-04-01T00:00:00Z",
+        "output_directory": f"{name.lower().replace(' ', '-')}/", "errors": [],
+    }
+
+
+def test_diff_json_exits_zero(runner, tmp_path):
+    baseline = str(tmp_path / "baseline.json")
+    current = str(tmp_path / "current.json")
+    _write_summary(baseline, [_model_entry("A")])
+    _write_summary(current, [_model_entry("A"), _model_entry("B")])
+    result = runner.invoke(main, ["diff", baseline, current])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert "summary" in data
+    assert "model_deltas" in data
+
+
+def test_diff_text_format(runner, tmp_path):
+    baseline = str(tmp_path / "baseline.json")
+    current = str(tmp_path / "current.json")
+    _write_summary(baseline, [_model_entry("A", score=0.5)])
+    _write_summary(current, [_model_entry("A", score=0.8)])
+    result = runner.invoke(main, ["diff", baseline, current, "--format", "text"])
+    assert result.exit_code == 0
+    assert "Workspace Delta Report" in result.output
+    assert "improved" in result.output
+
+
+def test_diff_output_to_file(runner, tmp_path):
+    baseline = str(tmp_path / "baseline.json")
+    current = str(tmp_path / "current.json")
+    out = str(tmp_path / "delta.json")
+    _write_summary(baseline, [_model_entry("A")])
+    _write_summary(current, [_model_entry("A")])
+    result = runner.invoke(main, ["diff", baseline, current, "--output", out])
+    assert result.exit_code == 0
+    assert os.path.exists(out)
+    data = json.load(open(out))
+    assert "summary" in data
+
+
+def test_diff_missing_file_exits_nonzero(runner, tmp_path):
+    baseline = str(tmp_path / "nonexistent.json")
+    current = str(tmp_path / "also-nonexistent.json")
+    result = runner.invoke(main, ["diff", baseline, current])
+    assert result.exit_code != 0

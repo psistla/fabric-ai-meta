@@ -766,5 +766,39 @@ def governance(workspace, report, output, mock):
                   f"Duplicate measures: {gov_report['summary']['total_duplicate_measures']}")
 
 
+# ---------------------------------------------------------------------------
+# diff command
+# ---------------------------------------------------------------------------
+
+@main.command("diff")
+@click.argument("baseline_path", type=click.Path(exists=True))
+@click.argument("current_path", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), default=None, help="Write delta report to file.")
+@click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="json", help="Output format.")
+def diff_cmd(baseline_path: str, current_path: str, output: str | None, fmt: str) -> None:
+    """Compare two workspace-summary.json files and show changes."""
+    from fabric_ai_meta.analyzer.delta import compare_workspace_summaries, format_delta_text
+
+    with open(baseline_path, "r", encoding="utf-8") as f:
+        baseline = json.load(f)
+    with open(current_path, "r", encoding="utf-8") as f:
+        current = json.load(f)
+
+    delta = compare_workspace_summaries(baseline, current)
+
+    if fmt == "text":
+        result = format_delta_text(delta)
+    else:
+        result = json.dumps(delta, indent=2)
+
+    if output:
+        os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(result)
+        console.print(f"Delta report written to {output}")
+    else:
+        click.echo(result)
+
+
 if __name__ == "__main__":
     main()

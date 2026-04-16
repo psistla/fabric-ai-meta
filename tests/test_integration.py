@@ -823,8 +823,8 @@ class TestPublicAPIExports:
     def test_all_count(self):
         import fabric_ai_meta
 
-        # 1 version + 10 data model + 2 extractors + 7 analysis + 6 generators = 26
-        assert len(fabric_ai_meta.__all__) == 26
+        # 1 version + 10 data model + 2 extractors + 8 analysis + 6 generators = 27
+        assert len(fabric_ai_meta.__all__) == 27
 
 
 # ---------------------------------------------------------------------------
