@@ -1,7 +1,7 @@
 # ⚡ fabric-ai-meta
 
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-210%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-214%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -220,13 +220,44 @@ cache_enabled = true       # SHA-256 keyed file cache — no TTL
 
 ---
 
+## 📦 Library API
+
+Use `fabric-ai-meta` as a Python library — all public functions are importable from the top-level package:
+
+```python
+from fabric_ai_meta import (
+    MockExtractor,
+    SemanticModelMeta,
+    score_model,
+    generate_ai_ready_schema,
+    to_openai_function,
+    to_langchain_tool_definition,
+    classify_table_heuristic,
+)
+
+# Load a model from fixture
+extractor = MockExtractor(fixture_path="tests/fixtures/adventure_works.json")
+model = extractor.extract()
+
+# Score it
+score, breakdown = score_model(model)
+
+# Generate exports
+schema = generate_ai_ready_schema(model)
+openai_fn = to_openai_function(model)
+```
+
+See `fabric_ai_meta.__all__` for the full list of 25 public exports.
+
+---
+
 ## 🛠 Development
 
 ```bash
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (210 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (214 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
