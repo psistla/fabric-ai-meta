@@ -464,3 +464,79 @@ def test_prep_for_ai_is_json_serializable(adventure_works_model):
     assert "ai_instructions" in parsed
     assert "verified_answers" in parsed
     assert "generated_descriptions" in parsed
+
+
+# ---------------------------------------------------------------------------
+# Enterprise fixture — schema generation with large model
+# ---------------------------------------------------------------------------
+
+
+def test_enterprise_schema_all_visible_tables(enterprise_sales_model):
+    """Schema generation with 14 tables should include all non-hidden tables."""
+    schema = generate_ai_ready_schema(enterprise_sales_model)
+    visible_source = [t.name for t in enterprise_sales_model.tables if not t.is_hidden]
+    output_names = [t["name"] for t in schema["tables"]]
+    assert set(output_names) == set(visible_source)
+    assert "_SalesRaw" not in output_names
+
+
+def test_enterprise_schema_bridge_table_present(enterprise_sales_model):
+    """Bridge table CustomerProduct should appear in schema output."""
+    schema = generate_ai_ready_schema(enterprise_sales_model)
+    table_names = [t["name"] for t in schema["tables"]]
+    assert "CustomerProduct" in table_names
+
+
+def test_enterprise_schema_all_measures_present(enterprise_sales_model):
+    """All non-hidden measures from enterprise model should be in schema output."""
+    schema = generate_ai_ready_schema(enterprise_sales_model)
+    source_measures = {
+        m.name for t in enterprise_sales_model.tables
+        for m in t.measures if not m.is_hidden
+    }
+    output_measures = {m["name"] for m in schema["measures"]}
+    assert output_measures == source_measures
+
+
+def test_enterprise_schema_is_json_serializable(enterprise_sales_model):
+    """Enterprise schema should be fully JSON-serializable."""
+    schema = generate_ai_ready_schema(enterprise_sales_model)
+    raw = json.dumps(schema)
+    parsed = json.loads(raw)
+    assert isinstance(parsed, dict)
+
+
+def test_enterprise_langchain_export(enterprise_sales_model):
+    """LangChain export works with the larger enterprise model."""
+    result = to_langchain_tool_definition(enterprise_sales_model)
+    assert isinstance(result, dict)
+    assert "parameters" in result
+    raw = json.dumps(result)
+    assert isinstance(json.loads(raw), dict)
+
+
+def test_enterprise_openai_export(enterprise_sales_model):
+    """OpenAI export works with the enterprise model."""
+    result = to_openai_function(enterprise_sales_model)
+    assert result["type"] == "function"
+    assert "parameters" in result["function"]
+
+
+def test_enterprise_semantic_kernel_export(enterprise_sales_model):
+    """Semantic Kernel export works with the enterprise model."""
+    result = to_semantic_kernel_plugin(enterprise_sales_model)
+    assert result["schema_version"] == "v1"
+    assert len(result["functions"]) > 0
+
+
+def test_enterprise_autogen_export(enterprise_sales_model):
+    """AutoGen export handles bridge tables and many-to-many relationships."""
+    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+    result = to_autogen_tool(enterprise_sales_model)
+    assert result["type"] == "function"
+    tables = result["model_context"]["tables"]
+    table_names = [t["name"] for t in tables]
+    assert "CustomerProduct" in table_names
+    rels = result["model_context"]["relationships"]
+    both_dir = [r for r in rels if r.get("cross_filter") == "both"]
+    assert len(both_dir) >= 1

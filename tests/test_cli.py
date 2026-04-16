@@ -261,7 +261,7 @@ def test_scan_mock_model_count_matches_fixtures(runner, tmp_path):
     ])
     with open(tmp_path / "workspace-summary.json") as f:
         data = json.load(f)
-    assert data["model_count"] == 2
+    assert data["model_count"] == 3
 
 
 def test_scan_mock_score_ranking_sorted_descending(runner, tmp_path):

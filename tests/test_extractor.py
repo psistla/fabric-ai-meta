@@ -187,3 +187,57 @@ def test_mock_extractor_backward_compat_single_file():
     model = extractor.extract("Adventure Works", "test")
     assert isinstance(model, SemanticModelMeta)
     assert len(model.tables) == 4
+
+
+# ── Enterprise fixture + multi-model (3 fixtures) ──────────────────────────
+
+
+def test_mock_extractor_dir_list_models_returns_three_fixtures():
+    """list_models with fixture_dir picks up all 3 JSON fixtures."""
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    names = extractor.list_models("any")
+    assert "Adventure Works" in names
+    assert "Contoso Sales" in names
+    assert "Enterprise Sales" in names
+    assert len(names) == 3
+
+
+def test_mock_extractor_dir_extract_enterprise_sales():
+    """Extracting Enterprise Sales from fixture_dir works."""
+    extractor = MockExtractor(fixture_dir=FIXTURES_DIR)
+    model = extractor.extract("Enterprise Sales", "any")
+    assert model.name == "Enterprise Sales"
+    assert len(model.tables) == 14
+
+
+def test_enterprise_model_has_expected_table_count(enterprise_sales_model):
+    """Enterprise model should have 14 tables."""
+    assert len(enterprise_sales_model.tables) == 14
+
+
+def test_enterprise_model_has_expected_measure_count(enterprise_sales_model):
+    """Enterprise model should have 20+ measures."""
+    total = sum(len(t.measures) for t in enterprise_sales_model.tables)
+    assert total >= 20
+
+
+def test_enterprise_model_has_expected_relationship_count(enterprise_sales_model):
+    """Enterprise model should have 10+ relationships."""
+    assert len(enterprise_sales_model.relationships) >= 10
+
+
+def test_enterprise_model_has_hierarchies(enterprise_sales_model):
+    """Enterprise model should have 2+ hierarchies."""
+    total = sum(len(t.hierarchies) for t in enterprise_sales_model.tables)
+    assert total >= 2
+
+
+def test_enterprise_model_round_trip(enterprise_sales_model):
+    """to_dict -> JSON -> from_dict round-trip preserves enterprise model."""
+    original_dict = enterprise_sales_model.to_dict()
+    json_str = json.dumps(original_dict)
+    restored_dict = json.loads(json_str)
+    restored_model = from_dict(restored_dict)
+    assert restored_model.name == enterprise_sales_model.name
+    assert len(restored_model.tables) == len(enterprise_sales_model.tables)
+    assert len(restored_model.relationships) == len(enterprise_sales_model.relationships)

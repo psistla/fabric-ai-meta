@@ -19,3 +19,9 @@ def adventure_works_model() -> SemanticModelMeta:
 def contoso_model() -> SemanticModelMeta:
     extractor = MockExtractor(os.path.join(FIXTURES_DIR, "contoso_sales.json"))
     return extractor.extract("Contoso Sales", "Production Analytics")
+
+
+@pytest.fixture
+def enterprise_sales_model() -> SemanticModelMeta:
+    extractor = MockExtractor(os.path.join(FIXTURES_DIR, "enterprise_sales.json"))
+    return extractor.extract("Enterprise Sales", "Production Analytics")

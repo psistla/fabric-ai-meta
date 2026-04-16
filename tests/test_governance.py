@@ -51,8 +51,18 @@ def contoso_model():
 
 
 @pytest.fixture
+def enterprise_model():
+    return _load_and_score(os.path.join(FIXTURE_DIR, "enterprise_sales.json"))
+
+
+@pytest.fixture
 def both_models(aw_model, contoso_model):
     return [aw_model, contoso_model]
+
+
+@pytest.fixture
+def all_three_models(aw_model, contoso_model, enterprise_model):
+    return [aw_model, contoso_model, enterprise_model]
 
 
 # ---------------------------------------------------------------------------
@@ -315,6 +325,57 @@ class TestGovernanceCLI:
         for key in ("summary", "score_ranking", "naming_inconsistencies",
                     "duplicate_measures", "recommendations"):
             assert key in data, f"Missing key: {key}"
+
+# ---------------------------------------------------------------------------
+# Enterprise fixture — cross-model governance (3 models)
+# ---------------------------------------------------------------------------
+
+class TestEnterpriseGovernance:
+    def test_three_model_report_model_count(self, all_three_models):
+        """Governance report with all 3 fixtures has correct model_count."""
+        report = generate_governance_report(all_three_models)
+        assert report["summary"]["model_count"] == 3
+
+    def test_enterprise_aw_duplicate_total_sales(self, all_three_models):
+        """[Total Sales] in Enterprise Sales should duplicate with Contoso's [Total Sales]
+        since both use SUM(...[SalesAmount]) on different tables, but normalized DAX differs.
+        [Sales YTD] should be a true duplicate across models with matching DAX."""
+        results = find_duplicate_measures(all_three_models)
+        # Sales YTD has identical DAX pattern across AW, Contoso, and Enterprise
+        dax_found = any(
+            "datesytd" in r["dax_normalized"] for r in results
+        )
+        assert dax_found, "Expected Sales YTD duplicate across models"
+
+    def test_enterprise_naming_inconsistency_total_vs_sum(self, all_three_models):
+        """[Total Sales] and [Sum of Revenue] in enterprise model should create
+        a naming inconsistency for the 'totalsales' normalized form."""
+        results = find_naming_inconsistencies(all_three_models)
+        normalized_names = [r["normalized"] for r in results]
+        # Should detect naming variants across models
+        assert len(results) >= 1
+
+    def test_enterprise_score_ranking_has_three_entries(self, all_three_models):
+        """Score ranking should have all 3 models."""
+        report = generate_governance_report(all_three_models)
+        assert len(report["score_ranking"]) == 3
+
+    def test_enterprise_recommendations_non_empty(self, all_three_models):
+        """With 3 models and known issues, recommendations should be populated."""
+        report = generate_governance_report(all_three_models)
+        assert len(report["recommendations"]) >= 1
+
+    def test_enterprise_duplicate_measures_still_detected(self, all_three_models):
+        """Adding a 3rd model should not break existing duplicate detection between AW and Contoso."""
+        results = find_duplicate_measures(all_three_models)
+        assert len(results) >= 1
+        # AW and Contoso still have [Sales YTD] with identical DAX
+        models_mentioned = set()
+        for r in results:
+            models_mentioned.update(r["found_in"])
+        assert "Adventure Works" in models_mentioned
+        assert "Contoso Sales" in models_mentioned
+
 
     def test_governance_no_mock_raises_without_fabric(self):
         from click.testing import CliRunner

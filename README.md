@@ -1,7 +1,7 @@
 # fabric-ai-meta
 
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-222%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-257%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
