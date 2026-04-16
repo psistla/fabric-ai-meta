@@ -11,6 +11,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from fabric_ai_meta import __version__
 from fabric_ai_meta.config import load_config
 
 # Ensure stdout/stderr use UTF-8 on Windows (default is cp1252), so Rich's
@@ -228,6 +229,7 @@ def _run_llm_enrichment(model, cfg):
 # ---------------------------------------------------------------------------
 
 @click.group()
+@click.version_option(version=__version__, prog_name="fabric-ai-meta")
 def main():
     """Fabric AI Meta — extract, analyze, and export Fabric semantic model metadata for AI frameworks."""
     pass
