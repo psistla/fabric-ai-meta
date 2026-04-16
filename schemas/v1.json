@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabric-ai-meta.dev/schema/v1.json",
+  "title": "AI-Ready Schema",
+  "description": "Output schema for fabric-ai-meta generate_ai_ready_schema(). Describes a single semantic model's tables, measures, query guidance, and scoring.",
+  "type": "object",
+  "required": ["$schema", "version", "model", "tables", "measures", "query_guidance", "scoring"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://fabric-ai-meta.dev/schema/v1.json"
+    },
+    "version": {
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/model_info"
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/table"
+      }
+    },
+    "measures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "query_guidance": {
+      "$ref": "#/$defs/query_guidance"
+    },
+    "scoring": {
+      "$ref": "#/$defs/scoring"
+    }
+  },
+  "$defs": {
+    "model_info": {
+      "type": "object",
+      "required": ["name", "workspace", "ai_readiness_score"],
+      "properties": {
+        "name": { "type": "string" },
+        "workspace": { "type": "string" },
+        "summary": { "type": ["string", "null"] },
+        "ai_readiness_score": { "type": ["number", "null"] },
+        "extraction_timestamp": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "column": {
+      "type": "object",
+      "required": ["name", "type", "role"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["key", "foreign_key", "attribute", "measure_column", "date", "sort", "display", "unknown"]
+        },
+        "description": { "type": ["string", "null"] },
+        "joins_to": { "type": "string" },
+        "sample_values": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "relationship_outbound": {
+      "type": "object",
+      "required": ["to_table", "join", "cardinality"],
+      "properties": {
+        "to_table": { "type": "string" },
+        "join": { "type": "string" },
+        "cardinality": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "table": {
+      "type": "object",
+      "required": ["name", "type", "columns"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["fact", "dimension", "bridge", "configuration", "aggregate", "staging", "unknown"]
+        },
+        "description": { "type": ["string", "null"] },
+        "grain": { "type": ["string", "null"] },
+        "row_count_estimate": { "type": ["integer", "null"] },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/column" }
+        },
+        "relationships_outbound": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relationship_outbound" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "measure": {
+      "type": "object",
+      "required": ["name", "category", "dax"],
+      "properties": {
+        "name": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": ["additive", "semi_additive", "non_additive", "time_intelligence", "calculated", "filter_context", "unknown"]
+        },
+        "description": { "type": ["string", "null"] },
+        "dax": { "type": "string" },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "depends_on_measures": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requires_date_filter": { "type": "boolean" },
+        "implicit_business_rules": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "query_guidance": {
+      "type": "object",
+      "required": ["valid_filter_paths", "common_pitfalls", "recommended_aggregations"],
+      "properties": {
+        "valid_filter_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "common_pitfalls": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "recommended_aggregations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "scoring": {
+      "type": "object",
+      "required": ["overall", "breakdown"],
+      "properties": {
+        "overall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "breakdown": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

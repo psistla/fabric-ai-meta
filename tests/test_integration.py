@@ -825,3 +825,86 @@ class TestPublicAPIExports:
 
         # 1 version + 10 data model + 2 extractors + 7 analysis + 6 generators = 26
         assert len(fabric_ai_meta.__all__) == 26
+
+
+# ---------------------------------------------------------------------------
+# JSON Schema validation (S5-02)
+# ---------------------------------------------------------------------------
+
+SCHEMAS_DIR = os.path.join(os.path.dirname(__file__), "..", "schemas")
+
+
+class TestSchemaValidation:
+    """Validate that generated outputs conform to their JSON Schema files."""
+
+    def test_ai_ready_schema_validates(self, adventure_works_model):
+        """generate_ai_ready_schema output validates against schemas/v1.json."""
+        import jsonschema
+
+        output = generate_ai_ready_schema(adventure_works_model)
+        with open(os.path.join(SCHEMAS_DIR, "v1.json")) as f:
+            schema = json.load(f)
+        jsonschema.validate(output, schema)
+
+    def test_ai_ready_schema_validates_enterprise(self, enterprise_sales_model):
+        """AI-ready schema validates for the larger enterprise fixture."""
+        import jsonschema
+
+        output = generate_ai_ready_schema(enterprise_sales_model)
+        with open(os.path.join(SCHEMAS_DIR, "v1.json")) as f:
+            schema = json.load(f)
+        jsonschema.validate(output, schema)
+
+    def test_workspace_summary_validates(self, tmp_path):
+        """scan --mock workspace-summary.json validates against its schema."""
+        import jsonschema
+
+        runner = CliRunner()
+        runner.invoke(main, [
+            "scan", "--workspace", "test", "--output", str(tmp_path), "--mock",
+        ])
+        with open(tmp_path / "workspace-summary.json") as f:
+            output = json.load(f)
+        with open(os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json")) as f:
+            schema = json.load(f)
+        jsonschema.validate(output, schema)
+
+    def test_governance_report_validates(self, tmp_path):
+        """governance --mock report validates against its schema."""
+        import jsonschema
+
+        runner = CliRunner()
+        report_path = str(tmp_path / "gov.json")
+        runner.invoke(main, [
+            "governance", "--workspace", "test", "--mock", "--report", report_path,
+        ])
+        with open(report_path) as f:
+            output = json.load(f)
+        with open(os.path.join(SCHEMAS_DIR, "governance-report", "v1.json")) as f:
+            schema = json.load(f)
+        jsonschema.validate(output, schema)
+
+    def test_schema_files_are_valid_json_schema(self):
+        """All schema files are syntactically valid JSON Schema Draft 2020-12."""
+        schema_paths = [
+            os.path.join(SCHEMAS_DIR, "v1.json"),
+            os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json"),
+            os.path.join(SCHEMAS_DIR, "governance-report", "v1.json"),
+        ]
+        for path in schema_paths:
+            with open(path) as f:
+                schema = json.load(f)
+            assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+            assert "$id" in schema
+
+    def test_schema_ids_match_source_references(self):
+        """$id in each schema matches the URL used in source code output."""
+        expected = {
+            os.path.join(SCHEMAS_DIR, "v1.json"): "https://fabric-ai-meta.dev/schema/v1.json",
+            os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json"): "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
+            os.path.join(SCHEMAS_DIR, "governance-report", "v1.json"): "https://fabric-ai-meta.dev/schema/governance-report/v1.json",
+        }
+        for path, expected_id in expected.items():
+            with open(path) as f:
+                schema = json.load(f)
+            assert schema["$id"] == expected_id, f"{path}: $id mismatch"

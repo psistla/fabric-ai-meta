@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
+  "title": "Workspace Summary",
+  "description": "Output schema for fabric-ai-meta scan command. Summarizes all models in a workspace with scores, counts, and recommendations.",
+  "type": "object",
+  "required": ["$schema", "version", "workspace", "scan_timestamp", "model_count", "average_readiness_score", "models", "score_ranking", "recommendations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json"
+    },
+    "version": {
+      "type": "string"
+    },
+    "workspace": {
+      "type": "string"
+    },
+    "scan_timestamp": {
+      "type": "string"
+    },
+    "model_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "average_readiness_score": {
+      "type": ["number", "null"]
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/model_summary"
+      }
+    },
+    "score_ranking": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "model_summary": {
+      "type": "object",
+      "required": ["name", "slug", "ai_readiness_score", "table_count", "measure_count"],
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "ai_readiness_score": { "type": ["number", "null"] },
+        "table_count": { "type": "integer" },
+        "measure_count": { "type": "integer" },
+        "description_coverage": { "type": ["number", "null"] },
+        "extraction_timestamp": { "type": ["string", "null"] },
+        "output_directory": { "type": "string" },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

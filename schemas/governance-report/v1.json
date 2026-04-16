@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabric-ai-meta.dev/schema/governance-report/v1.json",
+  "title": "Governance Report",
+  "description": "Output schema for fabric-ai-meta governance command. Cross-model governance scorecard with naming inconsistencies, duplicate measures, and recommendations.",
+  "type": "object",
+  "required": ["$schema", "version", "workspace", "generated_at", "summary", "score_ranking", "naming_inconsistencies", "duplicate_measures", "recommendations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://fabric-ai-meta.dev/schema/governance-report/v1.json"
+    },
+    "version": {
+      "type": "string"
+    },
+    "workspace": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "score_ranking": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/score_ranking_item"
+      }
+    },
+    "naming_inconsistencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/naming_inconsistency"
+      }
+    },
+    "duplicate_measures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/duplicate_measure"
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "required": ["model_count", "average_readiness_score", "total_naming_issues", "total_duplicate_measures"],
+      "properties": {
+        "model_count": { "type": "integer", "minimum": 0 },
+        "average_readiness_score": { "type": ["number", "null"] },
+        "lowest_scoring_model": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["name", "score"],
+              "properties": {
+                "name": { "type": "string" },
+                "score": { "type": "number" }
+              },
+              "additionalProperties": false
+            },
+            { "type": "null" }
+          ]
+        },
+        "highest_scoring_model": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["name", "score"],
+              "properties": {
+                "name": { "type": "string" },
+                "score": { "type": "number" }
+              },
+              "additionalProperties": false
+            },
+            { "type": "null" }
+          ]
+        },
+        "total_naming_issues": { "type": "integer", "minimum": 0 },
+        "total_duplicate_measures": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "score_ranking_item": {
+      "type": "object",
+      "required": ["name", "ai_readiness_score", "table_count", "measure_count"],
+      "properties": {
+        "name": { "type": "string" },
+        "ai_readiness_score": { "type": ["number", "null"] },
+        "table_count": { "type": "integer" },
+        "measure_count": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "naming_inconsistency": {
+      "type": "object",
+      "required": ["normalized", "variants", "found_in", "object_type"],
+      "properties": {
+        "normalized": { "type": "string" },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "found_in": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "object_type": {
+          "type": "string",
+          "enum": ["column", "measure"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "duplicate_measure": {
+      "type": "object",
+      "required": ["dax_normalized", "found_in", "dax_identical"],
+      "properties": {
+        "dax_normalized": { "type": "string" },
+        "found_in": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "dax_identical": { "type": "boolean" },
+        "measure_name": { "type": "string" },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
