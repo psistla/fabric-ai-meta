@@ -83,8 +83,10 @@ def test_to_dict_is_json_serializable(adventure_works_model):
 
 def test_list_models_returns_model_names():
     """list_models calls fabric.list_datasets and returns model name strings."""
-    import pandas as pd
     from unittest.mock import MagicMock
+
+    import pandas as pd
+
     from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
 
     mock_fabric = MagicMock()
@@ -105,8 +107,10 @@ def test_list_models_returns_model_names():
 
 def test_list_models_empty_when_no_datasets():
     """list_models returns empty list when no known column is present."""
-    import pandas as pd
     from unittest.mock import MagicMock
+
+    import pandas as pd
+
     from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
 
     mock_fabric = MagicMock()

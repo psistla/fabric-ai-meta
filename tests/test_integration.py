@@ -10,7 +10,6 @@ import json
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from fabric_ai_meta.analyzer.classifier import (
@@ -24,7 +23,6 @@ from fabric_ai_meta.auth.entra import (
     get_credential,
 )
 from fabric_ai_meta.cli import main
-from fabric_ai_meta.extractor.mock import MockExtractor
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
 from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
@@ -310,6 +308,7 @@ def test_ext03_extract_sample_values_returns_empty_on_error():
 def test_ext03_extract_sample_values_uses_topn_dax_pattern():
     """EXT-03: evaluate_dax is called with TOPN(10, DISTINCT(...)) pattern."""
     import pandas as pd
+
     from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
 
     extractor = object.__new__(SemanticLinkExtractor)
@@ -810,15 +809,10 @@ class TestPublicAPIExports:
 
     def test_core_imports_work(self):
         from fabric_ai_meta import (
-            SemanticModelMeta,
-            TableMeta,
-            ColumnMeta,
-            MeasureMeta,
-            MockExtractor,
-            score_model,
-            generate_ai_ready_schema,
-            to_openai_function,
             __version__,
+            generate_ai_ready_schema,
+            score_model,
+            to_openai_function,
         )
 
         assert __version__ == "1.0.0"

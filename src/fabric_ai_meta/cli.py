@@ -78,16 +78,16 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
                   include_sample_values: bool, llm_enrich: bool, mock: bool) -> None:
     """Core analysis flow shared by analyze and scan commands."""
     from fabric_ai_meta.analyzer.classifier import (
-        classify_table_heuristic,
         classify_column_role,
         classify_measure_heuristic,
+        classify_table_heuristic,
     )
     from fabric_ai_meta.analyzer.dax_parser import build_dependency_graph
     from fabric_ai_meta.analyzer.scorer import score_model
-    from fabric_ai_meta.generator.schema import generate_ai_ready_schema
     from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
     from fabric_ai_meta.generator.export_openai import to_openai_function
     from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
+    from fabric_ai_meta.generator.schema import generate_ai_ready_schema
 
     cfg = load_config()
     slug = _slugify(model_name)
@@ -102,7 +102,7 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
             fixture_path = _get_fixture_path(model_name)
             extractor = MockExtractor(fixture_path)
         else:
-            from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+            from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
             if not detect_notebook_environment():
                 raise FabricEnvironmentError()
             from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
@@ -127,10 +127,9 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
         model.scoring_breakdown = breakdown
 
         # Step 4: Optional LLM enrichment
-        backfill = None
         if llm_enrich:
             progress.update(task, description="Running LLM enrichment...")
-            backfill = _run_llm_enrichment(model, cfg)
+            _run_llm_enrichment(model, cfg)
 
         # Step 5: Generate outputs
         progress.update(task, description="Generating output files...")
@@ -196,9 +195,9 @@ def _run_llm_enrichment(model, cfg):
 
     Returns the DescriptionBackfill produced (may be empty if no items needed backfill).
     """
+    from fabric_ai_meta.generator.description_backfill import apply_backfill, backfill_descriptions
     from fabric_ai_meta.llm.client import FabricLLMClient
     from fabric_ai_meta.models.metadata import TableType
-    from fabric_ai_meta.generator.description_backfill import backfill_descriptions, apply_backfill
 
     api_key = os.environ.get(cfg.llm.api_key_env)
     llm = FabricLLMClient(
@@ -350,7 +349,7 @@ def scan(workspace, output, fmt, mock, llm_enrich):
         extractor = MockExtractor(fixture_dir=fixtures_dir)
         model_names = extractor.list_models(workspace)
     else:
-        from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
         if not detect_notebook_environment():
             raise FabricEnvironmentError()
         from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
@@ -361,7 +360,6 @@ def scan(workspace, output, fmt, mock, llm_enrich):
 
     scan_timestamp = datetime.now(timezone.utc).isoformat()
     model_summaries = []
-    errors_by_model: dict[str, list[str]] = {}
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         for name in model_names:
@@ -476,7 +474,7 @@ def _export_single(model_name: str, workspace: str, filename: str, generator_fn,
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+    from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
     if not detect_notebook_environment():
         raise FabricEnvironmentError()
 
@@ -538,10 +536,12 @@ def export_autogen(model_name, workspace):
 def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
     """Export Prep for AI configuration."""
     import dataclasses
+
     from fabric_ai_meta.analyzer.classifier import (
-        classify_table_heuristic, classify_column_role, classify_measure_heuristic,
+        classify_column_role,
+        classify_measure_heuristic,
+        classify_table_heuristic,
     )
-    from fabric_ai_meta.analyzer.scorer import score_model
     from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
 
     cfg = load_config()
@@ -557,7 +557,7 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
         from fabric_ai_meta.extractor.mock import MockExtractor
         extractor = MockExtractor(fixture_path=_get_fixture_path(model_name))
     else:
-        from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
         if not detect_notebook_environment():
             raise FabricEnvironmentError()
         from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
@@ -617,9 +617,9 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
 def score(model_name, workspace, score_all, mock):
     """Show AI readiness score for one or all models."""
     from fabric_ai_meta.analyzer.classifier import (
-        classify_table_heuristic,
         classify_column_role,
         classify_measure_heuristic,
+        classify_table_heuristic,
     )
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
 
@@ -637,7 +637,7 @@ def score(model_name, workspace, score_all, mock):
             fixture_path = _get_fixture_path(name)
             extractor = MockExtractor(fixture_path)
         else:
-            from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+            from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
             if not detect_notebook_environment():
                 raise FabricEnvironmentError()
             from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
@@ -653,7 +653,7 @@ def score(model_name, workspace, score_all, mock):
         return overall, breakdown
 
     if score_all:
-        from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
+        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
         if not detect_notebook_environment():
             raise FabricEnvironmentError()
         from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
@@ -705,14 +705,14 @@ def governance(workspace, report, output, mock):
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.auth.entra import detect_notebook_environment, FabricEnvironmentError
     from fabric_ai_meta.analyzer.classifier import (
-        classify_table_heuristic,
         classify_column_role,
         classify_measure_heuristic,
+        classify_table_heuristic,
     )
-    from fabric_ai_meta.analyzer.scorer import score_model as run_score
     from fabric_ai_meta.analyzer.governance import generate_governance_report, write_governance_report
+    from fabric_ai_meta.analyzer.scorer import score_model as run_score
+    from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
 
     if mock:
         from fabric_ai_meta.extractor.mock import MockExtractor

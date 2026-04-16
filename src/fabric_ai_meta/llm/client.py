@@ -7,15 +7,15 @@ import anthropic
 
 from fabric_ai_meta.llm.cache import LLMCache
 from fabric_ai_meta.llm.prompts import (
-    TABLE_CLASSIFICATION_PROMPT,
-    GRAIN_DETECTION_PROMPT,
-    DESCRIPTION_GENERATION_PROMPT,
     BATCH_DESCRIPTION_PROMPT,
+    DESCRIPTION_GENERATION_PROMPT,
+    GRAIN_DETECTION_PROMPT,
+    TABLE_CLASSIFICATION_PROMPT,
 )
 from fabric_ai_meta.models.metadata import (
+    RelationshipMeta,
     TableMeta,
     TableType,
-    RelationshipMeta,
 )
 
 # Token budget management
@@ -184,7 +184,6 @@ class FabricLLMClient:
         Returns {id: description} merged across all batches.
         On JSON parse failure, retries once; if still fails, skips batch and continues.
         """
-        import logging
         import warnings
 
         results: dict[str, str] = {}

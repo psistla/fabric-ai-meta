@@ -2,24 +2,22 @@
 
 import json
 import os
-import tempfile
 
 import pytest
 
+from fabric_ai_meta.analyzer.classifier import (
+    classify_column_role,
+    classify_measure_heuristic,
+    classify_table_heuristic,
+)
 from fabric_ai_meta.analyzer.governance import (
-    find_naming_inconsistencies,
     find_duplicate_measures,
+    find_naming_inconsistencies,
     generate_governance_report,
     write_governance_report,
 )
-from fabric_ai_meta.extractor.mock import MockExtractor
-from fabric_ai_meta.analyzer.classifier import (
-    classify_table_heuristic,
-    classify_column_role,
-    classify_measure_heuristic,
-)
 from fabric_ai_meta.analyzer.scorer import score_model
-
+from fabric_ai_meta.extractor.mock import MockExtractor
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -281,6 +279,7 @@ class TestWriteGovernanceReport:
 class TestGovernanceCLI:
     def test_governance_mock_exits_zero(self, tmp_path):
         from click.testing import CliRunner
+
         from fabric_ai_meta.cli import main
 
         runner = CliRunner()
@@ -295,6 +294,7 @@ class TestGovernanceCLI:
 
     def test_governance_mock_produces_valid_json(self, tmp_path):
         from click.testing import CliRunner
+
         from fabric_ai_meta.cli import main
 
         runner = CliRunner()
@@ -311,6 +311,7 @@ class TestGovernanceCLI:
 
     def test_governance_mock_has_expected_keys(self, tmp_path):
         from click.testing import CliRunner
+
         from fabric_ai_meta.cli import main
 
         runner = CliRunner()
@@ -351,7 +352,6 @@ class TestEnterpriseGovernance:
         """[Total Sales] and [Sum of Revenue] in enterprise model should create
         a naming inconsistency for the 'totalsales' normalized form."""
         results = find_naming_inconsistencies(all_three_models)
-        normalized_names = [r["normalized"] for r in results]
         # Should detect naming variants across models
         assert len(results) >= 1
 
@@ -378,9 +378,11 @@ class TestEnterpriseGovernance:
 
 
     def test_governance_no_mock_raises_without_fabric(self):
-        from click.testing import CliRunner
-        from fabric_ai_meta.cli import main
         import os
+
+        from click.testing import CliRunner
+
+        from fabric_ai_meta.cli import main
         env = {k: v for k, v in os.environ.items() if k != "FABRIC_NOTEBOOK_ID"}
         runner = CliRunner(env=env)
         result = runner.invoke(main, [

@@ -1,6 +1,7 @@
 """Shared pytest fixtures for fabric-ai-meta tests."""
 
 import os
+
 import pytest
 
 from fabric_ai_meta.extractor.mock import MockExtractor

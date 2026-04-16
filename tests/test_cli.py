@@ -8,7 +8,6 @@ from click.testing import CliRunner
 
 from fabric_ai_meta.cli import main
 
-
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 ADVENTURE_WORKS_FIXTURE = os.path.join(FIXTURES_DIR, "adventure_works.json")
 
@@ -293,8 +292,8 @@ def test_scan_mock_per_model_fields(runner, tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_export_prep_for_ai_mock_exits_0(runner, tmp_path):
-    from unittest.mock import patch, MagicMock
     import json as _json
+    from unittest.mock import MagicMock, patch
 
     mock_response = MagicMock()
     mock_response.content = [MagicMock(text=_json.dumps({"description": "desc"}))]

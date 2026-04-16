@@ -2,27 +2,25 @@
 
 import json
 import os
-import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from fabric_ai_meta.llm.cache import LLMCache
-from fabric_ai_meta.llm.client import FabricLLMClient, CostLimitExceededError
+from fabric_ai_meta.llm.client import CostLimitExceededError, FabricLLMClient
 from fabric_ai_meta.llm.prompts import (
-    TABLE_CLASSIFICATION_PROMPT,
-    GRAIN_DETECTION_PROMPT,
-    DESCRIPTION_GENERATION_PROMPT,
     AI_INSTRUCTIONS_PROMPT,
+    DESCRIPTION_GENERATION_PROMPT,
+    GRAIN_DETECTION_PROMPT,
+    TABLE_CLASSIFICATION_PROMPT,
 )
 from fabric_ai_meta.models.metadata import (
-    TableMeta,
-    TableType,
     ColumnMeta,
     ColumnRole,
     RelationshipMeta,
+    TableMeta,
+    TableType,
 )
-
 
 # ── Cache tests ──────────────────────────────────────────────────────────────
 
@@ -329,9 +327,6 @@ class TestGenerateDescriptionsBatch:
         items = self._make_items(30)
 
         def make_response(*args, **kwargs):
-            # Parse which items are in this batch from the prompt and return matching ids
-            msgs = kwargs.get("messages", [])
-            prompt = msgs[0]["content"] if msgs else ""
             # Return empty array — we only care about call count
             return _make_mock_response("[]")
 

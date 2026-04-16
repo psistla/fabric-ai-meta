@@ -3,23 +3,6 @@
 __version__ = "1.0.0"
 
 # Core data model
-from fabric_ai_meta.models.metadata import (
-    ColumnMeta,
-    ColumnRole,
-    HierarchyMeta,
-    MeasureCategory,
-    MeasureMeta,
-    RelationshipMeta,
-    SemanticModelMeta,
-    TableMeta,
-    TableType,
-    from_dict,
-)
-
-# Extractors
-from fabric_ai_meta.extractor.base import BaseExtractor
-from fabric_ai_meta.extractor.mock import MockExtractor
-
 # Analysis
 from fabric_ai_meta.analyzer.classifier import (
     classify_column_role,
@@ -33,13 +16,29 @@ from fabric_ai_meta.analyzer.dax_parser import (
 from fabric_ai_meta.analyzer.governance import generate_governance_report
 from fabric_ai_meta.analyzer.scorer import score_model
 
-# Generators
-from fabric_ai_meta.generator.schema import generate_ai_ready_schema
-from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
+# Extractors
+from fabric_ai_meta.extractor.base import BaseExtractor
+from fabric_ai_meta.extractor.mock import MockExtractor
+from fabric_ai_meta.generator.export_autogen import to_autogen_tool
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
 from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
-from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
+
+# Generators
+from fabric_ai_meta.generator.schema import generate_ai_ready_schema
+from fabric_ai_meta.models.metadata import (
+    ColumnMeta,
+    ColumnRole,
+    HierarchyMeta,
+    MeasureCategory,
+    MeasureMeta,
+    RelationshipMeta,
+    SemanticModelMeta,
+    TableMeta,
+    TableType,
+    from_dict,
+)
 
 __all__ = [
     # Version

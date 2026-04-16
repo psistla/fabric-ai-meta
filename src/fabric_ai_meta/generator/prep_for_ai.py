@@ -8,18 +8,18 @@ application guide as a JSON configuration file.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from fabric_ai_meta.llm.prompts import AI_INSTRUCTIONS_PROMPT
 from fabric_ai_meta.models.metadata import (
-    MeasureCategory,
     ColumnRole,
+    MeasureCategory,
     SemanticModelMeta,
     TableMeta,
     TableType,
 )
-from fabric_ai_meta.llm.prompts import AI_INSTRUCTIONS_PROMPT
 
 if TYPE_CHECKING:
-    from fabric_ai_meta.llm.client import FabricLLMClient
     from fabric_ai_meta.generator.description_backfill import DescriptionBackfill
+    from fabric_ai_meta.llm.client import FabricLLMClient
 
 
 @dataclass

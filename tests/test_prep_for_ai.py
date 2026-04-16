@@ -2,23 +2,20 @@
 
 import json
 import os
-import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pytest
-
-from fabric_ai_meta.extractor.mock import MockExtractor
-from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai, PrepForAIConfig
-from fabric_ai_meta.generator.description_backfill import (
-    DescriptionBackfill,
-    backfill_descriptions,
-    apply_backfill,
-)
 from fabric_ai_meta.analyzer.classifier import (
-    classify_table_heuristic,
     classify_column_role,
     classify_measure_heuristic,
+    classify_table_heuristic,
 )
+from fabric_ai_meta.extractor.mock import MockExtractor
+from fabric_ai_meta.generator.description_backfill import (
+    DescriptionBackfill,
+    apply_backfill,
+    backfill_descriptions,
+)
+from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -211,8 +208,6 @@ class TestBackfillDescriptions:
         mock_client.messages.create.return_value = _make_mock_llm_response("[]")
 
         model = _load_and_classify("adventure_works.json", "Adventure Works")
-        from fabric_ai_meta.llm.client import FabricLLMClient
-        llm = FabricLLMClient(api_key="k", cache_enabled=False)
 
         backfill = DescriptionBackfill(
             table_descriptions={"FactInternetSales": "Internet sales fact table"},

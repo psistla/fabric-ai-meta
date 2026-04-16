@@ -147,7 +147,6 @@ def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
             f"Lowest scoring: '{lowest[0]}' ({lowest[1]:.2f}) — run with --llm-enrich"
         )
     for m in models:
-        score = m.ai_readiness_score or 0.0
         breakdown = m.scoring_breakdown or {}
         desc_coverage = breakdown.get("description_coverage", None)
         if desc_coverage is not None and desc_coverage < 0.5:

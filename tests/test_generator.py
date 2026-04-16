@@ -4,13 +4,12 @@ and Prep for AI config (Task 11)."""
 import json
 from unittest.mock import MagicMock
 
-from fabric_ai_meta.generator.schema import generate_ai_ready_schema, write_schema_to_file
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
 from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
-from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai, PrepForAIConfig
+from fabric_ai_meta.generator.prep_for_ai import PrepForAIConfig, generate_prep_for_ai
+from fabric_ai_meta.generator.schema import generate_ai_ready_schema, write_schema_to_file
 from fabric_ai_meta.models.metadata import ColumnRole
-
 
 EXPECTED_TOP_LEVEL_KEYS = {
     "$schema", "version", "model", "tables", "measures",

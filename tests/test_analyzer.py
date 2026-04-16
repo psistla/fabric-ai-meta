@@ -1,6 +1,5 @@
 """Tests for heuristic classifier, AI readiness scorer (Task 04), DAX parser (Task 05), and governance (Task 13)."""
 
-import pytest
 
 from fabric_ai_meta.analyzer.classifier import (
     classify_measure_heuristic,
@@ -22,7 +21,6 @@ from fabric_ai_meta.models.metadata import (
     TableMeta,
     TableType,
 )
-
 
 # ---------------------------------------------------------------------------
 # Table classification
