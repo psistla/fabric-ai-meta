@@ -780,3 +780,54 @@ def test_full_pipeline_governance(tmp_path):
     assert "duplicate_measures" in data
     assert "recommendations" in data
     assert data["summary"]["model_count"] >= 2
+
+
+# ---------------------------------------------------------------------------
+# Public API exports (S4-02)
+# ---------------------------------------------------------------------------
+
+
+class TestPublicAPIExports:
+    """Verify all public names are importable from fabric_ai_meta directly."""
+
+    def test_all_public_names_importable(self):
+        import fabric_ai_meta
+
+        for name in fabric_ai_meta.__all__:
+            assert hasattr(fabric_ai_meta, name), f"{name} listed in __all__ but not importable"
+
+    def test_all_matches_actual_exports(self):
+        import fabric_ai_meta
+
+        exported_attrs = {
+            name for name in dir(fabric_ai_meta)
+            if not name.startswith("_") or name == "__version__"
+        }
+        all_set = set(fabric_ai_meta.__all__)
+        # Every name in __all__ must exist as an attribute
+        missing = all_set - exported_attrs
+        assert not missing, f"Names in __all__ but not exported: {missing}"
+
+    def test_core_imports_work(self):
+        from fabric_ai_meta import (
+            SemanticModelMeta,
+            TableMeta,
+            ColumnMeta,
+            MeasureMeta,
+            MockExtractor,
+            score_model,
+            generate_ai_ready_schema,
+            to_openai_function,
+            __version__,
+        )
+
+        assert __version__ == "1.0.0"
+        assert callable(score_model)
+        assert callable(generate_ai_ready_schema)
+        assert callable(to_openai_function)
+
+    def test_all_count(self):
+        import fabric_ai_meta
+
+        # 1 version + 10 data model + 2 extractors + 7 analysis + 5 generators = 25
+        assert len(fabric_ai_meta.__all__) == 25
