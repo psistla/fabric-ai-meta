@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-20
+
+### Added
+- Description writeback through XMLA / TOM with the `apply-descriptions` CLI command and `MockWriter` / `SemanticLinkWriter` classes
+- MCP server exposing `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, and `diff_summaries` to AI agents (Claude Code, Claude Desktop), launched via `fabric-ai-meta serve`; project-root `.mcp.json` for auto-discovery
+- TMDL / Copilot research client (`TMDLClient`) and accompanying spike documentation that locates Prep for AI primitives (AI Instructions, AI Data Schema, Verified Answers) inside the Fabric REST `getDefinition` payload
+- CI/CD integration guide (`docs/ci-cd-guide.md`) with ready-to-paste GitHub Actions and Azure DevOps workflows, plus a standalone `scripts/ci-governance-check.py` threshold script
+- Public API exports for `DescriptionWriter`, `MockWriter`, `SemanticLinkWriter`, `WritebackResult`
+- Spike notebook (`notebooks/tmdl-spike.ipynb`) for Fabric-environment verification of the Copilot folder layout
+
+### Changed
+- Test suite expanded to 343 tests
+- README restructured with MCP integration, writeback, and CI/CD sections; project-export count refreshed to 31
+
+### Documentation
+- Internal sprint and task identifiers removed from tracked source, tests, and docs
+- Punctuation pass across tracked files for tone consistency
+
 ## [1.0.0] - 2026-04-04
 
 ### Added
