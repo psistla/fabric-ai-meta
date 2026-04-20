@@ -11,6 +11,7 @@ Extract, classify, and export metadata from Microsoft Fabric semantic models for
 **Automates Prep for AI** across 100+ models. No manual configuration.
 **Exports to LangChain, OpenAI, Semantic Kernel, AutoGen.** One extraction, every framework.
 **Governs at workspace scale:** naming inconsistencies, duplicate measures, readiness scores.
+**Speaks MCP:** six tools for Claude Code, Claude Desktop, and any MCP-aware agent.
 
 ### Install
 
@@ -320,7 +321,7 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-See `fabric_ai_meta.__all__` for the full list of 27 public exports.
+See `fabric_ai_meta.__all__` for the full list of 31 public exports.
 
 ---
 
@@ -339,9 +340,12 @@ pytest tests/ --cov=fabric_ai_meta
 
 All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and fixture JSON files in `tests/fixtures/`.
 
-### Fabric Quickstart Notebook
+### Fabric Notebooks
 
-A ready-to-run Jupyter notebook for Microsoft Fabric is available at [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb). It walks through authentication, model listing, analysis, export, and governance inside a Fabric notebook session.
+| Notebook | Purpose |
+|----------|---------|
+| [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb) | End-to-end walkthrough: authentication, model listing, analysis, export, governance |
+| [`notebooks/tmdl-spike.ipynb`](notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` TMDL output for AI Instructions and Verified Answers (companion to [`docs/research/tmdl-prep-for-ai-spike.md`](docs/research/tmdl-prep-for-ai-spike.md)) |
 
 ### Output Schemas
 
