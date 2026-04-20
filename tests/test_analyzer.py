@@ -1,4 +1,4 @@
-"""Tests for heuristic classifier, AI readiness scorer (Task 04), DAX parser (Task 05), and governance (Task 13)."""
+"""Tests for the heuristic classifier, AI readiness scorer, DAX parser, and governance analyzer."""
 
 
 from fabric_ai_meta.analyzer.classifier import (
@@ -113,7 +113,7 @@ def test_scorer_second_fixture(contoso_model):
 
 
 # ---------------------------------------------------------------------------
-# DAX dependency parser (Task 05)
+# DAX dependency parser
 # ---------------------------------------------------------------------------
 
 def _all_measures_dict(model):
@@ -297,7 +297,7 @@ def test_empty_dax_measure_classified_unknown(enterprise_sales_model):
 
 
 # ---------------------------------------------------------------------------
-# Governance (Task 13)
+# Governance
 # ---------------------------------------------------------------------------
 
 def _make_model(name: str, columns: list[tuple[str, str]], measures: list[tuple[str, str]]) -> SemanticModelMeta:

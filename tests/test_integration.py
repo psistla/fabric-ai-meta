@@ -1,4 +1,4 @@
-"""Integration tests for fabric-ai-meta (Task 14).
+"""Integration tests for fabric-ai-meta.
 
 Covers:
 - Full end-to-end pipeline via MockExtractor
@@ -41,7 +41,7 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 # ---------------------------------------------------------------------------
-# Full end-to-end pipeline (Task 14 required test)
+# Full end-to-end pipeline
 # ---------------------------------------------------------------------------
 
 
@@ -782,7 +782,7 @@ def test_full_pipeline_governance(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Public API exports (S4-02)
+# Public API exports
 # ---------------------------------------------------------------------------
 
 
@@ -829,7 +829,7 @@ class TestPublicAPIExports:
 
 
 # ---------------------------------------------------------------------------
-# JSON Schema validation (S5-02)
+# JSON Schema validation
 # ---------------------------------------------------------------------------
 
 SCHEMAS_DIR = os.path.join(os.path.dirname(__file__), "..", "schemas")

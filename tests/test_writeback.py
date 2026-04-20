@@ -1,4 +1,4 @@
-"""Tests for the description writeback module (Task S6-01)."""
+"""Tests for the description writeback module."""
 
 import json
 

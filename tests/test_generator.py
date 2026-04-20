@@ -1,5 +1,4 @@
-"""Tests for generators: AI-ready JSON schema (Task 06), framework exports (Task 07),
-and Prep for AI config (Task 11)."""
+"""Tests for the AI-ready JSON schema generator, framework exports, and Prep for AI config."""
 
 import json
 from unittest.mock import MagicMock
@@ -150,7 +149,7 @@ def test_time_intelligence_measure_has_requires_date_filter(adventure_works_mode
 
 
 # ---------------------------------------------------------------------------
-# Task 07 — LangChain export tests
+# LangChain export tests
 # ---------------------------------------------------------------------------
 
 
@@ -189,7 +188,7 @@ def test_langchain_metadata_has_expected_keys(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
-# Task 07 — OpenAI export tests
+# OpenAI export tests
 # ---------------------------------------------------------------------------
 
 
@@ -223,7 +222,7 @@ def test_openai_export_is_json_serializable(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
-# Task 07 — Semantic Kernel export tests
+# Semantic Kernel export tests
 # ---------------------------------------------------------------------------
 
 
@@ -264,7 +263,7 @@ def test_semantic_kernel_export_is_json_serializable(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
-# S4-03 — AutoGen export tests
+# AutoGen export tests
 # ---------------------------------------------------------------------------
 
 
@@ -357,7 +356,7 @@ def test_autogen_export_hidden_tables_excluded(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
-# Task 11 — Prep for AI config tests
+# Prep for AI config tests
 # ---------------------------------------------------------------------------
 
 

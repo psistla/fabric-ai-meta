@@ -1,10 +1,10 @@
-"""Tests for the TMDL / Copilot research client (Task S6-02, corrected).
+"""Tests for the TMDL / Copilot research client.
 
-The originally hypothesized location for AI Instructions / Verified Answers
-(model-level TMDL annotations under ``__PBI_*``) was falsified by the spike.
-Prep for AI primitives live in a sibling ``Copilot/`` folder of the model
-definition, returned by ``getDefinition`` as separate parts. These tests
-match that corrected reality.
+Prep for AI primitives (AI Instructions, AI Data Schema, Verified Answers)
+live in a ``Copilot/`` folder sibling to ``definition/`` inside the semantic
+model, returned by ``getDefinition`` as separate parts. These tests assert
+that the client locates them via path prefix matching rather than by
+scanning TMDL files for annotation strings.
 """
 
 import base64

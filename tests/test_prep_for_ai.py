@@ -1,4 +1,4 @@
-"""Tests for prep_for_ai generator and description backfill (S2-01 / S2-02)."""
+"""Tests for the Prep for AI config generator and description backfill."""
 
 import json
 import os

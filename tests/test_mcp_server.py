@@ -1,4 +1,4 @@
-"""Tests for the MCP server tool functions (Task S6-03).
+"""Tests for the MCP server tool functions.
 
 These tests bypass the MCP protocol and call the underlying tool functions
 directly. They do not require the optional ``mcp`` dependency to be installed.

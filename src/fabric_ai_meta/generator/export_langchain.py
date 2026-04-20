@@ -11,25 +11,31 @@ def sanitize(name: str) -> str:
 
 
 def generate_context_prompt(model: SemanticModelMeta) -> str:
-    """Generate a context prompt summarising the model for an LLM agent.
+    """Return a natural-language context prompt summarising the model.
 
-    Stub — full implementation deferred to Task 10 (LLM integration).
+    Currently returns an empty string. Richer prompt synthesis is a
+    planned enhancement; consumers that need a context prompt today
+    should compose one from ``model.description`` and the table list.
     """
     return ""
 
 
 def extract_filter_paths(model: SemanticModelMeta) -> list[str]:
-    """Extract valid filter paths from the relationship graph.
+    """Return the list of valid filter paths derived from the relationship graph.
 
-    Stub — full implementation deferred to Task 10 (LLM integration).
+    Currently returns an empty list. Path extraction is a planned
+    enhancement that will walk ``model.relationships`` to surface
+    every joinable column-to-column traversal.
     """
     return []
 
 
 def extract_pitfalls(model: SemanticModelMeta) -> list[str]:
-    """Extract common query pitfalls for non-additive / time-intelligence measures.
+    """Return common query pitfalls for non-additive and time-intelligence measures.
 
-    Stub — full implementation deferred to Task 10 (LLM integration).
+    Currently returns an empty list. Pitfall detection is a planned
+    enhancement that will inspect each measure's category and DAX
+    expression to flag patterns prone to misuse.
     """
     return []
 
@@ -39,7 +45,7 @@ def to_langchain_tool_definition(model: SemanticModelMeta) -> dict:
 
     IMPORTANT: LangChain's standard StructuredTool schema only natively supports
     name, description, and args_schema (parameters). The 'metadata' field below
-    is a non-standard extension — it will NOT be automatically parsed by LangChain.
+    is a non-standard extension; it will NOT be automatically parsed by LangChain.
 
     Usage: Consumers of this export must manually inject the metadata fields
     into the tool description string or use a custom tool wrapper class.
@@ -80,7 +86,7 @@ def to_langchain_tool_definition(model: SemanticModelMeta) -> dict:
                 },
             },
         },
-        # Non-standard extension — for custom agent implementations only
+        # Non-standard extension, for custom agent implementations only
         "metadata": {
             "model_context": generate_context_prompt(model),
             "valid_filter_paths": extract_filter_paths(model),

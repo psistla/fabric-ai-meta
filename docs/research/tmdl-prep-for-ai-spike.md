@@ -109,7 +109,7 @@ Additional prerequisite for Prep for AI features to function at all: `definition
 
 ---
 
-## Recommendation for Sprint 7+
+## Recommended next step: a `CopilotWriter`
 
 The previously hypothesized writer (`TMDLDescriptionWriter` for Prep for AI) is replaced by a `CopilotWriter`:
 
@@ -121,6 +121,8 @@ The previously hypothesized writer (`TMDLDescriptionWriter` for Prep for AI) is 
 - Do not target `.lsdl.yaml`. That artifact exists only as a manual Modeling-ribbon export tied to the deprecating Q&A surface; it is not part of the live model definition payload.
 
 The existing `TMDLClient.get_definition` HTTP layer is structurally correct (the envelope is the same for TMDL and `Copilot/` parts). What changed is the *path filter* used to find Prep for AI primitives: match on `path` prefixes rooted at `Copilot/`, not on annotation strings inside TMDL files.
+
+A future `CopilotWriter` can build directly on this foundation.
 
 ---
 

@@ -1,4 +1,4 @@
-"""Tests for the CLI (Task 10 — SPEC.md Section 7.1)."""
+"""Tests for the CLI."""
 
 import json
 import os
