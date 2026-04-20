@@ -800,5 +800,91 @@ def diff_cmd(baseline_path: str, current_path: str, output: str | None, fmt: str
         click.echo(result)
 
 
+# ---------------------------------------------------------------------------
+# apply-descriptions command
+# ---------------------------------------------------------------------------
+
+@main.command("apply-descriptions")
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--workspace", "-w", required=True, help="Fabric workspace name.")
+@click.option("--dry-run/--no-dry-run", default=True,
+              help="Preview changes without writing (default: dry-run on).")
+@click.option("--mock", is_flag=True, default=False,
+              help="Use MockWriter for local testing (no service contact).")
+def apply_descriptions(config_path, workspace, dry_run, mock):
+    """Apply generated descriptions from a prep-for-ai-config.json to a model."""
+    console.print(Panel(
+        f"[bold]apply-descriptions[/bold]  config=[cyan]{config_path}[/cyan]  "
+        f"workspace=[cyan]{workspace}[/cyan]  "
+        f"dry_run=[cyan]{dry_run}[/cyan]  mock=[cyan]{mock}[/cyan]",
+        title="fabric-ai-meta"
+    ))
+
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            config_data = json.load(f)
+    except Exception as e:
+        console.print(f"[red]Could not read {config_path}: {e}[/red]")
+        sys.exit(1)
+
+    descriptions = config_data.get("generated_descriptions", {})
+    model_name = config_data.get("model_name") or os.path.basename(
+        os.path.dirname(os.path.abspath(config_path))
+    )
+
+    try:
+        if mock:
+            from fabric_ai_meta.writeback.description_writer import MockWriter
+            writer = MockWriter()
+        else:
+            from fabric_ai_meta.auth.entra import (
+                FabricEnvironmentError,
+                detect_notebook_environment,
+            )
+            if not detect_notebook_environment():
+                raise FabricEnvironmentError()
+            from fabric_ai_meta.writeback.description_writer import SemanticLinkWriter
+            writer = SemanticLinkWriter()
+
+        result = writer.apply_descriptions(
+            model_name=model_name,
+            workspace=workspace,
+            descriptions=descriptions,
+            dry_run=dry_run,
+        )
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+    label = "DRY RUN" if result.dry_run else "APPLIED"
+    console.print(
+        f"[bold]{label}[/bold]: tables={result.tables_updated}, "
+        f"columns={result.columns_updated}, measures={result.measures_updated}, "
+        f"total={result.total_changes}"
+    )
+
+    if result.changes:
+        tbl = Table(title=f"{label}: planned changes", show_header=True)
+        tbl.add_column("Type")
+        tbl.add_column("Table")
+        tbl.add_column("Object")
+        tbl.add_column("Old description")
+        tbl.add_column("New description")
+        for change in result.changes:
+            tbl.add_row(
+                change["type"],
+                change["table"],
+                change["object"],
+                (change.get("old_description") or "—")[:50],
+                (change.get("new_description") or "")[:80],
+            )
+        console.print(tbl)
+
+    if result.errors:
+        console.print("[yellow]Errors:[/yellow]")
+        for err in result.errors:
+            console.print(f"  - {err}")
+
+
 if __name__ == "__main__":
     main()

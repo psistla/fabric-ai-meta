@@ -40,6 +40,12 @@ from fabric_ai_meta.models.metadata import (
     TableType,
     from_dict,
 )
+from fabric_ai_meta.writeback.description_writer import (
+    DescriptionWriter,
+    MockWriter,
+    SemanticLinkWriter,
+    WritebackResult,
+)
 
 __all__ = [
     # Version
@@ -74,4 +80,9 @@ __all__ = [
     "to_openai_function",
     "to_semantic_kernel_plugin",
     "to_autogen_tool",
+    # Writeback
+    "DescriptionWriter",
+    "MockWriter",
+    "SemanticLinkWriter",
+    "WritebackResult",
 ]

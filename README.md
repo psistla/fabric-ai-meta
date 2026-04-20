@@ -48,6 +48,7 @@ Microsoft Fabric has invested heavily in AI features for semantic models: Prep f
 | Gap | What fabric-ai-meta does |
 |-----|--------------------------|
 | Manual Prep for AI | Auto-generates `prep-for-ai-config.json`: table selections, AI Instructions, Verified Answers, description backfill |
+| Manual description writeback | `apply-descriptions` writes generated table and column descriptions back through XMLA / TOM |
 | No external AI export | Produces framework-native schemas for LangChain, OpenAI, Semantic Kernel, and AutoGen |
 | No cross-model governance | Detects naming inconsistencies, duplicate DAX, ranks models by readiness, outputs governance report |
 
@@ -154,6 +155,24 @@ fabric-ai-meta export prep-for-ai "Adventure Works" --workspace "Production" --m
 ```
 
 Output is a `prep-for-ai-config.json` you apply manually in Power BI Desktop or Fabric Service.
+</details>
+
+<details>
+<summary><strong>apply-descriptions</strong>: write generated descriptions back to a model</summary>
+
+```bash
+# Preview the writeback locally without contacting Fabric
+fabric-ai-meta apply-descriptions ./output/adventure-works/prep-for-ai-config.json \
+  --workspace "Production" --mock
+
+# Inside a Fabric notebook, dry-run against the live model (default)
+fabric-ai-meta apply-descriptions ./prep-for-ai-config.json --workspace "Production"
+
+# Commit the changes through XMLA / TOM
+fabric-ai-meta apply-descriptions ./prep-for-ai-config.json --workspace "Production" --no-dry-run
+```
+
+Reads the `generated_descriptions` section of a `prep-for-ai-config.json` and applies them to table and column descriptions through the Tabular Object Model. `--mock` runs locally without any service contact; without `--mock`, the command must run inside a Fabric notebook runtime.
 </details>
 
 <details>
