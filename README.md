@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-284%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-296%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -112,7 +112,7 @@ flowchart TD
 | **Fabric mode** | Fabric notebook | `SemanticLinkExtractor` | Ambient (automatic) |
 | **Local/CI mode** | Any machine | `MockExtractor` + fixture JSON | None needed |
 
-> **Every command supports `--mock`:** `analyze`, `scan`, `export`, `score`, and `governance` all work locally without a Fabric connection.
+> **Every command supports `--mock`:** `analyze`, `scan`, `export`, `score`, `governance`, and `apply-descriptions` all work locally without a Fabric connection.
 
 ---
 
@@ -310,7 +310,7 @@ See `fabric_ai_meta.__all__` for the full list of 27 public exports.
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (284 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (296 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
