@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-329%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-343%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -331,7 +331,7 @@ See `fabric_ai_meta.__all__` for the full list of 31 public exports.
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (329 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (343 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
@@ -346,6 +346,10 @@ All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and f
 |----------|---------|
 | [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb) | End-to-end walkthrough: authentication, model listing, analysis, export, governance |
 | [`notebooks/tmdl-spike.ipynb`](notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` TMDL output for AI Instructions and Verified Answers (companion to [`docs/research/tmdl-prep-for-ai-spike.md`](docs/research/tmdl-prep-for-ai-spike.md)) |
+
+### CI/CD Integration
+
+Wire `fabric-ai-meta` into GitHub Actions or Azure DevOps to enforce governance thresholds on every PR and track readiness trends on a schedule. The guide in [`docs/ci-cd-guide.md`](docs/ci-cd-guide.md) includes ready-to-paste workflow files and the standalone [`scripts/ci-governance-check.py`](scripts/ci-governance-check.py) threshold script.
 
 ### Output Schemas
 
