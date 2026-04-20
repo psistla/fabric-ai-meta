@@ -7,11 +7,11 @@ as a flat list of parts: TMDL files under ``definition/``, AI / Copilot
 artifacts under ``Copilot/``, plus project metadata. This module focuses
 on locating Prep for AI primitives, which live in the ``Copilot/`` tree:
 
-- ``Copilot/Instructions/instructions.md`` — AI Instructions (Markdown)
-- ``Copilot/schema.json`` — AI Data Schema
-- ``Copilot/VerifiedAnswers/*`` — Verified Answers
-- ``Copilot/examplePrompts.json`` — example prompts shown to users
-- ``Copilot/settings.json`` / ``Copilot/version.json`` — Copilot config / schema version
+- ``Copilot/Instructions/instructions.md``: AI Instructions (Markdown)
+- ``Copilot/schema.json``: AI Data Schema
+- ``Copilot/VerifiedAnswers/*``: Verified Answers
+- ``Copilot/examplePrompts.json``: example prompts shown to users
+- ``Copilot/settings.json`` / ``Copilot/version.json``: Copilot config / schema version
 
 The class deliberately stops at read + locate. Writing back is out of
 scope for the spike; see the research doc's "Recommendation" section

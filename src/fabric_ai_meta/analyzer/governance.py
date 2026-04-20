@@ -133,25 +133,25 @@ def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
     recommendations = []
     for issue in naming_issues:
         recommendations.append(
-            f"Standardize '{issue['normalized']}' — found as "
+            f"Standardize '{issue['normalized']}', found as "
             f"{issue['variants']} across {issue['found_in']}"
         )
     for dup in duplicate_measures:
         name = dup.get("measure_name") or dup.get("variants")
         n = len(dup["found_in"])
         recommendations.append(
-            f"Consider consolidating '{name}' — identical DAX in {n} models"
+            f"Consider consolidating '{name}', identical DAX in {n} models"
         )
     if lowest:
         recommendations.append(
-            f"Lowest scoring: '{lowest[0]}' ({lowest[1]:.2f}) — run with --llm-enrich"
+            f"Lowest scoring: '{lowest[0]}' ({lowest[1]:.2f}), run with --llm-enrich"
         )
     for m in models:
         breakdown = m.scoring_breakdown or {}
         desc_coverage = breakdown.get("description_coverage", None)
         if desc_coverage is not None and desc_coverage < 0.5:
             recommendations.append(
-                f"'{m.name}' has low description coverage ({desc_coverage:.0%}) — "
+                f"'{m.name}' has low description coverage ({desc_coverage:.0%}), "
                 "run with --llm-enrich to generate missing descriptions"
             )
 

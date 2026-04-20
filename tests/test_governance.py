@@ -328,7 +328,7 @@ class TestGovernanceCLI:
             assert key in data, f"Missing key: {key}"
 
 # ---------------------------------------------------------------------------
-# Enterprise fixture — cross-model governance (3 models)
+# Enterprise fixture, cross-model governance (3 models)
 # ---------------------------------------------------------------------------
 
 class TestEnterpriseGovernance:

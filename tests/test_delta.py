@@ -38,7 +38,7 @@ def _make_model(name, score=0.7, tables=4, measures=5, desc_cov=0.8):
 
 
 # ---------------------------------------------------------------------------
-# compare_workspace_summaries — core logic
+# compare_workspace_summaries, core logic
 # ---------------------------------------------------------------------------
 
 

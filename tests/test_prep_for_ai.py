@@ -244,7 +244,7 @@ class TestBackfillDescriptions:
         mock_client.messages.create.side_effect = capture_response
 
         model = _load_and_classify("adventure_works.json", "Adventure Works")
-        # FactInternetSales already has descriptions — should NOT appear in items
+        # FactInternetSales already has descriptions, should NOT appear in items
         fact = next(t for t in model.tables if t.name == "FactInternetSales")
         fact.description = "Has a description"
 

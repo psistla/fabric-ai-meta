@@ -38,13 +38,13 @@ The `Copilot/` folder is sibling to `definition/`, not nested inside it. TMDL pa
 
 ---
 
-## Q1. Are AI Instructions in the TMDL definition? — **No.**
+## Q1. Are AI Instructions in the TMDL definition? **No.**
 
 `Copilot/Instructions/instructions.md` (Markdown). Returned by `getDefinition` as a sibling part to TMDL parts, with `path = "Copilot/Instructions/instructions.md"` and base64-encoded payload.
 
 Source: [Fabric REST: SemanticModel definition](https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/semantic-model-definition).
 
-## Q2. Are Verified Answers in the TMDL definition? — **No.**
+## Q2. Are Verified Answers in the TMDL definition? **No.**
 
 `Copilot/VerifiedAnswers/` directory; one file per verified answer, returned as separate parts. Same envelope as Q1.
 
@@ -63,7 +63,7 @@ Source: same as Q1.
 
 Not annotations on TMDL objects. Not extended properties. First-class files in the model definition payload.
 
-## Q4. Can we modify these and push back via `updateDefinition`? — **Yes, with caveats.**
+## Q4. Can we modify these and push back via `updateDefinition`? **Yes, with caveats.**
 
 `updateDefinition` accepts the `Copilot/` parts in the same payload shape as TMDL parts. A read-modify-write loop is mechanically possible:
 

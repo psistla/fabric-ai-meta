@@ -276,7 +276,7 @@ class TestPromptTemplates:
     def test_table_classification_prompt_formats_without_error(self):
         result = TABLE_CLASSIFICATION_PROMPT.format(
             table_name="TestTable",
-            column_list="  - Col1 — string",
+            column_list="  - Col1, string",
             relationship_summary="No relationships.",
             possible_types="fact, dimension",
         )
@@ -327,7 +327,7 @@ class TestGenerateDescriptionsBatch:
         items = self._make_items(30)
 
         def make_response(*args, **kwargs):
-            # Return empty array — we only care about call count
+            # Return empty array, we only care about call count
             return _make_mock_response("[]")
 
         mock_client.messages.create.side_effect = make_response

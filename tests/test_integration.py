@@ -395,7 +395,7 @@ def test_llm01_cost_tracking_under_budget_does_not_raise(mock_anthropic_cls):
     client = FabricLLMClient(
         api_key="test-key",
         cache_enabled=False,
-        max_cost_usd=1.00,  # $1 budget — 700 tokens is well under $0.20
+        max_cost_usd=1.00,  # $1 budget, 700 tokens is well under $0.20
     )
     result = client.call("analyze this model")
     assert result == "response"

@@ -230,7 +230,7 @@ def _run_llm_enrichment(model, cfg):
 @click.group()
 @click.version_option(version=__version__, prog_name="fabric-ai-meta")
 def main():
-    """Fabric AI Meta — extract, analyze, and export Fabric semantic model metadata for AI frameworks."""
+    """Fabric AI Meta: extract, analyze, and export Fabric semantic model metadata for AI frameworks."""
     pass
 
 
@@ -261,7 +261,7 @@ def auth_login():
         if credential is not None:
             console.print("[green]Login successful.[/green]")
         else:
-            console.print("[yellow]Notebook mode — using ambient Fabric credential.[/yellow]")
+            console.print("[yellow]Notebook mode, using ambient Fabric credential.[/yellow]")
     except Exception as e:
         console.print(f"[red]Login failed: {e}[/red]")
         sys.exit(1)
@@ -414,7 +414,7 @@ def scan(workspace, output, fmt, mock, llm_enrich):
         lowest = min(scored, key=lambda x: x["ai_readiness_score"])
         recommendations.append(
             f"Lowest scoring model: '{lowest['name']}' ({lowest['ai_readiness_score']:.0%})"
-            f" — run with --llm-enrich to improve"
+            f", run with --llm-enrich to improve"
         )
     low_coverage = [m for m in scored if m["description_coverage"] is not None and m["description_coverage"] < 0.7]
     if low_coverage:
@@ -440,7 +440,7 @@ def scan(workspace, output, fmt, mock, llm_enrich):
     console.print(f"[green]Workspace summary written to:[/green] {summary_path}")
 
     # Rankings table
-    tbl = Table(title=f"Workspace: {workspace} — {len(model_summaries)} models", show_header=True)
+    tbl = Table(title=f"Workspace: {workspace}, {len(model_summaries)} models", show_header=True)
     tbl.add_column("Model")
     tbl.add_column("Score", justify="right")
     tbl.add_column("Tables", justify="right")
@@ -448,9 +448,9 @@ def scan(workspace, output, fmt, mock, llm_enrich):
     tbl.add_column("Desc Coverage", justify="right")
     for m in sorted(model_summaries, key=lambda x: (x["ai_readiness_score"] or 0), reverse=True):
         score_str = f"{m['ai_readiness_score']:.2%}" if m["ai_readiness_score"] is not None else "error"
-        cov_str = f"{m['description_coverage']:.0%}" if m["description_coverage"] is not None else "—"
-        tbl.add_row(m["name"], score_str, str(m["table_count"] or "—"),
-                    str(m["measure_count"] or "—"), cov_str)
+        cov_str = f"{m['description_coverage']:.0%}" if m["description_coverage"] is not None else "-"
+        tbl.add_row(m["name"], score_str, str(m["table_count"] or "-"),
+                    str(m["measure_count"] or "-"), cov_str)
     console.print(tbl)
 
 
@@ -875,7 +875,7 @@ def apply_descriptions(config_path, workspace, dry_run, mock):
                 change["type"],
                 change["table"],
                 change["object"],
-                (change.get("old_description") or "—")[:50],
+                (change.get("old_description") or "-")[:50],
                 (change.get("new_description") or "")[:80],
             )
         console.print(tbl)

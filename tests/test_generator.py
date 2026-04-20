@@ -465,7 +465,7 @@ def test_prep_for_ai_is_json_serializable(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
-# Enterprise fixture — schema generation with large model
+# Enterprise fixture, schema generation with large model
 # ---------------------------------------------------------------------------
 
 

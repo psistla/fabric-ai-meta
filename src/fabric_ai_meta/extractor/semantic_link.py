@@ -42,7 +42,7 @@ class SemanticLinkExtractor(BaseExtractor):
         Args:
             workspace: Default Fabric workspace name.
             credential: Optional azure.identity credential (unused by sempy in
-                notebook mode — Fabric ambient credential is used automatically).
+                notebook mode: Fabric ambient credential is used automatically).
 
         Raises:
             FabricEnvironmentError: If not running inside a Fabric notebook runtime.
@@ -51,7 +51,7 @@ class SemanticLinkExtractor(BaseExtractor):
             raise FabricEnvironmentError()
         self.workspace = workspace
         self.credential = credential
-        # Deferred import — avoids ImportError at module load time in local envs.
+        # Deferred import, avoids ImportError at module load time in local envs.
         import sempy.fabric as fabric  # noqa: PLC0415
 
         self._fabric = fabric
@@ -247,7 +247,7 @@ class SemanticLinkExtractor(BaseExtractor):
     ) -> list[str]:
         """Return up to 10 distinct sample values for a column.
 
-        Returns an empty list on any error — sample values are best-effort only.
+        Returns an empty list on any error, sample values are best-effort only.
         Uses evaluate_dax with a TOPN(10, DISTINCT(...)) pattern per SPEC.md 6.1.
         """
         try:
@@ -281,7 +281,7 @@ class SemanticLinkExtractor(BaseExtractor):
                 last_exc = exc
                 if attempt < _MAX_RETRIES - 1:
                     logger.warning(
-                        "Attempt %d/%d failed for %s: %s — retrying in %ds…",
+                        "Attempt %d/%d failed for %s: %s, retrying in %ds…",
                         attempt + 1,
                         _MAX_RETRIES,
                         _context or fn.__name__,

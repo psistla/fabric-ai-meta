@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 # [Name] not preceded by a table name (no 'Table'[col] or Table[col] prefix)
 _MEASURE_REF_RE = re.compile(r"(?<!['\w])\[([^\]]+)\]")
 
-# 'Table Name'[Column] — quoted table name
+# 'Table Name'[Column], quoted table name
 _QUOTED_COL_RE = re.compile(r"'([^']+)'\[([^\]]+)\]")
 
-# TableName[Column] — unquoted single-word table name
+# TableName[Column], unquoted single-word table name
 _UNQUOTED_COL_RE = re.compile(r"(\w+)\[([^\]]+)\]")
 
 # Filter modification functions

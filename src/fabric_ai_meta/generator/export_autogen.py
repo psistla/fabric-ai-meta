@@ -73,9 +73,9 @@ def to_autogen_tool(model: SemanticModelMeta) -> dict:
             if m.is_hidden:
                 continue
             if m.category == MeasureCategory.NON_ADDITIVE:
-                pitfalls.append(f"{m.name} is non-additive — do not SUM it")
+                pitfalls.append(f"{m.name} is non-additive, do not SUM it")
             elif m.category == MeasureCategory.SEMI_ADDITIVE:
-                pitfalls.append(f"{m.name} is semi-additive — cannot be summed across time")
+                pitfalls.append(f"{m.name} is semi-additive, cannot be summed across time")
             elif m.category == MeasureCategory.TIME_INTELLIGENCE:
                 pitfalls.append(f"{m.name} requires a date filter")
 

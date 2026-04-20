@@ -16,13 +16,13 @@ class TableType(Enum):
 
 
 class MeasureCategory(Enum):
-    ADDITIVE = "additive"          # SUM, COUNT — can aggregate across all dims
+    ADDITIVE = "additive"          # SUM, COUNT, can aggregate across all dims
     SEMI_ADDITIVE = "semi_additive" # Balance-type measures (inventory, account balances)
-                                   # — can be summed across most dims but NOT time
+                                   #, can be summed across most dims but NOT time
                                    # Uses LASTDATE/OPENINGBALANCEMONTH patterns
                                    # ⚠️ DISTINCTCOUNT is non-additive, NOT semi-additive
     NON_ADDITIVE = "non_additive"   # Ratios, percentages, averages, DISTINCTCOUNT
-                                   # — cannot be summed across any dimension correctly
+                                   #, cannot be summed across any dimension correctly
     TIME_INTELLIGENCE = "time_intelligence"  # YTD, QTD, prior period
     CALCULATED = "calculated"       # Derived from other measures
     FILTER_CONTEXT = "filter_context"  # CALCULATE with explicit filters

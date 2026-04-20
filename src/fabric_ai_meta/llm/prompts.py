@@ -4,7 +4,7 @@ TABLE_CLASSIFICATION_PROMPT = """You are classifying a table in a Power BI / Mic
 
 Table name: {table_name}
 
-Columns (name — data type):
+Columns (name, data type):
 {column_list}
 
 Relationship summary:
@@ -21,7 +21,7 @@ GRAIN_DETECTION_PROMPT = """You are detecting the grain (level of detail) of a f
 
 Table name: {table_name}
 
-Columns (name — data type):
+Columns (name, data type):
 {column_list}
 
 Estimated row count: {row_count}
@@ -29,7 +29,7 @@ Estimated row count: {row_count}
 Sample values:
 {sample_values}
 
-Determine the grain of this table — what does one row represent?
+Determine the grain of this table, what does one row represent?
 
 Return your answer as JSON:
 {{"grain": "natural language grain statement", "confidence": 0.0-1.0}}"""

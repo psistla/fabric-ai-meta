@@ -1,3 +1,3 @@
 # Framework Integration Guide
 
-Placeholder — to be written.
+Placeholder, to be written.

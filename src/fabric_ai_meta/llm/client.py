@@ -21,7 +21,7 @@ from fabric_ai_meta.models.metadata import (
 # Token budget management
 # Claude Sonnet (claude-sonnet-4-6) actual context window: 200,000 tokens
 # We use 190,000 as a conservative operational budget (leaves headroom for system prompt overhead)
-MAX_CONTEXT_TOKENS = 190_000   # Conservative budget — actual window is 200K
+MAX_CONTEXT_TOKENS = 190_000   # Conservative budget, actual window is 200K
 RESERVED_FOR_RESPONSE = 8_000
 MAX_MODEL_CONTEXT = MAX_CONTEXT_TOKENS - RESERVED_FOR_RESPONSE  # 182,000 tokens for input
 
@@ -114,7 +114,7 @@ class FabricLLMClient:
     def _estimate_cost(self) -> float:
         """Estimate cumulative cost based on token usage.
 
-        Pricing is approximate and may change — see console.anthropic.com for current rates.
+        Pricing is approximate and may change, see console.anthropic.com for current rates.
         """
         # Approximate rates as of spec authoring (verify before release)
         input_cost = self._total_input_tokens * 3.0 / 1_000_000
@@ -126,7 +126,7 @@ class FabricLLMClient:
     ) -> tuple[TableType, float]:
         """Use LLM to classify an ambiguous table. Returns (TableType, confidence)."""
         column_list = "\n".join(
-            f"  - {c.name} — {c.data_type}" for c in table.columns
+            f"  - {c.name} ({c.data_type})" for c in table.columns
         )
 
         rel_lines = []
@@ -155,7 +155,7 @@ class FabricLLMClient:
     def detect_grain(self, table: TableMeta) -> tuple[str, float]:
         """Use LLM to detect fact table grain. Returns (grain_statement, confidence)."""
         column_list = "\n".join(
-            f"  - {c.name} — {c.data_type}" for c in table.columns
+            f"  - {c.name} ({c.data_type})" for c in table.columns
         )
 
         sample_lines = []
@@ -213,7 +213,7 @@ class FabricLLMClient:
 
             if parsed is None:
                 warnings.warn(
-                    f"Batch {i // batch_size + 1}: JSON parse failed after retry — skipping batch",
+                    f"Batch {i // batch_size + 1}: JSON parse failed after retry, skipping batch",
                     stacklevel=2,
                 )
                 continue

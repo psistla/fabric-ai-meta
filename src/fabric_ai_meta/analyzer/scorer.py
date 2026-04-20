@@ -4,7 +4,7 @@ import re
 
 from fabric_ai_meta.models.metadata import ColumnRole, MeasureCategory, SemanticModelMeta
 
-# Weights must sum to 1.0 — verified by assertion below.
+# Weights must sum to 1.0, verified by assertion below.
 SCORING_WEIGHTS = {
     "description_coverage": 0.25,       # % of columns + tables with descriptions
     "measure_documentation": 0.20,      # % of measures with descriptions

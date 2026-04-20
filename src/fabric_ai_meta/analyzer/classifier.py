@@ -13,7 +13,7 @@ from fabric_ai_meta.models.metadata import (
 )
 
 # Time intelligence DAX functions (spec Section 6.2)
-# Note: DATESYTD is the correct DAX spelling; spec lists DATEYTD — both included.
+# Note: DATESYTD is the correct DAX spelling; spec lists DATEYTD, both included.
 TIME_INTEL_FUNCTIONS = {
     "TOTALYTD", "TOTALQTD", "TOTALMTD", "SAMEPERIODLASTYEAR",
     "DATEYTD", "DATESYTD", "DATESMTD", "DATESQTD",
@@ -30,7 +30,7 @@ SEMI_ADDITIVE_PATTERNS = {
     "OPENINGBALANCEQUARTER", "CLOSINGBALANCEQUARTER",
 }
 # ⚠️ Semi-additive = balance-type measures (inventory, account balances).
-# DISTINCTCOUNT is NON-additive — cannot be summed across any dimension.
+# DISTINCTCOUNT is NON-additive, cannot be summed across any dimension.
 # Do NOT classify DISTINCTCOUNT as semi-additive.
 
 NON_ADDITIVE_INDICATORS = {
@@ -46,7 +46,7 @@ def classify_table_heuristic(
     table: TableMeta, relationships: list[RelationshipMeta]
 ) -> TableType:
     """
-    Rule-based table classification — handles ~70% of cases.
+    Rule-based table classification, handles ~70% of cases.
 
     Fact indicators:
     - Has multiple outbound many-to-one relationships
@@ -71,12 +71,12 @@ def classify_table_heuristic(
     """
     name_lower = table.name.lower()
 
-    # Outbound many-to-one (table is on "many" side — typical of fact tables)
+    # Outbound many-to-one (table is on "many" side, typical of fact tables)
     outbound_many_to_one = [
         r for r in relationships
         if r.from_table == table.name and r.cardinality == "many-to-one"
     ]
-    # Inbound (table is on "one" side — typical of dimension tables)
+    # Inbound (table is on "one" side, typical of dimension tables)
     inbound = [
         r for r in relationships
         if r.to_table == table.name and r.cardinality == "many-to-one"
@@ -164,13 +164,13 @@ def classify_measure_heuristic(measure: MeasureMeta) -> MeasureCategory:
     Heuristic measure category detection from the DAX expression.
 
     Priority order:
-    1. TIME_INTELLIGENCE — any time intelligence function present
-    2. NON_ADDITIVE — DISTINCTCOUNT (cannot be summed across any dimension)
-    3. SEMI_ADDITIVE — balance-type patterns (LASTDATE, OPENINGBALANCEMONTH, etc.)
-    4. NON_ADDITIVE — ratios/averages (DIVIDE, AVERAGE, AVERAGEX)
-    5. ADDITIVE — SUM, SUMX, COUNT, COUNTROWS
-    6. CALCULATED — expression references another measure via [Measure] syntax
-    7. UNKNOWN — fallback
+    1. TIME_INTELLIGENCE, any time intelligence function present
+    2. NON_ADDITIVE: DISTINCTCOUNT (cannot be summed across any dimension)
+    3. SEMI_ADDITIVE, balance-type patterns (LASTDATE, OPENINGBALANCEMONTH, etc.)
+    4. NON_ADDITIVE, ratios/averages (DIVIDE, AVERAGE, AVERAGEX)
+    5. ADDITIVE: SUM, SUMX, COUNT, COUNTROWS
+    6. CALCULATED, expression references another measure via [Measure] syntax
+    7. UNKNOWN, fallback
     """
     dax_upper = measure.dax_expression.upper()
 
@@ -181,23 +181,23 @@ def classify_measure_heuristic(measure: MeasureMeta) -> MeasureCategory:
     if functions_used & TIME_INTEL_FUNCTIONS:
         return MeasureCategory.TIME_INTELLIGENCE
 
-    # 2. NON_ADDITIVE — DISTINCTCOUNT before semi-additive check
+    # 2. NON_ADDITIVE: DISTINCTCOUNT before semi-additive check
     if functions_used & {"DISTINCTCOUNT", "DISTINCTCOUNTNOBLANK"}:
         return MeasureCategory.NON_ADDITIVE
 
-    # 3. SEMI_ADDITIVE — balance-type (inventory, account balances)
+    # 3. SEMI_ADDITIVE, balance-type (inventory, account balances)
     if functions_used & SEMI_ADDITIVE_PATTERNS:
         return MeasureCategory.SEMI_ADDITIVE
 
-    # 4. NON_ADDITIVE — ratios, averages
+    # 4. NON_ADDITIVE, ratios, averages
     if functions_used & {"DIVIDE", "AVERAGE", "AVERAGEX"}:
         return MeasureCategory.NON_ADDITIVE
 
-    # 5. ADDITIVE — simple aggregations
+    # 5. ADDITIVE, simple aggregations
     if functions_used & {"SUM", "SUMX", "COUNT", "COUNTROWS", "COUNTA", "COUNTX"}:
         return MeasureCategory.ADDITIVE
 
-    # 6. CALCULATED — references another measure (standalone [Name] not preceded by table)
+    # 6. CALCULATED, references another measure (standalone [Name] not preceded by table)
     measure_refs = re.findall(r'(?<![\'"\w])\[([^\]]+)\]', measure.dax_expression)
     if measure_refs:
         return MeasureCategory.CALCULATED

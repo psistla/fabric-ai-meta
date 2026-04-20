@@ -193,7 +193,7 @@ def test_build_dependency_graph_ytd_entry(adventure_works_model):
 
 
 # ---------------------------------------------------------------------------
-# Enterprise fixture — table classification
+# Enterprise fixture, table classification
 # ---------------------------------------------------------------------------
 
 def test_bridge_table_classification(enterprise_sales_model):
@@ -232,7 +232,7 @@ def test_dimension_table_classification_enterprise(enterprise_sales_model):
 
 
 # ---------------------------------------------------------------------------
-# Enterprise fixture — measure classification
+# Enterprise fixture, measure classification
 # ---------------------------------------------------------------------------
 
 def test_semi_additive_ending_inventory(enterprise_sales_model):

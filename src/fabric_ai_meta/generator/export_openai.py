@@ -31,7 +31,7 @@ def to_openai_function(model: SemanticModelMeta) -> dict:
             if m.is_hidden:
                 continue
             if m.category == MeasureCategory.NON_ADDITIVE:
-                pitfalls.append(f"{m.name} is non-additive — do not SUM it")
+                pitfalls.append(f"{m.name} is non-additive, do not SUM it")
             elif m.category == MeasureCategory.TIME_INTELLIGENCE:
                 pitfalls.append(f"{m.name} requires a date filter")
 
