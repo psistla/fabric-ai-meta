@@ -1,13 +1,21 @@
-"""Read-only client for the Fabric REST API semantic model definition endpoints.
+"""Client for the Fabric REST API semantic model definition endpoints.
 
-Research-spike companion to ``docs/research/tmdl-prep-for-ai-spike.md``. The
-goal is to inspect the TMDL definition returned by ``getDefinition`` and look
-for AI Instructions and Verified Answers, the two Prep for AI primitives that
-have no public object-level API.
+Companion to ``docs/research/tmdl-prep-for-ai-spike.md``.
 
-This module deliberately does not implement ``updateDefinition``: write paths
-are out of scope until the spike confirms that the settings actually live in
-the TMDL payload.
+The endpoints ``getDefinition`` and ``updateDefinition`` return the model
+as a flat list of parts: TMDL files under ``definition/``, AI / Copilot
+artifacts under ``Copilot/``, plus project metadata. This module focuses
+on locating Prep for AI primitives, which live in the ``Copilot/`` tree:
+
+- ``Copilot/Instructions/instructions.md`` — AI Instructions (Markdown)
+- ``Copilot/schema.json`` — AI Data Schema
+- ``Copilot/VerifiedAnswers/*`` — Verified Answers
+- ``Copilot/examplePrompts.json`` — example prompts shown to users
+- ``Copilot/settings.json`` / ``Copilot/version.json`` — Copilot config / schema version
+
+The class deliberately stops at read + locate. Writing back is out of
+scope for the spike; see the research doc's "Recommendation" section
+for the writer design (``CopilotWriter``) blocked on this finding.
 """
 
 from __future__ import annotations
@@ -20,28 +28,43 @@ from urllib import request as urllib_request
 
 FABRIC_API_BASE = "https://api.fabric.microsoft.com/v1"
 
-# Annotation keys / property names worth searching for. The spike hypothesis is
-# that Microsoft persists Prep for AI configuration as model-level annotations
-# under the __PBI_ namespace (consistent with prior linguistic-schema patterns).
-PREP_FOR_AI_HINTS = (
-    "__PBI_AIInstructions",
-    "__PBI_VerifiedAnswers",
-    "AIInstructions",
-    "VerifiedAnswers",
-    "ai_instructions",
-    "verified_answers",
+# Path prefixes inside the model definition payload that identify Prep for AI
+# primitives. Matched against the ``path`` of each part returned by
+# ``getDefinition``. Verified against the Microsoft Learn reference for the
+# Fabric REST SemanticModel definition envelope.
+COPILOT_PATH_PREFIXES: tuple[str, ...] = (
+    "Copilot/Instructions/",
+    "Copilot/VerifiedAnswers/",
+    "Copilot/schema.json",
+    "Copilot/examplePrompts.json",
+    "Copilot/settings.json",
+    "Copilot/version.json",
 )
+
+PRIMITIVE_BY_PREFIX: dict[str, str] = {
+    "Copilot/Instructions/": "ai_instructions",
+    "Copilot/VerifiedAnswers/": "verified_answers",
+    "Copilot/schema.json": "ai_data_schema",
+    "Copilot/examplePrompts.json": "example_prompts",
+    "Copilot/settings.json": "copilot_settings",
+    "Copilot/version.json": "copilot_version",
+}
 
 
 class TMDLClient:
-    """Lightweight client for ``getDefinition`` and TMDL parsing helpers."""
+    """Client for ``getDefinition`` and helpers to locate Prep for AI parts.
+
+    Read-only by design. Despite the name (kept for backward compatibility
+    with the original spike), this client also surfaces ``Copilot/`` parts:
+    ``getDefinition`` returns TMDL and Copilot files in the same envelope.
+    """
 
     def __init__(self, credential: Any, workspace_id: str):
         self.credential = credential
         self.workspace_id = workspace_id
 
     def get_definition(self, model_id: str) -> dict:
-        """Call ``POST .../semanticModels/{id}/getDefinition`` and return the JSON body.
+        """Call ``POST .../semanticModels/{id}/getDefinition``.
 
         Returns the raw response shape:
 
@@ -72,36 +95,43 @@ class TMDLClient:
         return json.loads(body)
 
     def list_definition_files(self, model_id: str) -> list[str]:
-        """Return the list of TMDL file paths inside the model definition."""
+        """Return the list of file paths inside the model definition."""
         definition = self.get_definition(model_id)
         return _extract_paths(definition)
 
     def find_prep_for_ai_settings(self, definition: dict) -> dict | None:
-        """Search the TMDL parts for AI Instructions / Verified Answers hints.
+        """Locate AI Instructions, AI Data Schema, and Verified Answers.
 
-        Returns ``{"matches": [{"path": ..., "hint": ..., "snippet": ...}, ...]}``
-        when one or more candidate strings appear in any decoded TMDL file.
-        Returns ``None`` when no hints are found.
+        Matches each part's ``path`` against ``COPILOT_PATH_PREFIXES``. Returns
+        ``{"matches": [{"path": ..., "primitive": ..., "snippet": ...}, ...]}``
+        when at least one match is found; ``None`` otherwise.
 
-        Best-effort. The decisive verification (whether the matched string
-        actually represents a Prep for AI setting) belongs in the notebook
-        spike, not this code.
+        ``snippet`` is a short prefix of the decoded part contents to give the
+        notebook reader a quick read on the file's shape (Markdown for
+        instructions; JSON for everything else).
         """
         matches: list[dict] = []
         for part in _iter_parts(definition):
-            text = _decode_part_text(part)
-            if text is None:
+            path = str(part.get("path") or "")
+            primitive = _primitive_for_path(path)
+            if primitive is None:
                 continue
-            for hint in PREP_FOR_AI_HINTS:
-                if hint in text:
-                    matches.append({
-                        "path": part.get("path", "<unknown>"),
-                        "hint": hint,
-                        "snippet": _snippet_around(text, hint),
-                    })
+            text = _decode_part_text(part)
+            matches.append({
+                "path": path,
+                "primitive": primitive,
+                "snippet": (text or "")[:240],
+            })
         if not matches:
             return None
         return {"matches": matches}
+
+
+def _primitive_for_path(path: str) -> str | None:
+    for prefix, primitive in PRIMITIVE_BY_PREFIX.items():
+        if path.startswith(prefix):
+            return primitive
+    return None
 
 
 def _extract_paths(definition: dict) -> list[str]:
@@ -127,15 +157,6 @@ def _decode_part_text(part: dict) -> str | None:
         return base64.b64decode(payload).decode("utf-8", errors="replace")
     except Exception:
         return None
-
-
-def _snippet_around(text: str, needle: str, radius: int = 120) -> str:
-    idx = text.find(needle)
-    if idx == -1:
-        return ""
-    start = max(0, idx - radius)
-    end = min(len(text), idx + len(needle) + radius)
-    return text[start:end]
 
 
 def _get_token(credential: Any) -> str:

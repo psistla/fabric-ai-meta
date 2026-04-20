@@ -1,4 +1,11 @@
-"""Tests for the TMDL research client (Task S6-02)."""
+"""Tests for the TMDL / Copilot research client (Task S6-02, corrected).
+
+The originally hypothesized location for AI Instructions / Verified Answers
+(model-level TMDL annotations under ``__PBI_*``) was falsified by the spike.
+Prep for AI primitives live in a sibling ``Copilot/`` folder of the model
+definition, returned by ``getDefinition`` as separate parts. These tests
+match that corrected reality.
+"""
 
 import base64
 import json
@@ -7,7 +14,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from fabric_ai_meta.writeback.tmdl_client import (
-    PREP_FOR_AI_HINTS,
+    COPILOT_PATH_PREFIXES,
+    PRIMITIVE_BY_PREFIX,
     TMDLClient,
     _decode_part_text,
 )
@@ -33,14 +41,21 @@ def _fake_credential(token: str = "fake-token") -> MagicMock:
 
 def test_list_definition_files_returns_paths():
     definition = _mock_definition([
-        {"path": "model.tmdl", "payload": _b64("model"), "payloadType": "InlineBase64"},
-        {"path": "tables/Sales.tmdl", "payload": _b64("table"), "payloadType": "InlineBase64"},
-        {"path": "relationships.tmdl", "payload": _b64("rel"), "payloadType": "InlineBase64"},
+        {"path": "definition/model.tmdl", "payload": _b64("model"),
+         "payloadType": "InlineBase64"},
+        {"path": "definition/tables/Sales.tmdl", "payload": _b64("table"),
+         "payloadType": "InlineBase64"},
+        {"path": "Copilot/Instructions/instructions.md",
+         "payload": _b64("# instructions"), "payloadType": "InlineBase64"},
     ])
     client = TMDLClient(_fake_credential(), workspace_id="ws-id")
     with patch.object(client, "get_definition", return_value=definition):
         paths = client.list_definition_files("model-id")
-    assert paths == ["model.tmdl", "tables/Sales.tmdl", "relationships.tmdl"]
+    assert paths == [
+        "definition/model.tmdl",
+        "definition/tables/Sales.tmdl",
+        "Copilot/Instructions/instructions.md",
+    ]
 
 
 def test_list_definition_files_empty_when_no_parts():
@@ -53,9 +68,10 @@ def test_list_definition_files_empty_when_no_parts():
 # find_prep_for_ai_settings
 # ---------------------------------------------------------------------------
 
-def test_find_prep_for_ai_settings_returns_none_when_absent():
+def test_find_prep_for_ai_settings_returns_none_when_no_copilot_parts():
     definition = _mock_definition([
-        {"path": "model.tmdl", "payload": _b64("model Sales\n  defaultMode: import\n"),
+        {"path": "definition/model.tmdl",
+         "payload": _b64("model Sales\n  defaultMode: import\n"),
          "payloadType": "InlineBase64"},
     ])
     client = TMDLClient(_fake_credential(), workspace_id="ws")
@@ -63,59 +79,105 @@ def test_find_prep_for_ai_settings_returns_none_when_absent():
 
 
 def test_find_prep_for_ai_settings_finds_ai_instructions():
-    tmdl_with_hint = (
-        "model Sales\n"
-        "  defaultMode: import\n"
-        '  annotation __PBI_AIInstructions = "Use [Total Sales] for revenue questions."\n'
+    instructions_md = (
+        "# AI Instructions\n\n"
+        "Use [Total Sales] for revenue questions. Filter by DimDate for time analysis."
     )
     definition = _mock_definition([
-        {"path": "model.tmdl", "payload": _b64(tmdl_with_hint), "payloadType": "InlineBase64"},
+        {"path": "definition/model.tmdl",
+         "payload": _b64("model Sales"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/Instructions/instructions.md",
+         "payload": _b64(instructions_md), "payloadType": "InlineBase64"},
     ])
     client = TMDLClient(_fake_credential(), workspace_id="ws")
     result = client.find_prep_for_ai_settings(definition)
     assert result is not None
-    assert len(result["matches"]) >= 1
-    match = result["matches"][0]
-    assert match["path"] == "model.tmdl"
-    assert match["hint"] == "__PBI_AIInstructions"
-    assert "Total Sales" in match["snippet"]
+    primitives = {m["primitive"] for m in result["matches"]}
+    assert "ai_instructions" in primitives
+    instructions_match = next(m for m in result["matches"]
+                              if m["primitive"] == "ai_instructions")
+    assert instructions_match["path"] == "Copilot/Instructions/instructions.md"
+    assert "Total Sales" in instructions_match["snippet"]
 
 
 def test_find_prep_for_ai_settings_finds_verified_answers():
-    tmdl = "model Sales\n  annotation __PBI_VerifiedAnswers = '[{...}]'\n"
+    answer_json = json.dumps({
+        "question": "What is Total Sales for last quarter?",
+        "dax": "CALCULATE([Total Sales], DATEADD(...))",
+    })
     definition = _mock_definition([
-        {"path": "model.tmdl", "payload": _b64(tmdl), "payloadType": "InlineBase64"},
+        {"path": "Copilot/VerifiedAnswers/answer-1.json",
+         "payload": _b64(answer_json), "payloadType": "InlineBase64"},
+        {"path": "Copilot/VerifiedAnswers/answer-2.json",
+         "payload": _b64(answer_json), "payloadType": "InlineBase64"},
     ])
     client = TMDLClient(_fake_credential(), workspace_id="ws")
     result = client.find_prep_for_ai_settings(definition)
     assert result is not None
-    hints_found = {m["hint"] for m in result["matches"]}
-    assert "__PBI_VerifiedAnswers" in hints_found
+    primitives = [m["primitive"] for m in result["matches"]]
+    assert primitives == ["verified_answers", "verified_answers"]
 
 
-def test_find_prep_for_ai_settings_handles_unknown_payload_type():
+def test_find_prep_for_ai_settings_finds_ai_data_schema():
+    schema_json = json.dumps({"includedTables": ["Sales", "Customer"]})
     definition = _mock_definition([
-        {"path": "extras.bin", "payload": "not-base64", "payloadType": "Binary"},
+        {"path": "Copilot/schema.json",
+         "payload": _b64(schema_json), "payloadType": "InlineBase64"},
     ])
     client = TMDLClient(_fake_credential(), workspace_id="ws")
-    assert client.find_prep_for_ai_settings(definition) is None
+    result = client.find_prep_for_ai_settings(definition)
+    assert result is not None
+    assert result["matches"][0]["primitive"] == "ai_data_schema"
 
 
-def test_find_prep_for_ai_settings_returns_all_matches_across_files():
+def test_find_prep_for_ai_settings_finds_all_copilot_primitives_at_once():
     parts = [
-        {"path": "model.tmdl",
-         "payload": _b64("annotation __PBI_AIInstructions = 'a'"),
-         "payloadType": "InlineBase64"},
-        {"path": "tables/Sales.tmdl",
-         "payload": _b64("annotation VerifiedAnswers = 'b'"),
-         "payloadType": "InlineBase64"},
+        {"path": "Copilot/Instructions/instructions.md",
+         "payload": _b64("# instructions"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/schema.json",
+         "payload": _b64("{}"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/VerifiedAnswers/a.json",
+         "payload": _b64("{}"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/examplePrompts.json",
+         "payload": _b64("[]"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/settings.json",
+         "payload": _b64("{}"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/version.json",
+         "payload": _b64("{\"version\":1}"), "payloadType": "InlineBase64"},
     ]
     client = TMDLClient(_fake_credential(), workspace_id="ws")
     result = client.find_prep_for_ai_settings(_mock_definition(parts))
     assert result is not None
-    paths = [m["path"] for m in result["matches"]]
-    assert "model.tmdl" in paths
-    assert "tables/Sales.tmdl" in paths
+    primitives = {m["primitive"] for m in result["matches"]}
+    assert primitives == {
+        "ai_instructions",
+        "ai_data_schema",
+        "verified_answers",
+        "example_prompts",
+        "copilot_settings",
+        "copilot_version",
+    }
+
+
+def test_find_prep_for_ai_settings_ignores_tmdl_annotations_with_old_hint_strings():
+    """An ``__PBI_AIInstructions`` annotation inside a TMDL file is NOT a match.
+
+    The original spike hypothesis was that AI Instructions might surface as
+    TMDL annotations. That hypothesis was falsified: matching is now path-
+    based and rooted at ``Copilot/``. A red-herring annotation in TMDL must
+    not produce a match.
+    """
+    tmdl_with_red_herring = (
+        "model Sales\n"
+        "  annotation __PBI_AIInstructions = 'this should not match'\n"
+    )
+    definition = _mock_definition([
+        {"path": "definition/model.tmdl",
+         "payload": _b64(tmdl_with_red_herring),
+         "payloadType": "InlineBase64"},
+    ])
+    client = TMDLClient(_fake_credential(), workspace_id="ws")
+    assert client.find_prep_for_ai_settings(definition) is None
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +186,8 @@ def test_find_prep_for_ai_settings_returns_all_matches_across_files():
 
 def test_get_definition_calls_correct_url_and_parses_json():
     expected = _mock_definition([
-        {"path": "model.tmdl", "payload": _b64("model X"), "payloadType": "InlineBase64"},
+        {"path": "definition/model.tmdl", "payload": _b64("model X"),
+         "payloadType": "InlineBase64"},
     ])
     fake_response = MagicMock()
     fake_response.read.return_value = json.dumps(expected).encode("utf-8")
@@ -179,7 +242,7 @@ def test_get_definition_accepts_string_token():
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Helpers and constants
 # ---------------------------------------------------------------------------
 
 def test_decode_part_text_returns_none_for_missing_payload():
@@ -191,6 +254,15 @@ def test_decode_part_text_decodes_base64():
     assert _decode_part_text(part) == "hello"
 
 
-def test_prep_for_ai_hints_include_pbi_namespace():
-    assert "__PBI_AIInstructions" in PREP_FOR_AI_HINTS
-    assert "__PBI_VerifiedAnswers" in PREP_FOR_AI_HINTS
+def test_copilot_prefixes_cover_documented_primitives():
+    """COPILOT_PATH_PREFIXES must cover the documented Prep for AI primitives."""
+    must_include = {
+        "Copilot/Instructions/",
+        "Copilot/VerifiedAnswers/",
+        "Copilot/schema.json",
+    }
+    assert must_include.issubset(set(COPILOT_PATH_PREFIXES))
+
+
+def test_primitive_by_prefix_keys_match_path_prefixes():
+    assert set(PRIMITIVE_BY_PREFIX.keys()) == set(COPILOT_PATH_PREFIXES)
