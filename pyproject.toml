@@ -20,6 +20,9 @@ xmla = [
     "pyadomd>=0.1",                    # XMLA connectivity — Windows-only (requires ADOMD.NET)
                                        # Not available on Linux/macOS without additional setup
 ]
+mcp = [
+    "mcp[cli]>=1.0",                   # MCP server: expose tools to AI agents (Claude Code, Claude Desktop)
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

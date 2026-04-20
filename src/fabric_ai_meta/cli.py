@@ -886,5 +886,32 @@ def apply_descriptions(config_path, workspace, dry_run, mock):
             console.print(f"  - {err}")
 
 
+# ---------------------------------------------------------------------------
+# serve command (MCP server)
+# ---------------------------------------------------------------------------
+
+@main.command("serve")
+@click.option("--transport", type=click.Choice(["stdio", "streamable-http"]),
+              default="stdio", show_default=True,
+              help="Transport for the MCP server.")
+@click.option("--port", type=int, default=8000, show_default=True,
+              help="Port for the streamable-http transport.")
+def serve(transport, port):
+    """Start the MCP server exposing fabric-ai-meta tools to AI agents."""
+    console.print(Panel(
+        f"[bold]serve[/bold]  transport=[cyan]{transport}[/cyan]  port=[cyan]{port}[/cyan]",
+        title="fabric-ai-meta"
+    ))
+    try:
+        from fabric_ai_meta.mcp_server import run as run_server
+        run_server(transport=transport, port=port)
+    except ImportError as e:
+        console.print(str(e), markup=False, style="red")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()

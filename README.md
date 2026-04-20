@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-310%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-327%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -49,6 +49,7 @@ Microsoft Fabric has invested heavily in AI features for semantic models: Prep f
 |-----|--------------------------|
 | Manual Prep for AI | Auto-generates `prep-for-ai-config.json`: table selections, AI Instructions, Verified Answers, description backfill |
 | Manual description writeback | `apply-descriptions` writes generated table and column descriptions back through XMLA / TOM |
+| No agent-callable surface | `fabric-ai-meta serve` exposes six tools through MCP for Claude Code, Claude Desktop, and other agents |
 | No external AI export | Produces framework-native schemas for LangChain, OpenAI, Semantic Kernel, and AutoGen |
 | No cross-model governance | Detects naming inconsistencies, duplicate DAX, ranks models by readiness, outputs governance report |
 
@@ -205,6 +206,25 @@ fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 </details>
 
 <details>
+<summary><strong>serve</strong>: start the MCP server for AI agents</summary>
+
+```bash
+# Install the optional MCP extra
+pip install 'fabric-ai-meta[mcp]'
+
+# Start over stdio (default; what Claude Code and Claude Desktop use)
+fabric-ai-meta serve
+
+# Start over streamable HTTP on a specific port
+fabric-ai-meta serve --transport streamable-http --port 8000
+```
+
+Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](.mcp.json) lives at the project root so Claude Code picks the server up automatically when the working directory is opened.
+
+**Connect from Claude Desktop:** add the same `mcpServers` block from `.mcp.json` to your Claude Desktop config (`%APPDATA%/Claude/claude_desktop_config.json` on Windows, `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS).
+</details>
+
+<details>
 <summary><strong>diff</strong>: compare two workspace scans</summary>
 
 ```bash
@@ -310,7 +330,7 @@ See `fabric_ai_meta.__all__` for the full list of 27 public exports.
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (310 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (327 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
