@@ -24,7 +24,7 @@ jobs:
         run: pip install --no-cache-dir -e ".[dev]"
 
       - name: Lint with ruff
-        run: ruff check src/ tests/
+        run: ruff check .
 
       - name: Run tests
         run: pytest tests/ -x -q
