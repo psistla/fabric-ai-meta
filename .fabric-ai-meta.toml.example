@@ -13,11 +13,11 @@ extraction_method = "semantic_link"  # "semantic_link" or "xmla"
 
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-6"           # Current model string — update as new versions release
+model = "claude-sonnet-4-6"           # Current model string; update as new versions release
 api_key_env = "ANTHROPIC_API_KEY"    # Environment variable name
 cache_enabled = true
 cache_dir = ".fabric-ai-meta-cache"
-max_cost_per_run = 5.00  # USD — abort if cumulative cost exceeds this
+max_cost_per_run = 5.00  # USD; abort if cumulative cost exceeds this
 
 [output]
 default_format = "json"
