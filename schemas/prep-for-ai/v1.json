@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabric-ai-meta.dev/schema/prep-for-ai/v1.json",
+  "title": "Prep for AI Configuration",
+  "description": "Output schema for fabric-ai-meta export prep-for-ai. Captures the manual-application guide for Microsoft Fabric's Prep for AI feature: included tables, excluded columns, AI Instructions text, verified Q&A pairs, and LLM-generated descriptions for objects that lacked them.",
+  "type": "object",
+  "required": [
+    "included_tables",
+    "excluded_columns",
+    "ai_instructions",
+    "verified_answers",
+    "generated_descriptions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "included_tables": {
+      "description": "Tables to include in the Fabric Prep for AI Data Schema. Hidden and staging tables are filtered out by the generator.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "excluded_columns": {
+      "description": "Map of table name to columns the user should exclude from Prep for AI: hidden columns, sort-by columns, and undocumented keys / foreign keys.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "ai_instructions": {
+      "description": "Natural-language AI Instructions text generated for the model. Paste into the Fabric Copilot AI Instructions field.",
+      "type": "string"
+    },
+    "verified_answers": {
+      "description": "Question-to-DAX mappings derived from time-intelligence measures. Paste each as a Verified Answer in Fabric Copilot.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/verified_answer" }
+    },
+    "generated_descriptions": {
+      "description": "LLM-generated descriptions for tables and columns that lacked them. Outer key is table name; inner keys are column names, or the literal '__table__' for the table-level description. Apply via the apply-descriptions CLI command or by manual edit.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "verified_answer": {
+      "type": "object",
+      "required": ["question", "dax", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "question": { "type": "string" },
+        "dax": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

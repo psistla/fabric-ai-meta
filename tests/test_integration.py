@@ -885,12 +885,29 @@ class TestSchemaValidation:
             schema = json.load(f)
         jsonschema.validate(output, schema)
 
+    def test_prep_for_ai_validates(self, tmp_path):
+        """export prep-for-ai --mock output validates against its schema."""
+        import jsonschema
+
+        runner = CliRunner()
+        runner.invoke(main, [
+            "export", "prep-for-ai", "Adventure Works",
+            "--workspace", "test", "--output", str(tmp_path), "--mock",
+        ])
+        output_path = tmp_path / "adventure-works" / "prep-for-ai-config.json"
+        with open(output_path) as f:
+            output = json.load(f)
+        with open(os.path.join(SCHEMAS_DIR, "prep-for-ai", "v1.json")) as f:
+            schema = json.load(f)
+        jsonschema.validate(output, schema)
+
     def test_schema_files_are_valid_json_schema(self):
         """All schema files are syntactically valid JSON Schema Draft 2020-12."""
         schema_paths = [
             os.path.join(SCHEMAS_DIR, "v1.json"),
             os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json"),
             os.path.join(SCHEMAS_DIR, "governance-report", "v1.json"),
+            os.path.join(SCHEMAS_DIR, "prep-for-ai", "v1.json"),
         ]
         for path in schema_paths:
             with open(path) as f:
@@ -904,6 +921,7 @@ class TestSchemaValidation:
             os.path.join(SCHEMAS_DIR, "v1.json"): "https://fabric-ai-meta.dev/schema/v1.json",
             os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json"): "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
             os.path.join(SCHEMAS_DIR, "governance-report", "v1.json"): "https://fabric-ai-meta.dev/schema/governance-report/v1.json",
+            os.path.join(SCHEMAS_DIR, "prep-for-ai", "v1.json"): "https://fabric-ai-meta.dev/schema/prep-for-ai/v1.json",
         }
         for path, expected_id in expected.items():
             with open(path) as f:
