@@ -1,7 +1,7 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.1.0-238636?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.1.1-238636?style=flat-square)
 ![Tests](https://img.shields.io/badge/tests-344%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
@@ -360,6 +360,7 @@ JSON Schema files for all output formats are in [`schemas/`](schemas/):
 | `schemas/v1.json` | `ai-ready-schema.json` output |
 | `schemas/workspace-summary/v1.json` | `workspace-summary.json` output |
 | `schemas/governance-report/v1.json` | `governance-report.json` output |
+| `schemas/prep-for-ai/v1.json` | `prep-for-ai-config.json` output |
 
 ---
 

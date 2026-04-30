@@ -1,6 +1,6 @@
 """Fabric AI Meta: extracts, analyzes, and exports Microsoft Fabric semantic model metadata for AI consumption."""
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # Core data model
 # Analysis

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-29
+
+### Added
+- JSON Schema file `schemas/prep-for-ai/v1.json` plus a validation test for the `export prep-for-ai` output, closing the last documented-but-unshipped schema reference
+- `py.typed` marker so consumers get full type information from mypy and pyright
+- Python 3.13 to the CI test matrix
+
+### Changed
+- `.mcp.json` now invokes the `fabric-ai-meta serve` console script instead of running `python src/fabric_ai_meta/mcp_server.py`, so the bundled MCP config works for installed packages, not just from the repo root
+- CI lint step broadened from `ruff check src/ tests/` to `ruff check .` so notebooks stay clean alongside the package
+
+### Fixed
+- Five ruff issues in `notebooks/quickstart.ipynb` (three unsorted import blocks, one unused `json` import, one f-string with no placeholders) that the previous CI scope was hiding
+
+### Documentation
+- Punctuation alignment pass on `.fabric-ai-meta.toml.example` to match the rest of the repo's style
+
 ## [1.1.0] - 2026-04-20
 
 ### Added
