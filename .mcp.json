@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "fabric-ai-meta": {
-      "command": "python",
-      "args": ["src/fabric_ai_meta/mcp_server.py"]
+      "command": "fabric-ai-meta",
+      "args": ["serve"]
     }
   }
 }
