@@ -74,9 +74,16 @@ jobs:
   publish-pypi:
     needs: build
     runs-on: ubuntu-latest
-    # Gated behind the `pypi` environment; create that environment in repo
-    # Settings -> Environments to enable PyPI publishing. The job stays skipped
-    # until then.
+    # Gated behind the `PYPI_PUBLISH_ENABLED` repository variable. The job is
+    # skipped (not failed) until an admin enables it. To turn on:
+    #   1. Claim the `fabric-ai-meta` name on PyPI and configure Trusted
+    #      Publishing pointing at this workflow file with environment `pypi`
+    #      (Repo: psistla/fabric-ai-meta, Workflow: publish.yml, Env: pypi)
+    #   2. Create a GitHub environment named `pypi` in repo Settings
+    #   3. Set repo variable `PYPI_PUBLISH_ENABLED` to the string `true` under
+    #      repo Settings -> Secrets and variables -> Actions -> Variables
+    # Once those three steps are complete, every v* tag push publishes to PyPI.
+    if: vars.PYPI_PUBLISH_ENABLED == 'true'
     environment:
       name: pypi
       url: https://pypi.org/project/fabric-ai-meta/
@@ -93,8 +100,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           # No `password` / `username` set: uses OIDC trusted publishing.
-          # Configure the trusted publisher on the PyPI project page:
-          #   Repository:  psistla/fabric-ai-meta
-          #   Workflow:    publish.yml
-          #   Environment: pypi
           skip-existing: true
