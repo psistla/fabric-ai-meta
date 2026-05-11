@@ -1,7 +1,47 @@
 [project]
 name = "fabric-ai-meta"
-version = "1.3.2"
+version = "1.3.3"
+description = "Extract Microsoft Fabric semantic model metadata. AI-ready exports for LangChain, OpenAI, Semantic Kernel, AutoGen, and custom plugins. Multi-provider LLM enrichment, MCP server, and cross-model governance."
+readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Prasanth Sistla", email = "psistlaw@gmail.com" },
+]
+keywords = [
+    "microsoft-fabric",
+    "power-bi",
+    "semantic-model",
+    "tabular-model",
+    "dax",
+    "ai-ready",
+    "langchain",
+    "openai",
+    "semantic-kernel",
+    "autogen",
+    "prep-for-ai",
+    "mcp",
+    "model-context-protocol",
+    "llm",
+    "litellm",
+    "governance",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 
 dependencies = [
     "click>=8.1,<9.0",                 # CLI framework; 9.0 will remove deprecated APIs
@@ -36,6 +76,14 @@ dev = [
 
 [project.scripts]
 fabric-ai-meta = "fabric_ai_meta.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/psistla/fabric-ai-meta"
+Repository = "https://github.com/psistla/fabric-ai-meta"
+Issues = "https://github.com/psistla/fabric-ai-meta/issues"
+Changelog = "https://github.com/psistla/fabric-ai-meta/blob/master/CHANGELOG.md"
+Documentation = "https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md"
+Releases = "https://github.com/psistla/fabric-ai-meta/releases"
 
 [build-system]
 requires = ["setuptools>=68.0"]
