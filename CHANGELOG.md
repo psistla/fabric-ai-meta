@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-05-11
+
+### Added
+- First PyPI publish of `fabric-ai-meta`. The package is now installable with `pip install fabric-ai-meta` from PyPI; the GitHub release continues to host the same wheel and source distribution as downloadable assets for airgapped users
+- `publish-pypi` job in the release workflow now runs (gated behind the `PYPI_PUBLISH_ENABLED` repository variable) and uploads to PyPI via Trusted Publishing on every `v*` tag push, with no API token stored in the repo
+
 ## [1.3.1] - 2026-05-11
 
 ### Added

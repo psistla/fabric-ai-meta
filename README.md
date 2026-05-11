@@ -1,7 +1,7 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.3.1-238636?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.2-238636?style=flat-square)
 ![Tests](https://img.shields.io/badge/tests-400%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
