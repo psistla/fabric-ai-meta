@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-10
+
+### Added
+- Plugin architecture for custom exporters. Third parties subclass `BaseExporter` and register the class via the `fabric_ai_meta.exporters` Python entry-point group; the class then appears as `fabric-ai-meta export <name>` with `--workspace` and `--mock` flags wired up automatically
+- `BaseExporter` ABC + `ExporterError` in `fabric_ai_meta.generator.base`; default `write()` serializes `generate()` as indented JSON under `{output}/{model-slug}/{output_filename}`
+- `discover_exporters()` and `get_exporter()` registry helpers; entry-point plugins with conflicting names override built-ins (documented behavior)
+- Built-in exporters wrapped as `BaseExporter` subclasses (`LangChainExporter`, `OpenAIExporter`, `SemanticKernelExporter`, `AutoGenExporter`) without breaking the function-style API (`to_langchain_tool_definition`, etc.) that existing users rely on
+- New public API exports: `BaseExporter`, `ExporterError`, `discover_exporters`, `get_exporter` (`__all__` count now 35)
+- `docs/plugin-development.md` walks through the contract, entry-point registration, a complete worked dbt example, local testing, and name-conflict rules
+- `tests/test_exporter_registry.py` covers contract enforcement, built-in parity with function-style exports, plugin override semantics, broken-plugin tolerance, and CLI integration
+
+### Changed
+- The `export` CLI group is now built dynamically from the registry on import; the four built-in subcommands behave exactly as before but now share a single code path with any installed plugin
+
 ## [1.2.0] - 2026-05-10
 
 ### Added

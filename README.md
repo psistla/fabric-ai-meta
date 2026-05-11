@@ -1,8 +1,8 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.2.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-381%20passing-1a7f37?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.0-238636?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-400%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -52,6 +52,7 @@ Microsoft Fabric has invested heavily in AI features for semantic models: Prep f
 | Manual description writeback | `apply-descriptions` writes generated table and column descriptions back through XMLA / TOM |
 | No agent-callable surface | `fabric-ai-meta serve` exposes six tools through MCP for Claude Code, Claude Desktop, and other agents |
 | No external AI export | Produces framework-native schemas for LangChain, OpenAI, Semantic Kernel, and AutoGen |
+| No way to add custom exporters | Third parties ship exporters as installable Python plugins via the `fabric_ai_meta.exporters` entry point group |
 | No cross-model governance | Detects naming inconsistencies, duplicate DAX, ranks models by readiness, outputs governance report |
 
 This is not a replacement for Microsoft's tools. It is an **automation layer on top of them** and a **bridge to the external AI ecosystem**.
@@ -378,7 +379,35 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-See `fabric_ai_meta.__all__` for the full list of 31 public exports.
+See `fabric_ai_meta.__all__` for the full list of 35 public exports.
+
+---
+
+## Plugins
+
+Custom exporters install as ordinary Python packages and appear as `fabric-ai-meta export <name>` with the same `--workspace` and `--mock` flags as built-ins. No fork of fabric-ai-meta is required.
+
+```python
+from fabric_ai_meta import BaseExporter, SemanticModelMeta
+
+
+class DbtExporter(BaseExporter):
+    name = "dbt"
+    output_filename = "dbt-sources.yml"
+    description = "dbt sources definition"
+
+    def generate(self, model: SemanticModelMeta) -> dict:
+        return {"version": 2, "sources": [...]}
+```
+
+Register the class via the `fabric_ai_meta.exporters` entry-point group in the plugin's `pyproject.toml`:
+
+```toml
+[project.entry-points."fabric_ai_meta.exporters"]
+dbt = "my_fabric_dbt_plugin:DbtExporter"
+```
+
+Full walk-through with a worked dbt example, local testing, and name-conflict rules: [`docs/plugin-development.md`](docs/plugin-development.md).
 
 ---
 

@@ -1,6 +1,6 @@
 """Fabric AI Meta: extracts, analyzes, and exports Microsoft Fabric semantic model metadata for AI consumption."""
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 # Core data model
 # Analysis
@@ -20,11 +20,13 @@ from fabric_ai_meta.analyzer.scorer import score_model
 # Extractors
 from fabric_ai_meta.extractor.base import BaseExtractor
 from fabric_ai_meta.extractor.mock import MockExtractor
+from fabric_ai_meta.generator.base import BaseExporter, ExporterError
 from fabric_ai_meta.generator.export_autogen import to_autogen_tool
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
 from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
 from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
+from fabric_ai_meta.generator.registry import discover_exporters, get_exporter
 
 # Generators
 from fabric_ai_meta.generator.schema import generate_ai_ready_schema
@@ -80,6 +82,11 @@ __all__ = [
     "to_openai_function",
     "to_semantic_kernel_plugin",
     "to_autogen_tool",
+    # Exporter plugin contract
+    "BaseExporter",
+    "ExporterError",
+    "discover_exporters",
+    "get_exporter",
     # Writeback
     "DescriptionWriter",
     "MockWriter",

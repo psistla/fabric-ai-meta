@@ -815,7 +815,7 @@ class TestPublicAPIExports:
             to_openai_function,
         )
 
-        assert __version__ == "1.2.0"
+        assert __version__ == "1.3.0"
         assert callable(score_model)
         assert callable(generate_ai_ready_schema)
         assert callable(to_openai_function)
@@ -824,8 +824,8 @@ class TestPublicAPIExports:
         import fabric_ai_meta
 
         # 1 version + 10 data model + 2 extractors + 8 analysis + 6 generators
-        # + 4 writeback = 31
-        assert len(fabric_ai_meta.__all__) == 31
+        # + 4 exporter plugin contract + 4 writeback = 35
+        assert len(fabric_ai_meta.__all__) == 35
 
 
 # ---------------------------------------------------------------------------

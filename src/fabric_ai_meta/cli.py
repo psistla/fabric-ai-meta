@@ -458,13 +458,15 @@ def export_group():
     pass
 
 
-def _export_single(model_name: str, workspace: str, filename: str, generator_fn, label: str, mock: bool = False) -> None:
+def _export_single(model_name: str, workspace: str, exporter, mock: bool = False) -> None:
+    """Run a single `BaseExporter` against the extracted model and write its output."""
     cfg = load_config()
     workspace = workspace or cfg.extraction.default_workspace
     output = cfg.output.output_dir
 
     console.print(Panel(
-        f"[bold]export {label}[/bold]  model=[cyan]{model_name}[/cyan]  workspace=[cyan]{workspace}[/cyan]  mock=[cyan]{mock}[/cyan]",
+        f"[bold]export {exporter.name}[/bold]  model=[cyan]{model_name}[/cyan]  "
+        f"workspace=[cyan]{workspace}[/cyan]  mock=[cyan]{mock}[/cyan]",
         title="fabric-ai-meta"
     ))
 
@@ -479,54 +481,29 @@ def _export_single(model_name: str, workspace: str, filename: str, generator_fn,
         extractor = SemanticLinkExtractor(workspace=workspace)
 
     model = extractor.extract(model_name, workspace)
-
-    result = generator_fn(model)
-    slug = _slugify(model_name)
-    out_dir = os.path.join(output, slug)
-    _ensure_dir(out_dir)
-    path = os.path.join(out_dir, filename)
-    _write_json(path, result)
+    path = exporter.write(model, output)
     console.print(f"[green]Written:[/green] {path}")
 
 
-@export_group.command("langchain")
-@click.argument("model_name")
-@click.option("--workspace", "-w", default=None)
-@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
-def export_langchain(model_name, workspace, mock):
-    """Export LangChain tool definition."""
-    from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
-    _export_single(model_name, workspace, "langchain-tool.json", to_langchain_tool_definition, "langchain", mock=mock)
+def _register_exporter_commands() -> None:
+    """Register every discovered exporter (built-in + plugins) as a CLI subcommand."""
+    from fabric_ai_meta.generator.registry import discover_exporters
+
+    for ep_name, exporter_cls in discover_exporters().items():
+        def _make_cmd(exporter_cls=exporter_cls, ep_name=ep_name):
+            @click.command(name=ep_name, help=exporter_cls.description or f"Export {ep_name} format.")
+            @click.argument("model_name")
+            @click.option("--workspace", "-w", default=None)
+            @click.option("--mock", is_flag=True, default=False,
+                          help="Use MockExtractor with fixture data.")
+            def _cmd(model_name, workspace, mock):
+                _export_single(model_name, workspace, exporter_cls(), mock=mock)
+            return _cmd
+
+        export_group.add_command(_make_cmd())
 
 
-@export_group.command("openai")
-@click.argument("model_name")
-@click.option("--workspace", "-w", default=None)
-@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
-def export_openai(model_name, workspace, mock):
-    """Export OpenAI function calling schema."""
-    from fabric_ai_meta.generator.export_openai import to_openai_function
-    _export_single(model_name, workspace, "openai-function.json", to_openai_function, "openai", mock=mock)
-
-
-@export_group.command("semantic-kernel")
-@click.argument("model_name")
-@click.option("--workspace", "-w", default=None)
-@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
-def export_semantic_kernel(model_name, workspace, mock):
-    """Export Semantic Kernel plugin manifest."""
-    from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
-    _export_single(model_name, workspace, "semantic-kernel-plugin.json", to_semantic_kernel_plugin, "semantic-kernel", mock=mock)
-
-
-@export_group.command("autogen")
-@click.argument("model_name")
-@click.option("--workspace", "-w", default=None)
-@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
-def export_autogen(model_name, workspace, mock):
-    """Export AutoGen tool definition."""
-    from fabric_ai_meta.generator.export_autogen import to_autogen_tool
-    _export_single(model_name, workspace, "autogen-tool.json", to_autogen_tool, "autogen", mock=mock)
+_register_exporter_commands()
 
 
 @export_group.command("prep-for-ai")
