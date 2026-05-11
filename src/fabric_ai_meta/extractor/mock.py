@@ -16,7 +16,7 @@ class MockExtractor(BaseExtractor):
     """Loads SemanticModelMeta from JSON fixture files for local testing.
 
     Two modes (backward compatible):
-    - fixture_path: single JSON file → loads one model (Phase 1 behaviour)
+    - fixture_path: single JSON file → loads one model
     - fixture_dir:  directory of *.json files → supports list_models() + extract() by name
     If neither is provided, defaults to fixture_dir = "tests/fixtures/".
     """
@@ -71,7 +71,7 @@ class MockExtractor(BaseExtractor):
     def extract(self, model_name: str, workspace: str | None = None) -> SemanticModelMeta:
         """Load and return a SemanticModelMeta.
 
-        fixture_path mode: loads that file directly (existing Phase 1 behaviour).
+        fixture_path mode: loads that file directly (existing single-model behaviour).
         fixture_dir mode:  finds the fixture whose model name matches (case-insensitive,
                            slugified). Raises FileNotFoundError if no match.
         """

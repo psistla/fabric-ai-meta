@@ -186,7 +186,7 @@ def test_mock_extractor_fixture_path_list_models_single_item():
 
 
 def test_mock_extractor_backward_compat_single_file():
-    """Phase 1 single-file usage must still work identically."""
+    """Single-file usage must still work identically for backward compatibility."""
     extractor = MockExtractor(fixture_path=os.path.join(FIXTURES_DIR, "adventure_works.json"))
     model = extractor.extract("Adventure Works", "test")
     assert isinstance(model, SemanticModelMeta)

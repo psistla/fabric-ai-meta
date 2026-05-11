@@ -5,7 +5,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "click>=8.1,<9.0",                 # CLI framework; 9.0 will remove deprecated APIs
-    "anthropic>=0.40",                 # Claude API client
+    "anthropic>=0.40",                 # Default LLM provider SDK (replaceable via [llm] extra; see config.llm.provider)
     "azure-identity>=1.15",            # Entra ID authentication
     "semantic-link-sempy>=0.8",        # Fabric Semantic Link
     "pydantic>=2.0",                   # Data validation

@@ -672,8 +672,8 @@ def test_prep_config_json_serializable_end_to_end(adventure_works_model):
 # ---------------------------------------------------------------------------
 
 
-def test_full_pipeline_phase1(adventure_works_model, tmp_path):
-    """Phase 1: Extract → classify → score → generate all exports."""
+def test_full_pipeline_complete_e2e(adventure_works_model, tmp_path):
+    """Integrated end-to-end: extract, classify, score, generate all exports, write schema."""
     from fabric_ai_meta.analyzer.classifier import (
         classify_column_role,
         classify_measure_heuristic,
@@ -714,8 +714,8 @@ def test_full_pipeline_phase1(adventure_works_model, tmp_path):
     assert os.path.exists(out_path)
 
 
-def test_full_pipeline_phase2(adventure_works_model, tmp_path):
-    """Phase 2: Prep-for-AI config + verified answers (without LLM), via CLI."""
+def test_full_pipeline_prep_for_ai_cli(adventure_works_model, tmp_path):
+    """Prep-for-AI config + verified answers (without LLM), via CLI."""
     runner = CliRunner()
     result = runner.invoke(main, [
         "export", "prep-for-ai", "Adventure Works",
@@ -736,7 +736,7 @@ def test_full_pipeline_phase2(adventure_works_model, tmp_path):
 
 
 def test_full_pipeline_scan(tmp_path):
-    """Phase 2 (BULK-01): Bulk scan across fixtures → workspace-summary.json."""
+    """BULK-01: Bulk scan across fixtures → workspace-summary.json."""
     runner = CliRunner()
     result = runner.invoke(main, [
         "scan",
@@ -758,7 +758,7 @@ def test_full_pipeline_scan(tmp_path):
 
 
 def test_full_pipeline_governance(tmp_path):
-    """Phase 3 (GOV-01/02/03): Governance analysis → governance-report.json."""
+    """GOV-01/02/03: Governance analysis → governance-report.json."""
     runner = CliRunner()
     report_path = str(tmp_path / "governance-report.json")
     result = runner.invoke(main, [
