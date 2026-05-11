@@ -11,7 +11,7 @@ Extract, classify, and export metadata from Microsoft Fabric semantic models for
 **Automates Prep for AI** across 100+ models. No manual configuration.
 **Exports to LangChain, OpenAI, Semantic Kernel, AutoGen.** One extraction, every framework.
 **Governs at workspace scale:** naming inconsistencies, duplicate measures, readiness scores.
-**Speaks MCP:** six tools for Claude Code, Claude Desktop, and any MCP-aware agent.
+**Speaks MCP:** six tools for any MCP-aware AI agent or IDE.
 
 ### Install
 
@@ -50,7 +50,7 @@ Microsoft Fabric has invested heavily in AI features for semantic models: Prep f
 |-----|--------------------------|
 | Manual Prep for AI | Auto-generates `prep-for-ai-config.json`: table selections, AI Instructions, Verified Answers, description backfill |
 | Manual description writeback | `apply-descriptions` writes generated table and column descriptions back through XMLA / TOM |
-| No agent-callable surface | `fabric-ai-meta serve` exposes six tools through MCP for Claude Code, Claude Desktop, and other agents |
+| No agent-callable surface | `fabric-ai-meta serve` exposes six tools through MCP for any MCP-aware AI agent or IDE |
 | No external AI export | Produces framework-native schemas for LangChain, OpenAI, Semantic Kernel, and AutoGen |
 | No way to add custom exporters | Third parties ship exporters as installable Python plugins via the `fabric_ai_meta.exporters` entry point group |
 | No cross-model governance | Detects naming inconsistencies, duplicate DAX, ranks models by readiness, outputs governance report |
@@ -214,16 +214,16 @@ fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 # Install the optional MCP extra
 pip install 'fabric-ai-meta[mcp]'
 
-# Start over stdio (default; what Claude Code and Claude Desktop use)
+# Start over stdio (default; what most MCP-aware AI agents and IDEs use)
 fabric-ai-meta serve
 
 # Start over streamable HTTP on a specific port
 fabric-ai-meta serve --transport streamable-http --port 8000
 ```
 
-Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](.mcp.json) lives at the project root so Claude Code picks the server up automatically when the working directory is opened.
+Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](.mcp.json) lives at the project root, so any IDE that auto-discovers project-scoped MCP servers picks it up when the working directory is opened.
 
-**Connect from Claude Desktop:** add the same `mcpServers` block from `.mcp.json` to your Claude Desktop config (`%APPDATA%/Claude/claude_desktop_config.json` on Windows, `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS).
+**Connect from a desktop MCP client:** add the contents of `.mcp.json` to your client's `mcpServers` configuration. Common locations include `%APPDATA%/<client>/<client>_config.json` on Windows and `~/Library/Application Support/<client>/<client>_config.json` on macOS.
 </details>
 
 <details>
@@ -417,7 +417,7 @@ Full walk-through with a worked dbt example, local testing, and name-conflict ru
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (344 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (400 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
