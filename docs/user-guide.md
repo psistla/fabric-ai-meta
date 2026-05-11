@@ -8,32 +8,24 @@ For per-command reference (every flag, every option), see the `Usage` section in
 
 ## 1. Install
 
-Until the package is published on PyPI, install directly from GitHub. Every release attaches a wheel and a source distribution as assets:
+```bash
+pip install fabric-ai-meta             # core
+pip install 'fabric-ai-meta[llm]'      # add multi-provider LLM enrichment
+pip install 'fabric-ai-meta[mcp]'      # add the MCP server
+pip install 'fabric-ai-meta[xmla]'     # add description writeback (Windows)
+```
+
+Install everything at once: `pip install 'fabric-ai-meta[llm,mcp,xmla,dev]'`.
+
+For development against the source tree:
 
 ```bash
-# From GitHub source at a specific release tag
-pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
-
-# Or from a release wheel (faster, no git checkout required)
-pip install https://github.com/psistla/fabric-ai-meta/releases/download/v1.3.1/fabric_ai_meta-1.3.1-py3-none-any.whl
-
-# Or from a local clone (for development)
 git clone https://github.com/psistla/fabric-ai-meta.git
 cd fabric-ai-meta
 pip install -e ".[dev]"
 ```
 
-Pick optional extras with the same `pip` syntax:
-
-```bash
-pip install 'fabric-ai-meta[llm] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'    # multi-provider LLM enrichment
-pip install 'fabric-ai-meta[mcp] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'    # MCP server
-pip install 'fabric-ai-meta[xmla] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'   # description writeback (Windows)
-```
-
-Combine all extras: `pip install 'fabric-ai-meta[llm,mcp,xmla,dev] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'`.
-
-For airgapped or restricted environments that cannot reach `github.com` directly, download the wheel from the release page on a connected machine and upload it as a workspace library (Fabric environment libraries, internal artifact registry, etc.).
+For airgapped or restricted environments that cannot reach PyPI directly, download the wheel from the GitHub release page on a connected machine and upload it as a workspace library (Fabric environment libraries, internal artifact registry, etc.). Every release attaches both `fabric_ai_meta-X.Y.Z-py3-none-any.whl` and `fabric_ai_meta-X.Y.Z.tar.gz`.
 
 ---
 
@@ -68,7 +60,7 @@ Two ways:
 **Inside a Fabric notebook (recommended).** Open a notebook in your Fabric workspace and run:
 
 ```python
-%pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
+%pip install fabric-ai-meta
 !fabric-ai-meta analyze "Sales Model" --workspace "Production"
 ```
 
@@ -231,7 +223,7 @@ Produces a JSON report covering:
 Drop a governance check into your PR pipeline:
 
 ```yaml
-- run: pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
+- run: pip install fabric-ai-meta
 - run: fabric-ai-meta governance --workspace "$WORKSPACE" --report report.json --mock
 - run: python scripts/ci-governance-check.py report.json --min-score 0.7
 ```
@@ -327,7 +319,7 @@ Different personas need different command sequences. Pick the one that matches y
 ### Solo BI developer exploring the tool
 
 ```
-1. Install                           pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
+1. Install                           pip install fabric-ai-meta
 2. Try locally                       fabric-ai-meta analyze "Adventure Works" --mock
 3. Try real workspace                fabric-ai-meta analyze "Your Model" --workspace ...
 4. Export to your framework          fabric-ai-meta export openai "Your Model" --workspace ...
@@ -336,7 +328,7 @@ Different personas need different command sequences. Pick the one that matches y
 ### Enterprise governance team
 
 ```
-1. Install                           pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
+1. Install                           pip install fabric-ai-meta
 2. Configure TOML                    write .fabric-ai-meta.toml
 3. Bulk scan                         fabric-ai-meta scan --workspace ...
 4. Governance report                 fabric-ai-meta governance --workspace ... --report ...
