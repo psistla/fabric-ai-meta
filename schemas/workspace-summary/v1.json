@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
+  "$id": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/workspace-summary/v1.json",
   "title": "Workspace Summary",
   "description": "Output schema for fabric-ai-meta scan command. Summarizes all models in a workspace with scores, counts, and recommendations.",
   "type": "object",
@@ -9,7 +9,7 @@
   "properties": {
     "$schema": {
       "type": "string",
-      "const": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json"
+      "const": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/workspace-summary/v1.json"
     },
     "version": {
       "type": "string"

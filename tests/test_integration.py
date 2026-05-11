@@ -815,7 +815,7 @@ class TestPublicAPIExports:
             to_openai_function,
         )
 
-        assert __version__ == "1.1.1"
+        assert __version__ == "1.1.2"
         assert callable(score_model)
         assert callable(generate_ai_ready_schema)
         assert callable(to_openai_function)
@@ -918,10 +918,10 @@ class TestSchemaValidation:
     def test_schema_ids_match_source_references(self):
         """$id in each schema matches the URL used in source code output."""
         expected = {
-            os.path.join(SCHEMAS_DIR, "v1.json"): "https://fabric-ai-meta.dev/schema/v1.json",
-            os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json"): "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
-            os.path.join(SCHEMAS_DIR, "governance-report", "v1.json"): "https://fabric-ai-meta.dev/schema/governance-report/v1.json",
-            os.path.join(SCHEMAS_DIR, "prep-for-ai", "v1.json"): "https://fabric-ai-meta.dev/schema/prep-for-ai/v1.json",
+            os.path.join(SCHEMAS_DIR, "v1.json"): "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/v1.json",
+            os.path.join(SCHEMAS_DIR, "workspace-summary", "v1.json"): "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/workspace-summary/v1.json",
+            os.path.join(SCHEMAS_DIR, "governance-report", "v1.json"): "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/governance-report/v1.json",
+            os.path.join(SCHEMAS_DIR, "prep-for-ai", "v1.json"): "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/prep-for-ai/v1.json",
         }
         for path, expected_id in expected.items():
             with open(path) as f:

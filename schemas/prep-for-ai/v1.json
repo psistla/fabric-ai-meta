@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://fabric-ai-meta.dev/schema/prep-for-ai/v1.json",
+  "$id": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/prep-for-ai/v1.json",
   "title": "Prep for AI Configuration",
   "description": "Output schema for fabric-ai-meta export prep-for-ai. Captures the manual-application guide for Microsoft Fabric's Prep for AI feature: included tables, excluded columns, AI Instructions text, verified Q&A pairs, and LLM-generated descriptions for objects that lacked them.",
   "type": "object",

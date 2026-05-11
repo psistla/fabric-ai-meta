@@ -23,7 +23,7 @@ def generate_ai_ready_schema(model: SemanticModelMeta) -> dict:
         model.scoring_breakdown = breakdown
 
     return {
-        "$schema": "https://fabric-ai-meta.dev/schema/v1.json",
+        "$schema": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/v1.json",
         "version": "1.0",
         "model": _build_model_section(model),
         "tables": _build_tables_section(model),

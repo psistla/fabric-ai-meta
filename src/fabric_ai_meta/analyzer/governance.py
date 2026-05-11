@@ -183,7 +183,7 @@ def write_governance_report(report: dict, workspace: str, output_path: str) -> s
         The file path written.
     """
     output = {
-        "$schema": "https://fabric-ai-meta.dev/schema/governance-report/v1.json",
+        "$schema": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/governance-report/v1.json",
         "version": "1.0",
         "workspace": workspace,
         "generated_at": datetime.now(timezone.utc).isoformat(),

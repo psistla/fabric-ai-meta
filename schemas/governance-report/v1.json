@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://fabric-ai-meta.dev/schema/governance-report/v1.json",
+  "$id": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/governance-report/v1.json",
   "title": "Governance Report",
   "description": "Output schema for fabric-ai-meta governance command. Cross-model governance scorecard with naming inconsistencies, duplicate measures, and recommendations.",
   "type": "object",
@@ -9,7 +9,7 @@
   "properties": {
     "$schema": {
       "type": "string",
-      "const": "https://fabric-ai-meta.dev/schema/governance-report/v1.json"
+      "const": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/governance-report/v1.json"
     },
     "version": {
       "type": "string"

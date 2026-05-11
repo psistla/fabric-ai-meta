@@ -19,13 +19,13 @@ from fabric_ai_meta.models.metadata import (
 )
 
 # Token budget management
-# Claude Sonnet (claude-sonnet-4-6) actual context window: 200,000 tokens
-# We use 190,000 as a conservative operational budget (leaves headroom for system prompt overhead)
-MAX_CONTEXT_TOKENS = 190_000   # Conservative budget, actual window is 200K
+# Claude Sonnet (claude-sonnet-4-6) actual context window: 1,000,000 tokens
+# We use 950,000 as a conservative operational budget (leaves headroom for system prompt overhead)
+MAX_CONTEXT_TOKENS = 950_000   # Conservative budget, actual window is 1M
 RESERVED_FOR_RESPONSE = 8_000
-MAX_MODEL_CONTEXT = MAX_CONTEXT_TOKENS - RESERVED_FOR_RESPONSE  # 182,000 tokens for input
+MAX_MODEL_CONTEXT = MAX_CONTEXT_TOKENS - RESERVED_FOR_RESPONSE  # 942,000 tokens for input
 
-ANTHROPIC_MODEL = "claude-sonnet-4-6"  # Current production model string as of March 2026
+ANTHROPIC_MODEL = "claude-sonnet-4-6"
 
 
 def _try_parse_batch_json(text: str) -> list | None:

@@ -32,7 +32,7 @@ def test_top_level_keys_match_spec(adventure_works_model):
 
 def test_schema_version_and_url(adventure_works_model):
     schema = generate_ai_ready_schema(adventure_works_model)
-    assert schema["$schema"] == "https://fabric-ai-meta.dev/schema/v1.json"
+    assert schema["$schema"] == "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/v1.json"
     assert schema["version"] == "1.0"
 
 

@@ -331,7 +331,7 @@ def _write_summary(path, models, timestamp="2026-04-01T00:00:00Z"):
     scores = [m["ai_readiness_score"] for m in models if m.get("ai_readiness_score") is not None]
     avg = sum(scores) / len(scores) if scores else None
     data = {
-        "$schema": "https://fabric-ai-meta.dev/schema/workspace-summary/v1.json",
+        "$schema": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/workspace-summary/v1.json",
         "version": "1.0",
         "workspace": "test",
         "scan_timestamp": timestamp,

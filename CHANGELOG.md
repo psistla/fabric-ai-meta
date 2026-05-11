@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-05-10
+
+### Fixed
+- `tomli` is now declared as a dependency for Python 3.10 so `load_config()` no longer raises `ImportError` when the runtime is 3.10 and a `.fabric-ai-meta.toml` is present
+- `export langchain|openai|semantic-kernel|autogen` now accept `--mock`, matching the documentation in README and bringing them in line with `analyze`, `scan`, `score`, `governance`, and `export prep-for-ai`
+- `MAX_CONTEXT_TOKENS` budget in `llm/client.py` raised from 190,000 to 950,000 to reflect Claude Sonnet 4.6's actual 1,000,000-token context window (the previous comment was outdated)
+
+### Changed
+- `mcp[cli]` pin tightened to `>=1.0,<2.0` so an eventual `mcp` 2.0 release (which reworks `FastMCP`, transports, and auth) cannot silently break the MCP server
+- `click` pin tightened to `>=8.1,<9.0` to avoid pulling 9.0 once it ships and removes deprecated APIs
+- JSON Schema `$id` and output `$schema` URLs migrated from the placeholder `fabric-ai-meta.dev` domain (unregistered) to resolvable GitHub raw URLs at `raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/`
+
 ## [1.1.1] - 2026-04-29
 
 ### Added
