@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-05-11
+
+### Added
+- Built `.whl` and `.tar.gz` distribution artifacts attached to every GitHub release, so users can `pip install` from a release URL without cloning the repo
+- `.github/workflows/publish.yml` GitHub Actions workflow that builds the wheel and source distribution on every `v*` tag push and uploads them as release assets; an optional PyPI publish step is wired up via trusted publishing (OIDC) and activates once the project is claimed on PyPI
+
+### Changed
+- README and `docs/user-guide.md` install instructions corrected to reflect actual distribution channels: the package is installable from GitHub today (either `git+https://...` or release wheel URL) while PyPI publish is pending
+- Quickstart notebook (`notebooks/quickstart.ipynb`) and TMDL spike notebook (`notebooks/tmdl-spike.ipynb`) updated to `%pip install` from the GitHub release URL rather than `pip install fabric-ai-meta`, which was never valid
+
+### Fixed
+- `pip install fabric-ai-meta` references throughout the README, user guide, and bundled notebooks pointed at a PyPI name that has not yet been published, leaving new users with a "No matching distribution found" error; all references now use a working install command
+
 ## [1.3.0] - 2026-05-10
 
 ### Added

@@ -1,7 +1,7 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.3.0-238636?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.1-238636?style=flat-square)
 ![Tests](https://img.shields.io/badge/tests-400%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
@@ -16,8 +16,19 @@ Extract, classify, and export metadata from Microsoft Fabric semantic models for
 ### Install
 
 ```bash
+# From GitHub (current; PyPI publish pending)
+pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
+
+# Or from a release wheel asset
+pip install https://github.com/psistla/fabric-ai-meta/releases/download/v1.3.1/fabric_ai_meta-1.3.1-py3-none-any.whl
+
+# Or from a local clone (for development)
+git clone https://github.com/psistla/fabric-ai-meta.git
+cd fabric-ai-meta
 pip install -e ".[dev]"
 ```
+
+Optional extras: `[llm]` for multi-provider LLM enrichment, `[mcp]` for the MCP server, `[xmla]` for description writeback. Combine: `pip install 'git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1#egg=fabric-ai-meta[llm,mcp,xmla]'`.
 
 ### Quickstart
 
@@ -43,7 +54,7 @@ Different goals need different command sequences. Pick the one that matches you,
 <summary><strong>Solo BI developer exploring the tool</strong></summary>
 
 ```bash
-pip install fabric-ai-meta
+pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
 fabric-ai-meta analyze "Adventure Works" --mock                    # try with bundled fixture
 fabric-ai-meta analyze "Your Model" --workspace "Production"       # then point at real workspace
 fabric-ai-meta export openai "Your Model" --workspace "Production" # export to your AI framework
@@ -54,7 +65,7 @@ fabric-ai-meta export openai "Your Model" --workspace "Production" # export to y
 <summary><strong>Enterprise governance team</strong></summary>
 
 ```bash
-pip install fabric-ai-meta
+pip install git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1
 # Write a .fabric-ai-meta.toml with [extraction] default_workspace and thresholds
 fabric-ai-meta scan --workspace "Production" --output ./snapshot
 fabric-ai-meta governance --workspace "Production" --report ./governance-report.json
@@ -67,7 +78,7 @@ fabric-ai-meta governance --workspace "Production" --report ./governance-report.
 <summary><strong>AI engineer building agents on Fabric data</strong></summary>
 
 ```bash
-pip install 'fabric-ai-meta[llm,mcp]'
+pip install 'fabric-ai-meta[llm,mcp] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'
 export ANTHROPIC_API_KEY=sk-ant-...   # or any other supported provider
 fabric-ai-meta analyze "Your Model" --workspace "Production" --llm-enrich
 fabric-ai-meta export langchain "Your Model" --workspace "Production"
@@ -80,7 +91,7 @@ fabric-ai-meta serve
 <summary><strong>Fabric architect cleaning a semantic model</strong></summary>
 
 ```bash
-pip install 'fabric-ai-meta[llm,xmla]'
+pip install 'fabric-ai-meta[llm,xmla] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'
 fabric-ai-meta analyze "Sales Model" --workspace "Production" --llm-enrich
 fabric-ai-meta export prep-for-ai "Sales Model" --workspace "Production" --llm-enrich
 fabric-ai-meta apply-descriptions ./output/sales-model/prep-for-ai-config.json --mock           # preview
@@ -281,7 +292,7 @@ fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 
 ```bash
 # Install the optional MCP extra
-pip install 'fabric-ai-meta[mcp]'
+pip install 'fabric-ai-meta[mcp] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'
 
 # Start over stdio (default; what most MCP-aware AI agents and IDEs use)
 fabric-ai-meta serve
@@ -354,7 +365,7 @@ fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --llm-e
 **Multi-provider support (via LiteLLM).** Install the optional extra and pick any of 10+ providers in `.fabric-ai-meta.toml`:
 
 ```bash
-pip install 'fabric-ai-meta[llm]'
+pip install 'fabric-ai-meta[llm] @ git+https://github.com/psistla/fabric-ai-meta.git@v1.3.1'
 ```
 
 | Provider | `provider` | `model` example | API key env var |

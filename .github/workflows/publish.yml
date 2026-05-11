@@ -1,0 +1,100 @@
+name: Publish
+
+# Builds wheel + sdist on every v*.*.* tag push, attaches both as release
+# assets, and (optionally) publishes to PyPI via Trusted Publishing.
+#
+# PyPI publishing is gated by the `pypi` GitHub Actions environment. The
+# environment is intentionally NOT created in this repo by default; the
+# `publish-pypi` job is skipped until a repo admin:
+#   1. Claims the `fabric-ai-meta` name on PyPI
+#   2. Configures Trusted Publishing on the PyPI project page, pointing at
+#      this workflow file (publish.yml) and the `pypi` environment
+#   3. Creates a GitHub environment named `pypi` in repo Settings
+# Once those three steps are complete, every `v*` tag push will both
+# attach assets to the release AND publish to PyPI in a single workflow run.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write   # needed to upload release assets
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Resolve version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  attach-to-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Attach wheel and sdist to the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            dist/*.whl dist/*.tar.gz \
+            --clobber
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    # Gated behind the `pypi` environment; create that environment in repo
+    # Settings -> Environments to enable PyPI publishing. The job stays skipped
+    # until then.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/fabric-ai-meta/
+    permissions:
+      id-token: write   # required for PyPI Trusted Publishing (OIDC)
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # No `password` / `username` set: uses OIDC trusted publishing.
+          # Configure the trusted publisher on the PyPI project page:
+          #   Repository:  psistla/fabric-ai-meta
+          #   Workflow:    publish.yml
+          #   Environment: pypi
+          skip-existing: true
