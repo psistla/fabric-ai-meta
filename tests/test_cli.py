@@ -296,14 +296,13 @@ def test_export_prep_for_ai_mock_exits_0(runner, tmp_path):
     from unittest.mock import MagicMock, patch
 
     mock_response = MagicMock()
-    mock_response.content = [MagicMock(text=_json.dumps({"description": "desc"}))]
-    mock_response.usage.input_tokens = 10
-    mock_response.usage.output_tokens = 5
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.content = _json.dumps({"description": "desc"})
+    mock_response.usage.prompt_tokens = 10
+    mock_response.usage.completion_tokens = 5
 
-    with patch("fabric_ai_meta.llm.client.anthropic.Anthropic") as mock_cls:
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
-        mock_client.messages.create.return_value = mock_response
+    with patch("fabric_ai_meta.llm.litellm_backend.litellm.completion") as mock_completion:
+        mock_completion.return_value = mock_response
 
         result = runner.invoke(main, [
             "export", "prep-for-ai", "Adventure Works",

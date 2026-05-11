@@ -34,32 +34,30 @@ def _load_and_classify(fixture_file: str, model_name: str):
 
 def _make_mock_llm_response(text: str):
     resp = MagicMock()
-    resp.content = [MagicMock(text=text)]
-    resp.usage.input_tokens = 100
-    resp.usage.output_tokens = 50
+    resp.choices = [MagicMock()]
+    resp.choices[0].message.content = text
+    resp.usage.prompt_tokens = 100
+    resp.usage.completion_tokens = 50
     return resp
 
 
 # ── generate_prep_for_ai WITHOUT LLM ────────────────────────────────────────
 
 
-def _make_prep_llm(mock_cls):
+def _make_prep_llm(mock_completion):
     """Return a mocked FabricLLMClient whose call() returns valid JSON for generate_description
     and plain text for ai_instructions (call() is used for both; generate_description parses JSON)."""
     from fabric_ai_meta.llm.client import FabricLLMClient
-    mock_client = MagicMock()
-    mock_cls.return_value = mock_client
-    # generate_description calls call() and json.loads the result → must return valid JSON
-    mock_client.messages.create.return_value = _make_mock_llm_response(
+    mock_completion.return_value = _make_mock_llm_response(
         json.dumps({"description": "A generated description"})
     )
     return FabricLLMClient(api_key="k", cache_enabled=False)
 
 
 class TestGeneratePrepForAINoLLM:
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_included_tables_non_staging(self, mock_cls):
-        llm = _make_prep_llm(mock_cls)
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_included_tables_non_staging(self, mock_completion):
+        llm = _make_prep_llm(mock_completion)
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         config = generate_prep_for_ai(model, llm)
 
@@ -70,9 +68,9 @@ class TestGeneratePrepForAINoLLM:
         for name in config.included_tables:
             assert name not in staging_names
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_excluded_columns_has_hidden(self, mock_cls):
-        llm = _make_prep_llm(mock_cls)
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_excluded_columns_has_hidden(self, mock_completion):
+        llm = _make_prep_llm(mock_completion)
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         config = generate_prep_for_ai(model, llm)
 
@@ -80,9 +78,9 @@ class TestGeneratePrepForAINoLLM:
         for cols in config.excluded_columns.values():
             assert len(cols) > 0
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_ai_instructions_non_empty_and_within_limit(self, mock_cls):
-        llm = _make_prep_llm(mock_cls)
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_ai_instructions_non_empty_and_within_limit(self, mock_completion):
+        llm = _make_prep_llm(mock_completion)
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         config = generate_prep_for_ai(model, llm)
 
@@ -90,9 +88,9 @@ class TestGeneratePrepForAINoLLM:
         assert len(config.ai_instructions) > 0
         assert len(config.ai_instructions) <= 2000
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_verified_answers_non_empty_and_have_required_keys(self, mock_cls):
-        llm = _make_prep_llm(mock_cls)
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_verified_answers_non_empty_and_have_required_keys(self, mock_completion):
+        llm = _make_prep_llm(mock_completion)
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         config = generate_prep_for_ai(model, llm)
 
@@ -104,9 +102,9 @@ class TestGeneratePrepForAINoLLM:
             assert "dax" in ans
             assert "description" in ans
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_generated_descriptions_is_dict(self, mock_cls):
-        llm = _make_prep_llm(mock_cls)
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_generated_descriptions_is_dict(self, mock_completion):
+        llm = _make_prep_llm(mock_completion)
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         config = generate_prep_for_ai(model, llm)
 
@@ -117,11 +115,11 @@ class TestGeneratePrepForAINoLLM:
 
 
 class TestGeneratePrepForAIWithBackfill:
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_backfill_populates_generated_descriptions(self, mock_cls):
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_backfill_populates_generated_descriptions(self, mock_completion):
         mock_client = MagicMock()
-        mock_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_llm_response("instructions")
+        mock_completion.return_value = mock_client
+        mock_completion.return_value = _make_mock_llm_response("instructions")
 
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         from fabric_ai_meta.llm.client import FabricLLMClient
@@ -134,9 +132,9 @@ class TestGeneratePrepForAIWithBackfill:
 
         assert config.generated_descriptions == {"FactInternetSales": {"SalesAmount": "Total sale revenue"}}
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_no_backfill_uses_llm_descriptions(self, mock_cls):
-        llm = _make_prep_llm(mock_cls)
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_no_backfill_uses_llm_descriptions(self, mock_completion):
+        llm = _make_prep_llm(mock_completion)
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         for table in model.tables:
             table.description = None
@@ -152,11 +150,8 @@ class TestGeneratePrepForAIWithBackfill:
 
 
 class TestBackfillDescriptions:
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_returns_populated_backfill(self, mock_cls):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
-
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_returns_populated_backfill(self, mock_completion):
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         # Clear descriptions so items are collected
         for table in model.tables:
@@ -171,23 +166,18 @@ class TestBackfillDescriptions:
 
         def make_response(*args, **kwargs):
             msgs = kwargs.get("messages", [])
-            prompt_text = msgs[0]["content"] if msgs else ""
-            # Extract items from prompt and build responses
+            # User message is the last entry (system, if any, comes first)
+            prompt_text = msgs[-1]["content"] if msgs else ""
             import re
-            # Find the JSON array in the prompt (after "Items:\n")
             match = re.search(r"Items:\n(\[.*?\])\n\n", prompt_text, re.DOTALL)
             if match:
                 items = json.loads(match.group(1))
                 result = [{"id": item["id"], "description": f"Desc for {item['name']}"} for item in items]
             else:
                 result = []
-            resp = MagicMock()
-            resp.content = [MagicMock(text=json.dumps(result))]
-            resp.usage.input_tokens = 100
-            resp.usage.output_tokens = 50
-            return resp
+            return _make_mock_llm_response(json.dumps(result))
 
-        mock_client.messages.create.side_effect = make_response
+        mock_completion.side_effect = make_response
 
         llm = FabricLLMClient(api_key="k", cache_enabled=False)
         backfill = backfill_descriptions(model, llm)
@@ -201,11 +191,9 @@ class TestBackfillDescriptions:
         )
         assert total > 0
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_apply_backfill_sets_ai_description(self, mock_cls):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_llm_response("[]")
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_apply_backfill_sets_ai_description(self, mock_completion):
+        mock_completion.return_value = _make_mock_llm_response("[]")
 
         model = _load_and_classify("adventure_works.json", "Adventure Works")
 
@@ -221,27 +209,21 @@ class TestBackfillDescriptions:
         sales_amount = next(c for c in fact.columns if c.name == "SalesAmount")
         assert sales_amount.ai_description == "Revenue from sale"
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_already_described_items_excluded(self, mock_cls):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
+    @patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+    def test_already_described_items_excluded(self, mock_completion):
         # We'll track what items are sent to the LLM
         captured_items = []
 
         def capture_response(*args, **kwargs):
             msgs = kwargs.get("messages", [])
-            prompt = msgs[0]["content"] if msgs else ""
+            prompt = msgs[-1]["content"] if msgs else ""
             import re
             match = re.search(r"Items:\n(\[.*?\])\n\n", prompt, re.DOTALL)
             if match:
                 captured_items.extend(json.loads(match.group(1)))
-            resp = MagicMock()
-            resp.content = [MagicMock(text="[]")]
-            resp.usage.input_tokens = 10
-            resp.usage.output_tokens = 5
-            return resp
+            return _make_mock_llm_response("[]")
 
-        mock_client.messages.create.side_effect = capture_response
+        mock_completion.side_effect = capture_response
 
         model = _load_and_classify("adventure_works.json", "Adventure Works")
         # FactInternetSales already has descriptions, should NOT appear in items

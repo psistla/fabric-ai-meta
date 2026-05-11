@@ -1,8 +1,8 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.1.2-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-344%20passing-1a7f37?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.2.0-238636?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-381%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -271,13 +271,70 @@ Compares two `workspace-summary.json` files and reports: models added/removed, s
 
 ## LLM Enrichment
 
-Add `--llm-enrich` to any command to enable Claude-powered analysis:
+Add `--llm-enrich` to any command to enable LLM-powered analysis:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...      # default provider; swap for another below
 
 fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --llm-enrich
 ```
+
+**Multi-provider support (via LiteLLM).** Install the optional extra and pick any of 10+ providers in `.fabric-ai-meta.toml`:
+
+```bash
+pip install 'fabric-ai-meta[llm]'
+```
+
+| Provider | `provider` | `model` example | API key env var |
+|----------|-----------|-----------------|-----------------|
+| Anthropic | `anthropic` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
+| OpenAI | `openai` | `gpt-4o` | `OPENAI_API_KEY` |
+| Google Gemini | `google` | `gemini-2.5-pro` | `GEMINI_API_KEY` |
+| xAI Grok | `xai` | `grok-4` | `XAI_API_KEY` |
+| Mistral | `mistral` | `mistral-large-latest` | `MISTRAL_API_KEY` |
+| Cohere | `cohere` | `command-r-plus` | `COHERE_API_KEY` |
+| AWS Bedrock | `bedrock` | `anthropic.claude-sonnet-4-v1:0` | `AWS_*` (SDK default chain) |
+| Azure OpenAI | `azure` | `<deployment-name>` | `AZURE_OPENAI_API_KEY` |
+| Google Vertex AI | `vertex` | `gemini-2.5-pro` | `GOOGLE_APPLICATION_CREDENTIALS` |
+| OpenAI-compatible | `openai-compatible` | `<any>` (set `base_url`) | `OPENAI_COMPATIBLE_API_KEY` |
+
+The `openai-compatible` provider routes through any OpenAI-API-compatible host: Groq, Together, Fireworks, Ollama, LM Studio, vLLM, or a custom endpoint. Set `base_url` in config.
+
+<details>
+<summary>Example: OpenAI</summary>
+
+```toml
+[llm]
+provider = "openai"
+model = "gpt-4o"
+api_key_env = "OPENAI_API_KEY"
+```
+</details>
+
+<details>
+<summary>Example: Azure OpenAI</summary>
+
+```toml
+[llm]
+provider = "azure"
+model = "gpt-4o-deployment"
+api_key_env = "AZURE_OPENAI_API_KEY"
+azure_endpoint = "https://my-resource.openai.azure.com"
+azure_api_version = "2024-02-15-preview"
+```
+</details>
+
+<details>
+<summary>Example: Local Ollama (openai-compatible)</summary>
+
+```toml
+[llm]
+provider = "openai-compatible"
+model = "llama3.1"
+base_url = "http://localhost:11434"
+api_key_env = "OPENAI_COMPATIBLE_API_KEY"  # any non-empty value works
+```
+</details>
 
 **What LLM enrichment adds:**
 - Missing table/column/measure descriptions (batch-generated, cached)
@@ -368,5 +425,7 @@ JSON Schema files for all output formats are in [`schemas/`](schemas/):
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | For `--llm-enrich` only | Claude API key |
+| `ANTHROPIC_API_KEY` | For `--llm-enrich` with default `anthropic` provider | LLM API key |
+| `OPENAI_API_KEY` / `GEMINI_API_KEY` / `XAI_API_KEY` / `MISTRAL_API_KEY` / `COHERE_API_KEY` / `AZURE_OPENAI_API_KEY` / `OPENAI_COMPATIBLE_API_KEY` | For the matching provider in `[llm]` config | See provider matrix above |
+| `AWS_*` (Bedrock), `GOOGLE_APPLICATION_CREDENTIALS` (Vertex) | When using Bedrock or Vertex | Standard SDK credential chains |
 | `FABRIC_NOTEBOOK_ID` | Auto-set in Fabric | Signals Fabric notebook runtime |

@@ -132,20 +132,20 @@ def test_auth01_get_credential_notebook_returns_none():
 
 
 @patch("azure.identity.InteractiveBrowserCredential")
-def test_auth01_get_credential_interactive_returns_credential(mock_cls):
+def test_auth01_get_credential_interactive_returns_credential(mock_completion):
     """AUTH-01: interactive mode returns an InteractiveBrowserCredential."""
     mock_cred = MagicMock()
-    mock_cls.return_value = mock_cred
+    mock_completion.return_value = mock_cred
     cred = get_credential(method="interactive")
     assert cred is mock_cred
-    mock_cls.assert_called_once()
+    mock_completion.assert_called_once()
 
 
 @patch("azure.identity.ClientSecretCredential")
-def test_auth01_get_credential_service_principal(mock_cls):
+def test_auth01_get_credential_service_principal(mock_completion):
     """AUTH-01: service_principal mode returns a ClientSecretCredential."""
     mock_cred = MagicMock()
-    mock_cls.return_value = mock_cred
+    mock_completion.return_value = mock_cred
     cred = get_credential(
         method="service_principal",
         tenant_id="tenant-id",
@@ -153,7 +153,7 @@ def test_auth01_get_credential_service_principal(mock_cls):
         client_secret="client-secret",
     )
     assert cred is mock_cred
-    mock_cls.assert_called_once_with(
+    mock_completion.assert_called_once_with(
         tenant_id="tenant-id",
         client_id="client-id",
         client_secret="client-secret",
@@ -332,19 +332,19 @@ def test_ext03_extract_sample_values_uses_topn_dax_pattern():
 # ---------------------------------------------------------------------------
 
 
-@patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-def test_ana02_detect_grain_returns_natural_language(mock_anthropic_cls):
+@patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+def test_ana02_detect_grain_returns_natural_language(mock_completion):
     """ANA-02: detect_grain returns a grain statement in natural language."""
     from fabric_ai_meta.llm.client import FabricLLMClient
 
     mock_client = MagicMock()
-    mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text=json.dumps({
+    mock_completion.return_value = mock_client
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content=json.dumps({
             "grain": "one row per internet sales order line item",
             "confidence": 0.92,
-        }))],
-        usage=MagicMock(input_tokens=100, output_tokens=30),
+        })))],
+        usage=MagicMock(prompt_tokens=100, completion_tokens=30),
     )
 
     llm = FabricLLMClient(api_key="test-key", cache_enabled=False)
@@ -380,16 +380,16 @@ def test_ana02_detect_grain_returns_natural_language(mock_anthropic_cls):
 # ---------------------------------------------------------------------------
 
 
-@patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-def test_llm01_cost_tracking_under_budget_does_not_raise(mock_anthropic_cls):
+@patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+def test_llm01_cost_tracking_under_budget_does_not_raise(mock_completion):
     """LLM-01: Normal usage does not trigger CostLimitExceededError."""
     from fabric_ai_meta.llm.client import FabricLLMClient
 
     mock_client = MagicMock()
-    mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text="response")],
-        usage=MagicMock(input_tokens=500, output_tokens=200),
+    mock_completion.return_value = mock_client
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="response"))],
+        usage=MagicMock(prompt_tokens=500, completion_tokens=200),
     )
 
     client = FabricLLMClient(
@@ -401,16 +401,16 @@ def test_llm01_cost_tracking_under_budget_does_not_raise(mock_anthropic_cls):
     assert result == "response"
 
 
-@patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-def test_llm01_token_usage_tracked_per_call(mock_anthropic_cls):
+@patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+def test_llm01_token_usage_tracked_per_call(mock_completion):
     """LLM-01: Cumulative token usage is tracked across calls."""
     from fabric_ai_meta.llm.client import FabricLLMClient
 
     mock_client = MagicMock()
-    mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text="ok")],
-        usage=MagicMock(input_tokens=100, output_tokens=50),
+    mock_completion.return_value = mock_client
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="ok"))],
+        usage=MagicMock(prompt_tokens=100, completion_tokens=50),
     )
 
     client = FabricLLMClient(api_key="test-key", cache_enabled=False)
@@ -427,16 +427,16 @@ def test_llm01_token_usage_tracked_per_call(mock_anthropic_cls):
 # ---------------------------------------------------------------------------
 
 
-@patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-def test_llm02_cache_prevents_redundant_api_calls(mock_anthropic_cls, tmp_path):
+@patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+def test_llm02_cache_prevents_redundant_api_calls(mock_completion, tmp_path):
     """LLM-02: Identical prompts use cached response, no extra API call."""
     from fabric_ai_meta.llm.client import FabricLLMClient
 
     mock_client = MagicMock()
-    mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text="cached")],
-        usage=MagicMock(input_tokens=50, output_tokens=20),
+    mock_completion.return_value = mock_client
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="cached"))],
+        usage=MagicMock(prompt_tokens=50, completion_tokens=20),
     )
 
     client = FabricLLMClient(
@@ -449,7 +449,7 @@ def test_llm02_cache_prevents_redundant_api_calls(mock_anthropic_cls, tmp_path):
     r3 = client.call("same prompt")
 
     assert r1 == r2 == r3 == "cached"
-    assert mock_client.messages.create.call_count == 1
+    assert mock_completion.call_count == 1
 
 
 # ---------------------------------------------------------------------------
@@ -457,18 +457,18 @@ def test_llm02_cache_prevents_redundant_api_calls(mock_anthropic_cls, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-@patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-def test_desc01_generate_description_for_column(mock_anthropic_cls):
+@patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+def test_desc01_generate_description_for_column(mock_completion):
     """DESC-01: generate_description produces a non-empty description for a column."""
     from fabric_ai_meta.llm.client import FabricLLMClient
 
     mock_client = MagicMock()
-    mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text=json.dumps({
+    mock_completion.return_value = mock_client
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content=json.dumps({
             "description": "The unique identifier for each customer record"
-        }))],
-        usage=MagicMock(input_tokens=80, output_tokens=25),
+        })))],
+        usage=MagicMock(prompt_tokens=80, completion_tokens=25),
     )
 
     client = FabricLLMClient(api_key="test-key", cache_enabled=False)
@@ -485,18 +485,18 @@ def test_desc01_generate_description_for_column(mock_anthropic_cls):
     assert len(desc) > 0
 
 
-@patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-def test_desc01_generate_description_for_measure(mock_anthropic_cls):
+@patch("fabric_ai_meta.llm.litellm_backend.litellm.completion")
+def test_desc01_generate_description_for_measure(mock_completion):
     """DESC-01: generate_description works for a measure object type."""
     from fabric_ai_meta.llm.client import FabricLLMClient
 
     mock_client = MagicMock()
-    mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text=json.dumps({
+    mock_completion.return_value = mock_client
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content=json.dumps({
             "description": "Total revenue from all internet sales channels"
-        }))],
-        usage=MagicMock(input_tokens=90, output_tokens=20),
+        })))],
+        usage=MagicMock(prompt_tokens=90, completion_tokens=20),
     )
 
     client = FabricLLMClient(api_key="test-key", cache_enabled=False)
@@ -815,7 +815,7 @@ class TestPublicAPIExports:
             to_openai_function,
         )
 
-        assert __version__ == "1.1.2"
+        assert __version__ == "1.2.0"
         assert callable(score_model)
         assert callable(generate_ai_ready_schema)
         assert callable(to_openai_function)

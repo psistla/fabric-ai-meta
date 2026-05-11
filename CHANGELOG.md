@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-10
+
+### Added
+- Multi-provider LLM support via LiteLLM. Ten provider routes ship in `LiteLLMBackend`: `anthropic`, `openai`, `google` (Gemini), `xai` (Grok), `mistral`, `cohere`, `bedrock` (AWS), `azure` (Azure OpenAI), `vertex` (Google Vertex AI), and `openai-compatible` for Groq, Together, Fireworks, Ollama, LM Studio, vLLM, or any custom OpenAI-API endpoint
+- New abstract base class `BaseLLMClient` with shared cache, cumulative cost tracking, and budget enforcement; subclasses implement a single `_raw_call()` and reuse all prompt construction
+- New `LLMCallResult` dataclass that normalizes responses across backends
+- New `load_llm_client(config)` factory in `fabric_ai_meta.llm` for building a client from `LLMConfig`
+- `LLMConfig` gained optional `base_url`, `azure_endpoint`, `azure_api_version`, `vertex_project`, and `vertex_location` fields
+- New `[llm]` optional extra: `pip install 'fabric-ai-meta[llm]'` installs LiteLLM
+- `tests/test_litellm_backend.py` with 37 new tests covering provider dispatch, API key resolution, JSON-mode routing, cost limits, cache reuse, and the `openai-compatible` escape hatch
+
+### Changed
+- `FabricLLMClient` is now a thin `LiteLLMBackend` subclass; its public surface (`call`, `classify_table`, `detect_grain`, `generate_description`, `generate_descriptions_batch`, token counters, `CostLimitExceededError`) is unchanged so existing user code keeps working
+- `cli._run_llm_enrichment` and `export prep-for-ai --llm-enrich` now build the client via `load_llm_client(cfg)`, picking up `cfg.llm.provider` and friends from `.fabric-ai-meta.toml`
+- README LLM Enrichment section restructured around a provider matrix plus per-provider config snippets
+
 ## [1.1.2] - 2026-05-10
 
 ### Fixed

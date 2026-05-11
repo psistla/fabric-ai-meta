@@ -1,4 +1,4 @@
-"""Tests for LLM integration: cache, client (mocked API), and prompt templates."""
+"""Tests for LLM integration: cache, client (mocked via LiteLLM), and prompt templates."""
 
 import json
 import os
@@ -21,6 +21,19 @@ from fabric_ai_meta.models.metadata import (
     TableMeta,
     TableType,
 )
+
+LITELLM_COMPLETION_PATCH = "fabric_ai_meta.llm.litellm_backend.litellm.completion"
+
+
+def _make_mock_response(text: str, input_tokens: int = 100, output_tokens: int = 50):
+    """Create a mock LiteLLM completion response."""
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = text
+    response.usage.prompt_tokens = input_tokens
+    response.usage.completion_tokens = output_tokens
+    return response
+
 
 # ── Cache tests ──────────────────────────────────────────────────────────────
 
@@ -62,24 +75,13 @@ class TestLLMCache:
         assert cache.get(key) == "response 2"
 
 
-# ── Client tests (mocked API) ───────────────────────────────────────────────
-
-
-def _make_mock_response(text: str, input_tokens: int = 100, output_tokens: int = 50):
-    """Create a mock Anthropic API response."""
-    response = MagicMock()
-    response.content = [MagicMock(text=text)]
-    response.usage.input_tokens = input_tokens
-    response.usage.output_tokens = output_tokens
-    return response
+# ── Client tests (mocked LiteLLM) ───────────────────────────────────────────
 
 
 class TestFabricLLMClient:
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_call_returns_response_text(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response("hello")
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_call_returns_response_text(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response("hello")
 
         client = FabricLLMClient(
             api_key="test-key",
@@ -88,13 +90,11 @@ class TestFabricLLMClient:
         )
         result = client.call("test prompt")
         assert result == "hello"
-        mock_client.messages.create.assert_called_once()
+        mock_completion.assert_called_once()
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_call_uses_cache(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response("cached result")
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_call_uses_cache(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response("cached result")
 
         client = FabricLLMClient(
             api_key="test-key",
@@ -102,35 +102,25 @@ class TestFabricLLMClient:
             cache_dir=str(tmp_path / "cache"),
         )
 
-        # First call hits API
         result1 = client.call("same prompt")
         assert result1 == "cached result"
-        assert mock_client.messages.create.call_count == 1
+        assert mock_completion.call_count == 1
 
-        # Second call with same prompt should use cache
         result2 = client.call("same prompt")
         assert result2 == "cached result"
-        assert mock_client.messages.create.call_count == 1  # no additional API call
+        assert mock_completion.call_count == 1
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_call_without_cache(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response("no cache")
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_call_without_cache(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response("no cache")
 
-        client = FabricLLMClient(
-            api_key="test-key",
-            cache_enabled=False,
-        )
+        client = FabricLLMClient(api_key="test-key", cache_enabled=False)
         result = client.call("test prompt")
         assert result == "no cache"
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_cost_limit_exceeded(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        # Large token usage to trigger cost limit
-        mock_client.messages.create.return_value = _make_mock_response(
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_cost_limit_exceeded(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response(
             "expensive", input_tokens=1_000_000, output_tokens=500_000
         )
 
@@ -142,18 +132,13 @@ class TestFabricLLMClient:
         with pytest.raises(CostLimitExceededError):
             client.call("expensive prompt")
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_classify_table(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response(
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_classify_table(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response(
             json.dumps({"table_type": "fact", "confidence": 0.95, "reasoning": "Has measures and FK columns"})
         )
 
-        client = FabricLLMClient(
-            api_key="test-key",
-            cache_enabled=False,
-        )
+        client = FabricLLMClient(api_key="test-key", cache_enabled=False)
 
         table = TableMeta(
             name="FactSales",
@@ -181,11 +166,9 @@ class TestFabricLLMClient:
         assert table_type == TableType.FACT
         assert confidence == 0.95
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_detect_grain(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response(
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_detect_grain(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response(
             json.dumps({"grain": "one row per sales order line item", "confidence": 0.9})
         )
 
@@ -209,11 +192,9 @@ class TestFabricLLMClient:
         assert grain == "one row per sales order line item"
         assert confidence == 0.9
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_generate_description(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response(
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_generate_description(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response(
             json.dumps({"description": "Total revenue from internet sales channels"})
         )
 
@@ -230,11 +211,9 @@ class TestFabricLLMClient:
         )
         assert desc == "Total revenue from internet sales channels"
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_token_tracking_accumulates(self, mock_anthropic_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_anthropic_cls.return_value = mock_client
-        mock_client.messages.create.return_value = _make_mock_response(
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_token_tracking_accumulates(self, mock_completion, tmp_path):
+        mock_completion.return_value = _make_mock_response(
             "ok", input_tokens=200, output_tokens=100
         )
 
@@ -305,13 +284,11 @@ class TestGenerateDescriptionsBatch:
             for i in range(n)
         ]
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_returns_descriptions_mapped_by_id(self, mock_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_returns_descriptions_mapped_by_id(self, mock_completion, tmp_path):
         items = self._make_items(3)
         expected = [{"id": item["id"], "description": f"Desc {i}"} for i, item in enumerate(items)]
-        mock_client.messages.create.return_value = _make_mock_response(json.dumps(expected))
+        mock_completion.return_value = _make_mock_response(json.dumps(expected))
 
         client = FabricLLMClient(api_key="k", cache_enabled=False)
         result = client.generate_descriptions_batch(items, "TestModel")
@@ -320,40 +297,28 @@ class TestGenerateDescriptionsBatch:
         for item in items:
             assert item["id"] in result
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_batches_split_correctly(self, mock_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_batches_split_correctly(self, mock_completion, tmp_path):
         items = self._make_items(30)
-
-        def make_response(*args, **kwargs):
-            # Return empty array, we only care about call count
-            return _make_mock_response("[]")
-
-        mock_client.messages.create.side_effect = make_response
+        mock_completion.side_effect = lambda *a, **kw: _make_mock_response("[]")
 
         client = FabricLLMClient(api_key="k", cache_enabled=False)
         client.generate_descriptions_batch(items, "TestModel", batch_size=15)
 
-        assert mock_client.messages.create.call_count == 2
+        assert mock_completion.call_count == 2
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_parse_failure_retries_then_skips(self, mock_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
-        # First call: bad batch (invalid JSON), second call: also invalid (retry), third call: good batch
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_parse_failure_retries_then_skips(self, mock_completion, tmp_path):
         items_bad = self._make_items(2)
         items_good = self._make_items(1)
         items_good[0]["id"] = "column:Sales:GoodCol"
-
         all_items = items_bad + items_good
 
-        call_responses = [
-            _make_mock_response("not valid json"),   # batch 1 first try
-            _make_mock_response("still not json"),   # batch 1 retry
-            _make_mock_response(json.dumps([{"id": "column:Sales:GoodCol", "description": "Good"}])),  # batch 2
+        mock_completion.side_effect = [
+            _make_mock_response("not valid json"),
+            _make_mock_response("still not json"),
+            _make_mock_response(json.dumps([{"id": "column:Sales:GoodCol", "description": "Good"}])),
         ]
-        mock_client.messages.create.side_effect = call_responses
 
         client = FabricLLMClient(api_key="k", cache_enabled=False)
         import warnings
@@ -366,10 +331,8 @@ class TestGenerateDescriptionsBatch:
         assert len(w) == 1
         assert "skipping batch" in str(w[0].message).lower()
 
-    @patch("fabric_ai_meta.llm.client.anthropic.Anthropic")
-    def test_id_round_trip(self, mock_cls, tmp_path):
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
+    @patch(LITELLM_COMPLETION_PATCH)
+    def test_id_round_trip(self, mock_completion, tmp_path):
         items = [
             {"id": "table:DimProduct", "type": "table", "name": "DimProduct",
              "parent_table": "DimProduct", "siblings": ""},
@@ -379,7 +342,7 @@ class TestGenerateDescriptionsBatch:
              "parent_table": "Sales", "dax": "SUM(Sales[Amount])", "siblings": ""},
         ]
         expected = [{"id": item["id"], "description": f"Desc for {item['name']}"} for item in items]
-        mock_client.messages.create.return_value = _make_mock_response(json.dumps(expected))
+        mock_completion.return_value = _make_mock_response(json.dumps(expected))
 
         client = FabricLLMClient(api_key="k", cache_enabled=False)
         result = client.generate_descriptions_batch(items, "TestModel")

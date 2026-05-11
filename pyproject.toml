@@ -1,6 +1,6 @@
 [project]
 name = "fabric-ai-meta"
-version = "1.1.2"
+version = "1.2.0"
 requires-python = ">=3.10"
 
 dependencies = [
@@ -22,12 +22,16 @@ xmla = [
 mcp = [
     "mcp[cli]>=1.0,<2.0",              # MCP server; 2.0 will rework FastMCP, transport, auth
 ]
+llm = [
+    "litellm>=1.50",                   # Multi-provider LLM router (100+ providers)
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "ruff>=0.5",
     "mypy>=1.10",
     "jsonschema>=4.20",
+    "litellm>=1.50",                   # Required for LiteLLMBackend tests
 ]
 
 [project.scripts]

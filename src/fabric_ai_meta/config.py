@@ -32,6 +32,12 @@ class LLMConfig:
     cache_enabled: bool = True
     cache_dir: str = ".fabric-ai-meta-cache"
     max_cost_per_run: float = 5.00
+    # Provider-specific extras (consumed by the LiteLLM backend)
+    base_url: str | None = None              # openai-compatible hosts (Groq, Together, Ollama, vLLM)
+    azure_endpoint: str | None = None        # Azure OpenAI resource endpoint
+    azure_api_version: str | None = None     # Azure OpenAI API version
+    vertex_project: str | None = None        # Google Vertex AI project ID
+    vertex_location: str | None = None       # Google Vertex AI region
 
 
 @dataclass
@@ -118,6 +124,11 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
             cache_enabled=llm_data.get("cache_enabled", True),
             cache_dir=llm_data.get("cache_dir", ".fabric-ai-meta-cache"),
             max_cost_per_run=llm_data.get("max_cost_per_run", 5.00),
+            base_url=llm_data.get("base_url"),
+            azure_endpoint=llm_data.get("azure_endpoint"),
+            azure_api_version=llm_data.get("azure_api_version"),
+            vertex_project=llm_data.get("vertex_project"),
+            vertex_location=llm_data.get("vertex_location"),
         ),
         output=OutputConfig(
             default_format=out_data.get("default_format", "json"),

@@ -196,16 +196,10 @@ def _run_llm_enrichment(model, cfg):
     Returns the DescriptionBackfill produced (may be empty if no items needed backfill).
     """
     from fabric_ai_meta.generator.description_backfill import apply_backfill, backfill_descriptions
-    from fabric_ai_meta.llm.client import FabricLLMClient
+    from fabric_ai_meta.llm import load_llm_client
     from fabric_ai_meta.models.metadata import TableType
 
-    api_key = os.environ.get(cfg.llm.api_key_env)
-    llm = FabricLLMClient(
-        api_key=api_key,
-        cache_enabled=cfg.llm.cache_enabled,
-        cache_dir=cfg.llm.cache_dir,
-        max_cost_usd=cfg.llm.max_cost_per_run,
-    )
+    llm = load_llm_client(cfg)
     for table in model.tables:
         if table.table_type == TableType.UNKNOWN:
             try:
@@ -583,25 +577,13 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
     backfill = None
     llm = None
     if llm_enrich:
-        from fabric_ai_meta.llm.client import FabricLLMClient
-        api_key = os.environ.get(cfg.llm.api_key_env)
-        llm = FabricLLMClient(
-            api_key=api_key,
-            cache_enabled=cfg.llm.cache_enabled,
-            cache_dir=cfg.llm.cache_dir,
-            max_cost_usd=cfg.llm.max_cost_per_run,
-        )
+        from fabric_ai_meta.llm import load_llm_client
+        llm = load_llm_client(cfg)
         backfill = _run_llm_enrichment(model, cfg)
 
     if llm is None:
-        from fabric_ai_meta.llm.client import FabricLLMClient
-        api_key = os.environ.get(cfg.llm.api_key_env) if not mock else None
-        llm = FabricLLMClient(
-            api_key=api_key,
-            cache_enabled=cfg.llm.cache_enabled,
-            cache_dir=cfg.llm.cache_dir,
-            max_cost_usd=cfg.llm.max_cost_per_run,
-        )
+        from fabric_ai_meta.llm import load_llm_client
+        llm = load_llm_client(cfg)
 
     prep_config = generate_prep_for_ai(model, llm, backfill=backfill)
 
