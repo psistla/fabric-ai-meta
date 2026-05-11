@@ -25,11 +25,68 @@ pip install -e ".[dev]"
 fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --output ./output
 ```
 
-Produces `ai-ready-schema.json`, `readiness-score.json`, and `measure-dependency-graph.json` in `./output/adventure-works/`.
+Produces `ai-ready-schema.json`, `readiness-score.json`, `measure-dependency-graph.json`, and four framework exports in `./output/adventure-works/`.
+
+> **New to the tool?** The [end-to-end user guide](docs/user-guide.md) walks every capability from install to writeback in plain language with persona-mapped workflow paths. The [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb) notebook gives the same tour inside a Fabric runtime.
 
 <p align="center">
-<a href="#the-problem">The Problem</a> · <a href="#who-this-helps">Who This Helps</a> · <a href="#architecture">Architecture</a> · <a href="#usage">Usage</a> · <a href="#output-files">Output Files</a> · <a href="#llm-enrichment">LLM Enrichment</a> · <a href="#library-api">Library API</a> · <a href="#development">Development</a>
+<a href="#typical-workflows">Typical Workflows</a> · <a href="#the-problem">The Problem</a> · <a href="#who-this-helps">Who This Helps</a> · <a href="#architecture">Architecture</a> · <a href="#usage">Usage</a> · <a href="#output-files">Output Files</a> · <a href="#llm-enrichment">LLM Enrichment</a> · <a href="#library-api">Library API</a> · <a href="#plugins">Plugins</a> · <a href="#development">Development</a>
 </p>
+
+---
+
+## Typical Workflows
+
+Different goals need different command sequences. Pick the one that matches you, or read the full [user guide](docs/user-guide.md) for the long version.
+
+<details>
+<summary><strong>Solo BI developer exploring the tool</strong></summary>
+
+```bash
+pip install fabric-ai-meta
+fabric-ai-meta analyze "Adventure Works" --mock                    # try with bundled fixture
+fabric-ai-meta analyze "Your Model" --workspace "Production"       # then point at real workspace
+fabric-ai-meta export openai "Your Model" --workspace "Production" # export to your AI framework
+```
+</details>
+
+<details>
+<summary><strong>Enterprise governance team</strong></summary>
+
+```bash
+pip install fabric-ai-meta
+# Write a .fabric-ai-meta.toml with [extraction] default_workspace and thresholds
+fabric-ai-meta scan --workspace "Production" --output ./snapshot
+fabric-ai-meta governance --workspace "Production" --report ./governance-report.json
+# Wire scripts/ci-governance-check.py into PR pipeline (see docs/ci-cd-guide.md)
+# Track over time by re-running scan with --baseline ./previous/workspace-summary.json
+```
+</details>
+
+<details>
+<summary><strong>AI engineer building agents on Fabric data</strong></summary>
+
+```bash
+pip install 'fabric-ai-meta[llm,mcp]'
+export ANTHROPIC_API_KEY=sk-ant-...   # or any other supported provider
+fabric-ai-meta analyze "Your Model" --workspace "Production" --llm-enrich
+fabric-ai-meta export langchain "Your Model" --workspace "Production"
+# Or expose live tools to your IDE via MCP:
+fabric-ai-meta serve
+```
+</details>
+
+<details>
+<summary><strong>Fabric architect cleaning a semantic model</strong></summary>
+
+```bash
+pip install 'fabric-ai-meta[llm,xmla]'
+fabric-ai-meta analyze "Sales Model" --workspace "Production" --llm-enrich
+fabric-ai-meta export prep-for-ai "Sales Model" --workspace "Production" --llm-enrich
+fabric-ai-meta apply-descriptions ./output/sales-model/prep-for-ai-config.json --mock           # preview
+fabric-ai-meta apply-descriptions ./output/sales-model/prep-for-ai-config.json --no-dry-run     # commit (in a Fabric notebook)
+```
+</details>
 
 ---
 
@@ -144,6 +201,8 @@ fabric-ai-meta scan --workspace "Production" --mock --output ./output
 ```
 
 Produces per-model output directories and a `workspace-summary.json` with score ranking.
+
+**Next steps:** run [`governance`](#usage) for a cross-model report, or [`diff`](#usage) against a previous summary to track readiness over time.
 </details>
 
 <details>
@@ -158,6 +217,8 @@ fabric-ai-meta export prep-for-ai "Adventure Works" --workspace "Production" --m
 ```
 
 Output is a `prep-for-ai-config.json` you apply manually in Power BI Desktop or Fabric Service.
+
+**Next step:** run [`apply-descriptions`](#usage) to push the generated description backfill straight to the live model through XMLA / TOM instead of pasting each one in the UI.
 </details>
 
 <details>
@@ -176,6 +237,8 @@ fabric-ai-meta apply-descriptions ./prep-for-ai-config.json --workspace "Product
 ```
 
 Reads the `generated_descriptions` section of a `prep-for-ai-config.json` and applies them to table and column descriptions through the Tabular Object Model. `--mock` runs locally without any service contact; without `--mock`, the command must run inside a Fabric notebook runtime.
+
+**Prerequisite:** the input file is produced by [`export prep-for-ai --llm-enrich`](#usage). Without `--llm-enrich`, the config will not contain a `generated_descriptions` section to apply.
 </details>
 
 <details>
@@ -186,6 +249,8 @@ fabric-ai-meta governance --workspace "Production" --mock --report ./governance-
 ```
 
 Detects naming inconsistencies, duplicate DAX expressions, and ranks models by AI readiness.
+
+**Next step:** wire the report into CI/CD using [`scripts/ci-governance-check.py`](scripts/ci-governance-check.py) and the [CI/CD guide](docs/ci-cd-guide.md).
 </details>
 
 <details>
@@ -205,6 +270,10 @@ fabric-ai-meta export openai "Adventure Works" --workspace "Production" --mock
 fabric-ai-meta export semantic-kernel "Adventure Works" --workspace "Production" --mock
 fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 ```
+
+**Add your own format:** subclass `BaseExporter` and register a Python entry point under `fabric_ai_meta.exporters`. Your exporter then appears as `fabric-ai-meta export <name>` with the same flags. See the [plugin development guide](docs/plugin-development.md) for a worked dbt example.
+
+**Tip:** run with `--llm-enrich` on the upstream [`analyze`](#usage) step first to fill in missing descriptions before exporting.
 </details>
 
 <details>
@@ -224,6 +293,8 @@ fabric-ai-meta serve --transport streamable-http --port 8000
 Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](.mcp.json) lives at the project root, so any IDE that auto-discovers project-scoped MCP servers picks it up when the working directory is opened.
 
 **Connect from a desktop MCP client:** add the contents of `.mcp.json` to your client's `mcpServers` configuration. Common locations include `%APPDATA%/<client>/<client>_config.json` on Windows and `~/Library/Application Support/<client>/<client>_config.json` on macOS.
+
+**What this unlocks:** ask your IDE agent "Which tables in our Sales Model are missing descriptions?" and get a real answer. The agent calls `analyze_model` and `governance_report` over MCP and returns the analysis without you running the CLI by hand.
 </details>
 
 <details>
