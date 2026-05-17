@@ -1,7 +1,5 @@
 """Client for the Fabric REST API semantic model definition endpoints.
 
-Companion to ``docs/research/tmdl-prep-for-ai-spike.md``.
-
 The endpoints ``getDefinition`` and ``updateDefinition`` return the model
 as a flat list of parts: TMDL files under ``definition/``, AI / Copilot
 artifacts under ``Copilot/``, plus project metadata. This module focuses

@@ -504,7 +504,7 @@ All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and f
 | Notebook | Purpose |
 |----------|---------|
 | [`notebooks/quickstart.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/quickstart.ipynb) | End-to-end walkthrough: authentication, model listing, analysis, export, governance |
-| [`notebooks/tmdl-spike.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` TMDL output for AI Instructions and Verified Answers (companion to [`docs/research/tmdl-prep-for-ai-spike.md`](https://github.com/psistla/fabric-ai-meta/blob/master/docs/research/tmdl-prep-for-ai-spike.md)) |
+| [`notebooks/tmdl-spike.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` output for AI Instructions and Verified Answers (the `Copilot/` folder layout that backs Prep for AI) |
 
 ### CI/CD Integration
 
