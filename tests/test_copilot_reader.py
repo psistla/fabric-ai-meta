@@ -223,3 +223,31 @@ def test_non_inline_base64_payload_type_skipped(caplog):
         ]))
     assert bundle.ai_instructions is None
     assert any("Unsupported payloadType" in r.message or "payloadType" in r.message for r in caplog.records)
+
+
+def test_full_envelope_with_all_six_primitives_populates_every_field():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {"path": "definition/model.tmdl", "payload": _b64("ignored"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/Instructions/instructions.md",
+         "payload": _b64("# Instructions"), "payloadType": "InlineBase64"},
+        {"path": "Copilot/schema.json",
+         "payload": _b64({"tables": []}), "payloadType": "InlineBase64"},
+        {"path": "Copilot/examplePrompts.json",
+         "payload": _b64(["one", "two"]), "payloadType": "InlineBase64"},
+        {"path": "Copilot/settings.json",
+         "payload": _b64({"enabled": True}), "payloadType": "InlineBase64"},
+        {"path": "Copilot/version.json",
+         "payload": _b64({"version": "1"}), "payloadType": "InlineBase64"},
+        {"path": "Copilot/VerifiedAnswers/q1.json",
+         "payload": _b64({"question": "Q1?"}), "payloadType": "InlineBase64"},
+        {"path": "Copilot/VerifiedAnswers/q2.json",
+         "payload": _b64({"question": "Q2?"}), "payloadType": "InlineBase64"},
+    ]))
+    assert bundle.ai_instructions is not None
+    assert bundle.ai_data_schema is not None
+    assert bundle.example_prompts is not None
+    assert bundle.settings is not None
+    assert bundle.version is not None
+    assert [va.filename for va in bundle.verified_answers] == ["q1.json", "q2.json"]
