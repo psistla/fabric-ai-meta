@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-17
+
+### Added
+- `CopilotBundle`, `AIInstructions`, `VerifiedAnswer`, `AIDataSchema`, `ExamplePrompts`, `CopilotSettings`, `CopilotVersion` dataclasses under `fabric_ai_meta.models.copilot`. Every JSON-shaped primitive keeps a `raw: dict` escape hatch so downstream code is not locked to inferred field shapes.
+- `CopilotReader.from_definition(envelope) -> CopilotBundle` pure parser. Walks a Fabric REST `getDefinition` response and produces a typed bundle. Lenient on a per-part basis: malformed individual parts are logged and skipped, the rest of the envelope still parses.
+- `SemanticModelMeta.copilot: CopilotBundle | None` optional field on the core model dataclass. Defaults to `None`, so existing constructors and fixtures are unaffected.
+- `--with-copilot` flag on `analyze` and `scan`. Opt-in. When set, the extractor also fetches the model's `Copilot/` folder via Fabric REST `getDefinition` and attaches it to `model.copilot`. When unset, behavior matches v1.3.x exactly.
+- `fabric-ai-meta export copilot MODEL` CLI command. Writes the Copilot/ folder layout under `{output}/{slug}/copilot/` mirroring Microsoft's on-disk structure (`Instructions/instructions.md`, `VerifiedAnswers/*.json`, `schema.json`, `examplePrompts.json`, `settings.json`, `version.json`). Implicitly enables Copilot extraction.
+- `MockExtractor` now reads a sidecar `<fixture>.copilot.json` file when called with `with_copilot=True`. Absence of the sidecar is not an error. `list_models()` excludes `.copilot.json` files from the model list.
+- `BaseExtractor.extract` gains a kw-only `with_copilot: bool = False` parameter. Additive ABI change; all existing positional callers are source-compatible.
+
+### Changed
+- `__all__` count grows from 35 to 40 (5 new top-level exports: `CopilotBundle`, `AIInstructions`, `VerifiedAnswer`, `AIDataSchema`, `CopilotReader`). The narrower `ExamplePrompts`, `CopilotSettings`, `CopilotVersion` are intentionally not promoted to the top-level package surface.
+- `CopilotExporter` registered in `BUILTIN_EXPORTERS`, so it appears in `discover_exporters()` and `fabric-ai-meta export --help` alongside the four pre-existing exporters.
+
+### Notes
+- Write half (the future `CopilotWriter` and `apply-copilot` CLI) is out of scope for this release. v1.4.0 is read-only.
+- `notebooks/tmdl-spike.ipynb` continues to work unchanged; the `TMDLClient.find_prep_for_ai_settings()` snippet API is preserved.
+
 ## [1.3.5] - 2026-05-16
 
 ### Changed
