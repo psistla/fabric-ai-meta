@@ -501,7 +501,11 @@ def _register_exporter_commands() -> None:
             @click.option("--mock", is_flag=True, default=False,
                           help="Use MockExtractor with fixture data.")
             def _cmd(model_name, workspace, mock):
-                _export_single(model_name, workspace, exporter_cls(), mock=mock)
+                _export_single(
+                    model_name, workspace, exporter_cls(),
+                    mock=mock,
+                    with_copilot=(ep_name == "copilot"),
+                )
             return _cmd
 
         export_group.add_command(_make_cmd())

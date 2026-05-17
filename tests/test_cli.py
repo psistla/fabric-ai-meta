@@ -434,3 +434,57 @@ def test_export_single_passes_with_copilot_to_extractor(monkeypatch):
         mock=True, with_copilot=True,
     )
     assert captured_kwargs == {"with_copilot": True}
+
+
+def test_export_copilot_cli_invocation_populates_copilot_via_mock(tmp_path, monkeypatch):
+    """`fabric-ai-meta export copilot Adventure --mock` implicitly passes with_copilot=True
+    and writes the copilot/ tree to disk."""
+    from click.testing import CliRunner
+
+    import fabric_ai_meta.cli as cli
+    from fabric_ai_meta.cli import main
+    from fabric_ai_meta.config import Config, ExtractionConfig, OutputConfig
+    monkeypatch.setattr(cli, "load_config", lambda: Config(
+        extraction=ExtractionConfig(default_workspace="W"),
+        output=OutputConfig(output_dir=str(tmp_path)),
+    ))
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["export", "copilot", "Adventure Works", "--mock"])
+
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "adventure-works" / "copilot" / "Instructions" / "instructions.md").exists()
+
+
+def test_export_langchain_cli_does_not_pass_with_copilot(monkeypatch, tmp_path):
+    """Non-copilot exporters must not trigger Copilot extraction."""
+    from click.testing import CliRunner
+
+    import fabric_ai_meta.cli as cli
+    from fabric_ai_meta.config import Config, ExtractionConfig, OutputConfig
+
+    captured = {}
+    class StubExtractor:
+        def extract(self, model_name, workspace, **kwargs):
+            captured.update(kwargs)
+            from fabric_ai_meta.models.metadata import SemanticModelMeta
+            return SemanticModelMeta(
+                name=model_name, workspace=workspace, description=None,
+                tables=[], relationships=[],
+                ai_readiness_score=None, scoring_breakdown={},
+                extraction_timestamp="2026-01-01T00:00:00Z", extraction_method="mock",
+            )
+
+    monkeypatch.setattr(
+        "fabric_ai_meta.extractor.mock.MockExtractor",
+        lambda fixture_path: StubExtractor()
+    )
+    monkeypatch.setattr(cli, "load_config", lambda: Config(
+        extraction=ExtractionConfig(default_workspace="W"),
+        output=OutputConfig(output_dir=str(tmp_path)),
+    ))
+
+    from fabric_ai_meta.cli import main
+    runner = CliRunner()
+    runner.invoke(main, ["export", "langchain", "Adventure Works", "--mock"])
+    assert captured.get("with_copilot") is False
