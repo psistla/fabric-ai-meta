@@ -85,3 +85,22 @@ def test_to_dict_output_is_json_serializable():
     serialized = json.dumps(bundle.to_dict())  # must not raise
     assert "raw_bytes" not in serialized
     assert "markdown" in serialized
+
+
+def test_semanticmodelmeta_from_dict_round_trip_omits_copilot():
+    """from_dict on a dict without a copilot key should leave copilot = None."""
+    from fabric_ai_meta.models.metadata import from_dict
+
+    raw = {
+        "name": "X",
+        "workspace": "W",
+        "description": None,
+        "tables": [],
+        "relationships": [],
+        "ai_readiness_score": None,
+        "scoring_breakdown": {},
+        "extraction_timestamp": "2026-01-01T00:00:00Z",
+        "extraction_method": "mock",
+    }
+    model = from_dict(raw)
+    assert model.copilot is None
