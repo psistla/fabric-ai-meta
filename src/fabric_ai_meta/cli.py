@@ -328,7 +328,9 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
 @click.option("--format", "fmt", default="json", type=click.Choice(["json"]))
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
 @click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM-assisted enrichment for each model.")
-def scan(workspace, output, fmt, mock, llm_enrich):
+@click.option("--with-copilot", is_flag=True, default=False,
+              help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
+def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
     """Scan all models in a workspace and generate AI-ready exports."""
     from datetime import datetime, timezone
 
@@ -363,7 +365,8 @@ def scan(workspace, output, fmt, mock, llm_enrich):
         for name in model_names:
             task = progress.add_task(f"Analyzing {name}...", total=None)
             try:
-                result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock)
+                result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock,
+                                        with_copilot=with_copilot)
                 model, score = result
                 slug = _slugify(name)
                 table_count = len(model.tables)

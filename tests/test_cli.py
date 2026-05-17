@@ -525,3 +525,43 @@ def test_analyze_with_copilot_flag_passes_to_extractor(monkeypatch, tmp_path):
     ])
     assert result.exit_code == 0, result.output
     assert captured.get("with_copilot") is True
+
+
+def test_scan_with_copilot_flag_passes_to_extractor(monkeypatch, tmp_path):
+    from click.testing import CliRunner
+
+    import fabric_ai_meta.cli as cli
+    from fabric_ai_meta.cli import main
+    from fabric_ai_meta.config import Config, ExtractionConfig, OutputConfig
+
+    captured_calls = []
+
+    class StubExtractor:
+        def list_models(self, workspace):
+            return ["Adventure Works"]
+        def extract(self, model_name, workspace, **kwargs):
+            captured_calls.append(kwargs)
+            from fabric_ai_meta.models.metadata import SemanticModelMeta
+            return SemanticModelMeta(
+                name=model_name, workspace=workspace, description=None,
+                tables=[], relationships=[],
+                ai_readiness_score=None, scoring_breakdown={},
+                extraction_timestamp="2026-01-01T00:00:00Z", extraction_method="mock",
+            )
+
+    monkeypatch.setattr(
+        "fabric_ai_meta.extractor.mock.MockExtractor",
+        lambda fixture_dir=None: StubExtractor()
+    )
+    monkeypatch.setattr(cli, "load_config", lambda: Config(
+        extraction=ExtractionConfig(default_workspace="W"),
+        output=OutputConfig(output_dir=str(tmp_path)),
+    ))
+
+    runner = CliRunner()
+    result = runner.invoke(main, [
+        "scan", "--workspace", "W", "--mock", "--with-copilot",
+        "--output", str(tmp_path),
+    ])
+    assert result.exit_code == 0, result.output
+    assert all(c.get("with_copilot") is True for c in captured_calls)
