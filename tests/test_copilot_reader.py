@@ -95,3 +95,64 @@ def test_ai_instructions_invalid_utf8_falls_back_to_replacement(caplog):
     assert bundle.ai_instructions.raw_bytes == bad
     assert isinstance(bundle.ai_instructions.markdown, str)
     assert any("not valid UTF-8" in r.message for r in caplog.records)
+
+
+def test_verified_answers_strip_path_prefix_and_keep_basename():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {
+            "path": "Copilot/VerifiedAnswers/answer-zeta.json",
+            "payload": _b64({"question": "What is total sales?", "dax": "..."}),
+            "payloadType": "InlineBase64",
+        },
+        {
+            "path": "Copilot/VerifiedAnswers/answer-alpha.json",
+            "payload": _b64({"question": "What is margin?"}),
+            "payloadType": "InlineBase64",
+        },
+    ]))
+    assert [va.filename for va in bundle.verified_answers] == [
+        "answer-alpha.json",
+        "answer-zeta.json",
+    ]
+    assert bundle.verified_answers[0].question == "What is margin?"
+    assert bundle.verified_answers[1].question == "What is total sales?"
+    assert bundle.verified_answers[1].raw["dax"] == "..."
+
+
+def test_verified_answer_without_recognizable_question_key_keeps_none():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {
+            "path": "Copilot/VerifiedAnswers/unknown.json",
+            "payload": _b64({"foo": "bar"}),
+            "payloadType": "InlineBase64",
+        },
+    ]))
+    assert len(bundle.verified_answers) == 1
+    assert bundle.verified_answers[0].question is None
+    assert bundle.verified_answers[0].raw == {"foo": "bar"}
+
+
+def test_malformed_verified_answer_is_skipped_warning_logged(caplog):
+    import logging
+
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    with caplog.at_level(logging.WARNING, logger="fabric_ai_meta.generator.copilot_reader"):
+        bundle = CopilotReader.from_definition(_envelope([
+            {
+                "path": "Copilot/VerifiedAnswers/good.json",
+                "payload": _b64({"question": "valid"}),
+                "payloadType": "InlineBase64",
+            },
+            {
+                "path": "Copilot/VerifiedAnswers/bad.json",
+                "payload": "not-base64-not-json!!!",
+                "payloadType": "InlineBase64",
+            },
+        ]))
+    assert [va.filename for va in bundle.verified_answers] == ["good.json"]
+    assert any("Copilot/VerifiedAnswers/bad.json" in r.message for r in caplog.records)
