@@ -272,6 +272,7 @@ def test_semanticmodelmeta_copilot_defaults_to_none_and_is_optional():
 def test_baseextractor_extract_accepts_with_copilot_kwarg():
     """v1.4.0: extract() gains a kw-only with_copilot flag (default False)."""
     import inspect
+
     from fabric_ai_meta.extractor.base import BaseExtractor
 
     sig = inspect.signature(BaseExtractor.extract)
@@ -331,3 +332,88 @@ def test_mockextractor_fixture_dir_list_models_skips_copilot_sidecars():
     models = ex.list_models("ws")
     assert not any(m.lower().endswith(".copilot") for m in models)
     assert not any(".copilot.json" in m for m in models)
+
+
+def test_semantic_link_extractor_with_copilot_calls_tmdl_client_and_parses():
+    """SemanticLinkExtractor.extract(..., with_copilot=True) calls TMDLClient.get_definition
+    and parses the response via CopilotReader. All Fabric/sempy/notebookutils calls mocked."""
+    import sys
+    import types
+    from unittest.mock import MagicMock, patch
+
+    import pandas as pd
+
+    fake_sempy_fabric = MagicMock()
+    fake_sempy_fabric.list_tables.return_value = pd.DataFrame()
+    fake_sempy_fabric.list_measures.return_value = pd.DataFrame()
+    fake_sempy_fabric.list_relationships.return_value = pd.DataFrame()
+    fake_sempy_fabric.resolve_workspace_id.return_value = "WS-GUID"
+    fake_sempy_fabric.resolve_item_id.return_value = "MODEL-GUID"
+
+    fake_creds = MagicMock()
+    fake_creds.getToken.return_value = "FAKE-BEARER-TOKEN"
+    fake_notebookutils = types.ModuleType("notebookutils")
+    fake_notebookutils.credentials = fake_creds
+
+    sys_modules_patch = patch.dict(sys.modules, {
+        "sempy": types.ModuleType("sempy"),
+        "sempy.fabric": fake_sempy_fabric,
+        "notebookutils": fake_notebookutils,
+    })
+
+    with sys_modules_patch, \
+         patch("fabric_ai_meta.extractor.semantic_link.detect_notebook_environment",
+               return_value=True), \
+         patch("fabric_ai_meta.writeback.tmdl_client.TMDLClient.get_definition") as gd:
+        gd.return_value = {
+            "definition": {
+                "parts": [
+                    {
+                        "path": "Copilot/Instructions/instructions.md",
+                        "payload": __import__("base64").b64encode(b"# Hi").decode("ascii"),
+                        "payloadType": "InlineBase64",
+                    },
+                ]
+            }
+        }
+        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+
+        ex = SemanticLinkExtractor(workspace="MyWorkspace")
+        model = ex.extract("MyModel", "MyWorkspace", with_copilot=True)
+
+    assert model.copilot is not None
+    assert model.copilot.ai_instructions is not None
+    assert model.copilot.ai_instructions.markdown.startswith("# Hi")
+    fake_sempy_fabric.resolve_workspace_id.assert_called_with("MyWorkspace")
+    fake_sempy_fabric.resolve_item_id.assert_called_once()
+    fake_creds.getToken.assert_called_with("pbi")
+    gd.assert_called_once_with("MODEL-GUID")
+
+
+def test_semantic_link_extractor_without_with_copilot_skips_tmdl_path():
+    import sys
+    import types
+    from unittest.mock import MagicMock, patch
+
+    import pandas as pd
+
+    fake_sempy_fabric = MagicMock()
+    fake_sempy_fabric.list_tables.return_value = pd.DataFrame()
+    fake_sempy_fabric.list_measures.return_value = pd.DataFrame()
+    fake_sempy_fabric.list_relationships.return_value = pd.DataFrame()
+
+    sys_modules_patch = patch.dict(sys.modules, {
+        "sempy": types.ModuleType("sempy"),
+        "sempy.fabric": fake_sempy_fabric,
+    })
+    with sys_modules_patch, \
+         patch("fabric_ai_meta.extractor.semantic_link.detect_notebook_environment",
+               return_value=True), \
+         patch("fabric_ai_meta.writeback.tmdl_client.TMDLClient.get_definition") as gd:
+        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+
+        ex = SemanticLinkExtractor(workspace="W")
+        model = ex.extract("M", "W")
+
+    assert model.copilot is None
+    gd.assert_not_called()

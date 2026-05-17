@@ -56,12 +56,22 @@ class SemanticLinkExtractor(BaseExtractor):
 
         self._fabric = fabric
 
-    def extract(self, model_name: str, workspace: str | None = None) -> SemanticModelMeta:
+    def extract(
+        self,
+        model_name: str,
+        workspace: str | None = None,
+        *,
+        with_copilot: bool = False,
+    ) -> SemanticModelMeta:
         """Extract full metadata for a semantic model.
 
         Args:
             model_name: Name of the Power BI / Fabric semantic model.
             workspace: Workspace to use; defaults to self.workspace.
+            with_copilot: If True, also fetch the model's ``Copilot/`` folder via
+                the Fabric REST ``getDefinition`` endpoint and attach it to
+                ``model.copilot``. Resolution failures are logged and skipped
+                rather than raised.
 
         Returns:
             A fully populated SemanticModelMeta object.
@@ -138,7 +148,7 @@ class SemanticLinkExtractor(BaseExtractor):
             self._parse_relationship(rrow) for _, rrow in rels_df.iterrows()
         ]
 
-        return SemanticModelMeta(
+        model = SemanticModelMeta(
             name=model_name,
             workspace=ws,
             description=None,
@@ -150,9 +160,65 @@ class SemanticLinkExtractor(BaseExtractor):
             extraction_method="semantic_link",
         )
 
+        if with_copilot:
+            model.copilot = self._extract_copilot(model_name, ws)
+
+        return model
+
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _extract_copilot(self, model_name: str, workspace: str):
+        """Fetch and parse the Copilot/ folder. Returns CopilotBundle or None.
+
+        Resolution failures (workspace or model not found by sempy) log a
+        warning and return None - never raise.
+        """
+        from fabric_ai_meta.generator.copilot_reader import CopilotReader
+        from fabric_ai_meta.writeback.tmdl_client import TMDLClient
+
+        fabric = self._fabric
+        try:
+            workspace_id = fabric.resolve_workspace_id(workspace)
+        except Exception as exc:
+            logger.warning(
+                "Cannot resolve workspace id for %r: %s. Skipping Copilot extract.",
+                workspace, exc,
+            )
+            return None
+        if not workspace_id:
+            logger.warning(
+                "Workspace %r not found by sempy. Skipping Copilot extract.", workspace
+            )
+            return None
+
+        try:
+            model_id = fabric.resolve_item_id(
+                model_name, type="SemanticModel", workspace=workspace
+            )
+        except Exception as exc:
+            logger.warning(
+                "Cannot resolve model id for %r: %s. Skipping Copilot extract.",
+                model_name, exc,
+            )
+            return None
+        if not model_id:
+            logger.warning(
+                "Model %r not found in workspace %r. Skipping Copilot extract.",
+                model_name, workspace,
+            )
+            return None
+
+        token = self._fabric_bearer_token()
+        client = TMDLClient(token, workspace_id)
+        envelope = client.get_definition(model_id)
+        return CopilotReader.from_definition(envelope)
+
+    def _fabric_bearer_token(self) -> str:
+        """Obtain a Power BI / Fabric bearer token from the Fabric notebook runtime."""
+        import notebookutils  # type: ignore[import-not-found]
+        return notebookutils.credentials.getToken("pbi")
 
     def _parse_column(
         self, row, model_name: str, table_name: str, workspace: str
