@@ -8,6 +8,7 @@ plugin registry alongside any third-party plugins. The function-style API
 
 from fabric_ai_meta.generator.base import BaseExporter
 from fabric_ai_meta.generator.export_autogen import to_autogen_tool
+from fabric_ai_meta.generator.export_copilot import CopilotExporter
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
 from fabric_ai_meta.generator.export_semantic_kernel import to_semantic_kernel_plugin
@@ -54,4 +55,5 @@ BUILTIN_EXPORTERS: tuple[type[BaseExporter], ...] = (
     OpenAIExporter,
     SemanticKernelExporter,
     AutoGenExporter,
+    CopilotExporter,
 )

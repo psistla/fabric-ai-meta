@@ -1,6 +1,5 @@
 """Tests for CopilotExporter."""
 
-import json
 import os
 from pathlib import Path
 
@@ -126,3 +125,13 @@ def test_write_empty_bundle_returns_empty_string_and_writes_nothing(tmp_path):
     result = CopilotExporter().write(model, str(tmp_path))
     assert result == ""
     assert not (Path(tmp_path) / "m" / "copilot").exists()
+
+
+def test_copilot_exporter_registered_in_discover_exporters():
+    from fabric_ai_meta.generator.export_copilot import CopilotExporter
+    from fabric_ai_meta.generator.registry import discover_exporters, get_exporter
+
+    exporters = discover_exporters()
+    assert "copilot" in exporters
+    assert exporters["copilot"] is CopilotExporter
+    assert get_exporter("copilot") is CopilotExporter
