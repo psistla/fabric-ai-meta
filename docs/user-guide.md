@@ -355,3 +355,52 @@ Different personas need different command sequences. Pick the one that matches y
 5. Commit writeback                  fabric-ai-meta apply-descriptions ./...config.json --workspace ... --no-dry-run
                                      (must run inside a Fabric notebook)
 ```
+
+## Exporting Copilot artifacts (`export copilot`)
+
+Microsoft Fabric stores Prep for AI primitives - AI Instructions, Verified Answers, AI Data Schema, example prompts, Copilot settings - in a `Copilot/` folder inside the semantic model. fabric-ai-meta v1.4.0 reads that folder via the Fabric REST `getDefinition` endpoint and writes it to your local disk in the same layout, so you can diff, version-control, and review it outside Fabric.
+
+### When to use this
+
+- You need a snapshot of every Copilot artifact across one or more models.
+- You want to diff what changed between two Prep for AI configurations over time.
+- You are preparing for the future `apply-copilot` writeback (round-trips will use these same files).
+
+### Four-step workflow
+
+1. **Inspect locally with a sidecar fixture.** No Fabric needed:
+
+   ```bash
+   fabric-ai-meta export copilot "Adventure Works" --mock
+   ```
+
+2. **Inspect a live model from inside a Fabric notebook.** Auth is automatic via `notebookutils`:
+
+   ```bash
+   fabric-ai-meta export copilot "Sales Model" --workspace "Production"
+   ```
+
+3. **Review the output tree.** The exporter writes:
+
+   ```
+   ./output/sales-model/copilot/
+   ├── Instructions/instructions.md
+   ├── VerifiedAnswers/<one .json per answer>
+   ├── schema.json
+   ├── examplePrompts.json
+   ├── settings.json
+   └── version.json
+   ```
+
+4. **Bring Copilot data into the broader analyze pipeline.** Add `--with-copilot` to `analyze` or `scan` to populate `SemanticModelMeta.copilot` alongside everything else:
+
+   ```bash
+   fabric-ai-meta analyze "Sales Model" --workspace "Production" --with-copilot
+   fabric-ai-meta scan --workspace "Production" --with-copilot
+   ```
+
+### Limits
+
+- Read-only in v1.4.0. The inverse writeback (`apply-copilot`) is planned for a later release.
+- Models with no Copilot configuration produce an empty bundle and the exporter prints a notice (no `copilot/` directory written).
+- Outside a Fabric notebook, `--with-copilot` without `--mock` raises `FabricEnvironmentError`.
