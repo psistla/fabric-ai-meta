@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-05-16
+
+### Changed
+- GitHub repository flipped from private to public so the sidebar links on the PyPI project page (Repository, Issues, Changelog, Documentation, Releases), the CI status badge, and the JSON Schema `$id` URLs all resolve for anonymous visitors. Previously the package installed fine but every link on https://pypi.org/project/fabric-ai-meta/ returned a GitHub 404 or login wall.
+
+### Fixed
+- README rewrote all relative file links (`docs/user-guide.md`, `docs/ci-cd-guide.md`, `docs/plugin-development.md`, `docs/research/tmdl-prep-for-ai-spike.md`, `notebooks/quickstart.ipynb`, `notebooks/tmdl-spike.ipynb`, `scripts/ci-governance-check.py`, `.mcp.json`, `schemas/`) to absolute `github.com/psistla/fabric-ai-meta/blob/master/...` URLs. PyPI does not rewrite relative paths when rendering the README, so the previous links resolved to `https://pypi.org/project/fabric-ai-meta/docs/...` and returned 404. They now open the file on GitHub from either site.
+
 ## [1.3.3] - 2026-05-11
 
 ### Added

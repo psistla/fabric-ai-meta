@@ -1,7 +1,7 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.3.3-238636?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.4-238636?style=flat-square)
 ![Tests](https://img.shields.io/badge/tests-400%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
@@ -29,7 +29,7 @@ fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --outpu
 
 Produces `ai-ready-schema.json`, `readiness-score.json`, `measure-dependency-graph.json`, and four framework exports in `./output/adventure-works/`.
 
-> **New to the tool?** The [end-to-end user guide](docs/user-guide.md) walks every capability from install to writeback in plain language with persona-mapped workflow paths. The [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb) notebook gives the same tour inside a Fabric runtime.
+> **New to the tool?** The [end-to-end user guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md) walks every capability from install to writeback in plain language with persona-mapped workflow paths. The [`notebooks/quickstart.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/quickstart.ipynb) notebook gives the same tour inside a Fabric runtime.
 
 <p align="center">
 <a href="#typical-workflows">Typical Workflows</a> · <a href="#the-problem">The Problem</a> · <a href="#who-this-helps">Who This Helps</a> · <a href="#architecture">Architecture</a> · <a href="#usage">Usage</a> · <a href="#output-files">Output Files</a> · <a href="#llm-enrichment">LLM Enrichment</a> · <a href="#library-api">Library API</a> · <a href="#plugins">Plugins</a> · <a href="#development">Development</a>
@@ -39,7 +39,7 @@ Produces `ai-ready-schema.json`, `readiness-score.json`, `measure-dependency-gra
 
 ## Typical Workflows
 
-Different goals need different command sequences. Pick the one that matches you, or read the full [user guide](docs/user-guide.md) for the long version.
+Different goals need different command sequences. Pick the one that matches you, or read the full [user guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md) for the long version.
 
 <details>
 <summary><strong>Solo BI developer exploring the tool</strong></summary>
@@ -252,7 +252,7 @@ fabric-ai-meta governance --workspace "Production" --mock --report ./governance-
 
 Detects naming inconsistencies, duplicate DAX expressions, and ranks models by AI readiness.
 
-**Next step:** wire the report into CI/CD using [`scripts/ci-governance-check.py`](scripts/ci-governance-check.py) and the [CI/CD guide](docs/ci-cd-guide.md).
+**Next step:** wire the report into CI/CD using [`scripts/ci-governance-check.py`](https://github.com/psistla/fabric-ai-meta/blob/master/scripts/ci-governance-check.py) and the [CI/CD guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/ci-cd-guide.md).
 </details>
 
 <details>
@@ -273,7 +273,7 @@ fabric-ai-meta export semantic-kernel "Adventure Works" --workspace "Production"
 fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 ```
 
-**Add your own format:** subclass `BaseExporter` and register a Python entry point under `fabric_ai_meta.exporters`. Your exporter then appears as `fabric-ai-meta export <name>` with the same flags. See the [plugin development guide](docs/plugin-development.md) for a worked dbt example.
+**Add your own format:** subclass `BaseExporter` and register a Python entry point under `fabric_ai_meta.exporters`. Your exporter then appears as `fabric-ai-meta export <name>` with the same flags. See the [plugin development guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/plugin-development.md) for a worked dbt example.
 
 **Tip:** run with `--llm-enrich` on the upstream [`analyze`](#usage) step first to fill in missing descriptions before exporting.
 </details>
@@ -292,7 +292,7 @@ fabric-ai-meta serve
 fabric-ai-meta serve --transport streamable-http --port 8000
 ```
 
-Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](.mcp.json) lives at the project root, so any IDE that auto-discovers project-scoped MCP servers picks it up when the working directory is opened.
+Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](https://github.com/psistla/fabric-ai-meta/blob/master/.mcp.json) lives at the project root, so any IDE that auto-discovers project-scoped MCP servers picks it up when the working directory is opened.
 
 **Connect from a desktop MCP client:** add the contents of `.mcp.json` to your client's `mcpServers` configuration. Common locations include `%APPDATA%/<client>/<client>_config.json` on Windows and `~/Library/Application Support/<client>/<client>_config.json` on macOS.
 
@@ -480,7 +480,7 @@ Register the class via the `fabric_ai_meta.exporters` entry-point group in the p
 dbt = "my_fabric_dbt_plugin:DbtExporter"
 ```
 
-Full walk-through with a worked dbt example, local testing, and name-conflict rules: [`docs/plugin-development.md`](docs/plugin-development.md).
+Full walk-through with a worked dbt example, local testing, and name-conflict rules: [`docs/plugin-development.md`](https://github.com/psistla/fabric-ai-meta/blob/master/docs/plugin-development.md).
 
 ---
 
@@ -503,16 +503,16 @@ All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and f
 
 | Notebook | Purpose |
 |----------|---------|
-| [`notebooks/quickstart.ipynb`](notebooks/quickstart.ipynb) | End-to-end walkthrough: authentication, model listing, analysis, export, governance |
-| [`notebooks/tmdl-spike.ipynb`](notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` TMDL output for AI Instructions and Verified Answers (companion to [`docs/research/tmdl-prep-for-ai-spike.md`](docs/research/tmdl-prep-for-ai-spike.md)) |
+| [`notebooks/quickstart.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/quickstart.ipynb) | End-to-end walkthrough: authentication, model listing, analysis, export, governance |
+| [`notebooks/tmdl-spike.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` TMDL output for AI Instructions and Verified Answers (companion to [`docs/research/tmdl-prep-for-ai-spike.md`](https://github.com/psistla/fabric-ai-meta/blob/master/docs/research/tmdl-prep-for-ai-spike.md)) |
 
 ### CI/CD Integration
 
-Wire `fabric-ai-meta` into GitHub Actions or Azure DevOps to enforce governance thresholds on every PR and track readiness trends on a schedule. The guide in [`docs/ci-cd-guide.md`](docs/ci-cd-guide.md) includes ready-to-paste workflow files and the standalone [`scripts/ci-governance-check.py`](scripts/ci-governance-check.py) threshold script.
+Wire `fabric-ai-meta` into GitHub Actions or Azure DevOps to enforce governance thresholds on every PR and track readiness trends on a schedule. The guide in [`docs/ci-cd-guide.md`](https://github.com/psistla/fabric-ai-meta/blob/master/docs/ci-cd-guide.md) includes ready-to-paste workflow files and the standalone [`scripts/ci-governance-check.py`](https://github.com/psistla/fabric-ai-meta/blob/master/scripts/ci-governance-check.py) threshold script.
 
 ### Output Schemas
 
-JSON Schema files for all output formats are in [`schemas/`](schemas/):
+JSON Schema files for all output formats are in [`schemas/`](https://github.com/psistla/fabric-ai-meta/tree/master/schemas):
 
 | Schema | Validates |
 |--------|-----------|
