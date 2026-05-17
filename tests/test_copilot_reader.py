@@ -45,3 +45,53 @@ def test_envelope_with_only_tmdl_parts_returns_empty_bundle():
     ]))
     assert bundle.ai_instructions is None
     assert bundle.verified_answers == []
+
+
+def test_ai_instructions_extracted_with_markdown_and_raw_bytes():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {
+            "path": "Copilot/Instructions/instructions.md",
+            "payload": _b64("# AI Instructions\n\nAlways prefer DISTINCT()."),
+            "payloadType": "InlineBase64",
+        },
+    ]))
+    assert bundle.ai_instructions is not None
+    assert bundle.ai_instructions.markdown.startswith("# AI Instructions")
+    assert bundle.ai_instructions.raw_bytes == b"# AI Instructions\n\nAlways prefer DISTINCT()."
+
+
+def test_ai_instructions_raw_bytes_round_trips_exact_input():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    original = b"line one\nline two\nUTF-8 \xe2\x9c\x93"
+    bundle = CopilotReader.from_definition(_envelope([
+        {
+            "path": "Copilot/Instructions/instructions.md",
+            "payload": base64.b64encode(original).decode("ascii"),
+            "payloadType": "InlineBase64",
+        },
+    ]))
+    assert bundle.ai_instructions is not None
+    assert bundle.ai_instructions.raw_bytes == original
+
+
+def test_ai_instructions_invalid_utf8_falls_back_to_replacement(caplog):
+    import logging
+
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bad = b"\xff\xfe not valid utf8"
+    with caplog.at_level(logging.WARNING, logger="fabric_ai_meta.generator.copilot_reader"):
+        bundle = CopilotReader.from_definition(_envelope([
+            {
+                "path": "Copilot/Instructions/instructions.md",
+                "payload": base64.b64encode(bad).decode("ascii"),
+                "payloadType": "InlineBase64",
+            },
+        ]))
+    assert bundle.ai_instructions is not None
+    assert bundle.ai_instructions.raw_bytes == bad
+    assert isinstance(bundle.ai_instructions.markdown, str)
+    assert any("not valid UTF-8" in r.message for r in caplog.records)
