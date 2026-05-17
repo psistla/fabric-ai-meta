@@ -151,23 +151,57 @@ This is not a replacement for Microsoft's tools. It is an **automation layer on 
 `sempy.fabric` requires the Microsoft Fabric notebook runtime and does not work locally.
 The tool operates in two modes detected automatically at startup:
 
-```mermaid
-flowchart TD
-    A([CLI command]) --> B{Environment?}
-    B -->|FABRIC_NOTEBOOK_ID set\nor notebookutils importable| C[Fabric Mode]
-    B -->|Local machine| D{--mock flag?}
-    D -->|Yes| E[Local/CI Mode]
-    D -->|No| F[FabricEnvironmentError]
-
-    C --> G[SemanticLinkExtractor\nAmbient credential]
-    E --> H[MockExtractor\nFixture JSON files]
-
-    G --> I[Core Engine]
-    H --> I
-
-    I --> J[Analyzer\nClassify · Score · Governance]
-    J --> K[Generator\nSchemas · Exports · Reports]
+```text
+                          CLI command
+                               |
+                               v
+                      +----------------+
+                      |  Environment?  |
+                      +-------+--------+
+                              |
+       +----------------------+----------------------+
+       |                                             |
+  Fabric runtime                                Local machine
+  (FABRIC_NOTEBOOK_ID set                            |
+   or notebookutils importable)                      v
+       |                                       +-----------+
+       v                                       |  --mock?  |
+  +-------------------+                        +-----+-----+
+  | Fabric Mode       |                              |
+  | SemanticLink-     |                +-------------+-------------+
+  | Extractor         |                |                           |
+  | (ambient creds)   |                v                           v
+  +---------+---------+         +-------------+         +-----------------------+
+            |                   | Local/CI    |         | FabricEnvironmentError|
+            |                   | Mode        |         +-----------------------+
+            |                   | MockExtractor|
+            |                   | (fixture JSON)|
+            |                   +------+--------+
+            |                          |
+            +-------------+------------+
+                          |
+                          v
+                    +-----------+
+                    | Core      |
+                    | Engine    |
+                    +-----+-----+
+                          |
+                          v
+                +--------------------+
+                | Analyzer           |
+                | Classify · Score · |
+                | Governance         |
+                +---------+----------+
+                          |
+                          v
+                +--------------------+
+                | Generator          |
+                | Schemas · Exports ·|
+                | Reports            |
+                +--------------------+
 ```
+
+This ASCII diagram renders identically on GitHub and PyPI; the equivalent table is below for screen readers and narrow viewports.
 
 | Mode | Where it runs | Extractor | Auth |
 |------|--------------|-----------|------|
