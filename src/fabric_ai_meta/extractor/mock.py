@@ -5,6 +5,7 @@ import os
 import re
 
 from fabric_ai_meta.extractor.base import BaseExtractor
+from fabric_ai_meta.generator.copilot_reader import CopilotReader
 from fabric_ai_meta.models.metadata import SemanticModelMeta, from_dict
 
 
@@ -71,15 +72,28 @@ class MockExtractor(BaseExtractor):
                 pass
         return sorted(names)
 
-    def extract(self, model_name: str, workspace: str | None = None) -> SemanticModelMeta:
+    def extract(
+        self,
+        model_name: str,
+        workspace: str | None = None,
+        *,
+        with_copilot: bool = False,
+    ) -> SemanticModelMeta:
         """Load and return a SemanticModelMeta.
 
         fixture_path mode: loads that file directly (existing single-model behaviour).
         fixture_dir mode:  finds the fixture whose model name matches (case-insensitive,
                            slugified). Raises FileNotFoundError if no match.
+
+        When ``with_copilot=True``, looks for a ``<base>.copilot.json`` sidecar
+        next to the fixture and attaches the parsed ``CopilotBundle`` to
+        ``model.copilot``. Sidecar absence is silent (copilot stays None).
         """
         if self.fixture_path is not None:
-            return self._load(self.fixture_path)
+            model = self._load(self.fixture_path)
+            if with_copilot:
+                self._attach_copilot(model, self.fixture_path)
+            return model
 
         target_slug = _slugify(model_name)
         for fname in sorted(os.listdir(self.fixture_dir)):
@@ -94,7 +108,10 @@ class MockExtractor(BaseExtractor):
                     data = json.load(f)
                 candidate_name = data.get("name", fname[:-5])
                 if _slugify(candidate_name) == target_slug:
-                    return from_dict(data)
+                    model = from_dict(data)
+                    if with_copilot:
+                        self._attach_copilot(model, fpath)
+                    return model
             except Exception:
                 pass
 
@@ -111,3 +128,17 @@ class MockExtractor(BaseExtractor):
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return from_dict(data)
+
+    @staticmethod
+    def _attach_copilot(model: SemanticModelMeta, fixture_file: str) -> None:
+        """Load ``<base>.copilot.json`` (if present) and attach to ``model.copilot``.
+
+        Silent when the sidecar does not exist (copilot stays None).
+        """
+        base, _ = os.path.splitext(fixture_file)
+        sidecar = base + ".copilot.json"
+        if not os.path.exists(sidecar):
+            return
+        with open(sidecar, "r", encoding="utf-8") as f:
+            envelope = json.load(f)
+        model.copilot = CopilotReader.from_definition(envelope)

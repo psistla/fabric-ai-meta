@@ -279,3 +279,37 @@ def test_baseextractor_extract_accepts_with_copilot_kwarg():
     param = sig.parameters["with_copilot"]
     assert param.kind is inspect.Parameter.KEYWORD_ONLY
     assert param.default is False
+
+
+def test_mockextractor_fixture_path_loads_copilot_sidecar_when_flag_set():
+    from fabric_ai_meta.extractor.mock import MockExtractor
+
+    ex = MockExtractor(fixture_path="tests/fixtures/adventure_works.json")
+    model_no = ex.extract("Adventure Works", "ws")
+    assert model_no.copilot is None
+    model_yes = ex.extract("Adventure Works", "ws", with_copilot=True)
+    assert model_yes.copilot is not None
+    assert model_yes.copilot.ai_instructions is not None
+
+
+def test_mockextractor_fixture_path_no_sidecar_leaves_copilot_none(tmp_path):
+    """When the fixture has no .copilot.json sidecar, copilot stays None - not an error."""
+    import json
+
+    from fabric_ai_meta.extractor.mock import MockExtractor
+
+    fixture = tmp_path / "tiny.json"
+    fixture.write_text(json.dumps({
+        "name": "Tiny",
+        "workspace": "W",
+        "description": None,
+        "tables": [],
+        "relationships": [],
+        "ai_readiness_score": None,
+        "scoring_breakdown": {},
+        "extraction_timestamp": "2026-01-01T00:00:00Z",
+        "extraction_method": "mock",
+    }))
+    ex = MockExtractor(fixture_path=str(fixture))
+    model = ex.extract("Tiny", "W", with_copilot=True)
+    assert model.copilot is None
