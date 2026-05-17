@@ -41,10 +41,15 @@ All five live in the future `CopilotWriter` design.
 | 1 | **Hybrid typing**: dataclasses with a `raw: dict` escape hatch on every JSON primitive. AI Instructions also keeps `raw_bytes`. | Honest about uncertainty in undocumented JSON shapes; typed access for high-confidence fields; adding inferred fields later is non-breaking. |
 | 2 | **CLI placement**: new `copilot` exporter inside the existing `export` group, registered via `BaseExporter`. | Mirrors the `export prep-for-ai` pattern; reuses dynamic exporter registry; users discover it via `fabric-ai-meta export --help`. |
 | 3 | **`SemanticModelMeta.copilot`**: new optional field. | Lets `CopilotExporter.generate(model)` follow the standard exporter contract without bypassing the model abstraction. |
-| 4 | **Extraction timing**: opt-in `--with-copilot` flag on `analyze` / `scan`. Default off. Extractor reads from Fabric REST (Fabric mode) or sidecar fixture (`--mock`). | Avoids paying a Fabric REST call cost on every existing `analyze`. Default-off keeps the v1.3.x performance contract. |
+| 4 | **Extraction timing**: opt-in `--with-copilot` flag on `analyze` / `scan`. Default off. Extractor reads from Fabric REST via `TMDLClient.get_definition` (Fabric mode) or sidecar fixture (`--mock`). | Avoids paying a Fabric REST call cost on every existing `analyze`. Default-off keeps the v1.3.x performance contract. |
 | 5 | **Fixture format**: sidecar file `<model>.copilot.json` containing the **raw `getDefinition` envelope** (not a hand-shaped Copilot bundle). | Exercises the production parsing path; captures Microsoft payload-shape drift in CI; first sidecar is captured from a real model, later ones can be hand-authored. |
 | 6 | **Output layout**: mirror Microsoft's `Copilot/` folder verbatim under `./output/<slug>/copilot/`. | Makes the future `apply-copilot` round-trip trivial (same paths in, same paths out); each primitive diffs cleanly; matches what the spike doc documents. |
 | 7 | **Backward compat**: keep `TMDLClient.find_prep_for_ai_settings()` returning its current snippet-dict shape. No deprecation warning. | The function is 3 weeks old, the spike notebook is its only caller, and forcing a churn for a parallel API would break the notebook silently. |
+| 8 | **`BaseExtractor.extract` ABI**: extend with kw-only `with_copilot: bool = False` at the ABC level. | No `fabric_ai_meta.extractors` entry-point group exists today, so no third-party `BaseExtractor` subclasses to break. Kw-only + default False keeps all in-tree callers source-compatible. Documented as an additive change. |
+| 9 | **AI Instructions Markdown decode policy**: attempt strict UTF-8 first. On `UnicodeDecodeError`, fall back to `errors="replace"` and `logging.warning()` the path. `raw_bytes` is always preserved verbatim regardless of decode outcome. | Gives a strong round-trip guarantee for the common case (well-formed UTF-8) while tolerating corrupt payloads without crashing the reader. `raw_bytes` is the source of truth for any future writer. |
+| 10 | **`VerifiedAnswer.filename`**: stores the **basename** only (e.g., `"answer-001.json"`), not the full part path. | The exporter writes `va_dir / va.filename` and only basenames are safe inside the `VerifiedAnswers/` directory. The reader strips the `Copilot/VerifiedAnswers/` prefix during parse. |
+| 11 | **`CopilotExporter.output_filename = ""`** + fully overridden `write()`. | The default `BaseExporter.write()` enforces `output_filename` is non-empty and writes a single JSON file. CopilotExporter writes a directory tree, so it overrides `write()` entirely and never calls `super().write()`. The empty `output_filename` documents that the field is intentionally unused. |
+| 12 | **`CopilotBundle.to_dict()` shape**: omits `raw_bytes`; emits `markdown` as a string field. | `to_dict()` exists for JSON serialization (e.g., schema validation, future workspace-summary inclusion). Binary `raw_bytes` is not JSON-friendly. The in-memory bundle retains both `markdown` and `raw_bytes`; serialization keeps only `markdown`. Round-trip strictness is an in-memory guarantee, not a serialization guarantee. |
 
 ## Architecture
 
@@ -137,8 +142,21 @@ class CopilotBundle:
     settings: CopilotSettings | None = None
     version: CopilotVersion | None = None
 
-    def to_dict(self) -> dict: ...         # JSON-serializable dict
+    def to_dict(self) -> dict:
+        """JSON-serializable view. Omits AIInstructions.raw_bytes (not JSON-safe).
+        Shape:
+          {
+            "ai_instructions": {"markdown": "..."} | None,
+            "verified_answers": [{"filename": "...", "question": "...", "raw": {...}}, ...],
+            "ai_data_schema": {"raw": {...}} | None,
+            "example_prompts": {"prompts": [...], "raw": {...}} | None,
+            "settings": {"raw": {...}} | None,
+            "version": {"raw": {...}} | None,
+          }
+        """
 ```
+
+**Parser strictness.** `CopilotReader._parse_*` use **duck typing**, not strict key presence checks. Each parser tries best-effort extraction of high-confidence fields (e.g., `question` from a Verified Answer) and falls back to leaving the typed field `None` while keeping the full payload in `raw`. A parser raises only on hard structural failure (e.g., the `payload` is not valid base64, or the decoded bytes are not valid JSON for a primitive that requires JSON). Hard failures are caught one level up by `CopilotReader.from_definition`, which logs a warning with the part path and continues parsing the remaining parts. This matches the "read paths are lenient" rule under Error Handling.
 
 `SemanticModelMeta` gains exactly one new optional field:
 
@@ -184,76 +202,178 @@ Static + pure design enables fixture-driven testing with zero mocking. The reade
 
 ### Extractor Wiring
 
-`BaseExtractor.extract(model_name, *, with_copilot: bool = False) -> SemanticModelMeta`. Keyword-only flag, default False, keeps every existing caller untouched.
-
-`MockExtractor.extract(name, with_copilot=False)`:
+`BaseExtractor.extract` signature changes from:
 
 ```python
+def extract(self, model_name: str, workspace: str) -> SemanticModelMeta: ...
+```
+
+to:
+
+```python
+def extract(self, model_name: str, workspace: str, *, with_copilot: bool = False) -> SemanticModelMeta: ...
+```
+
+Keyword-only `with_copilot` with default `False`. Existing in-tree callers pass two positional args and are unaffected.
+
+#### `MockExtractor.extract(model_name, workspace=None, *, with_copilot=False)`
+
+Two extractor modes already exist (`fixture_path` for one model, `fixture_dir` for many). Sidecar resolution must cover both:
+
+```python
+def _sidecar_path_for_fixture(fixture_file: str) -> str:
+    """Return /abs/path/to/<base>.copilot.json next to the model fixture."""
+    base, _ext = os.path.splitext(fixture_file)
+    return base + ".copilot.json"
+
+# fixture_path mode:
+fixture_file = self.fixture_path
+
+# fixture_dir mode (after matching the right *.json by slugified name):
+fixture_file = fpath   # the matched *.json file inside fixture_dir
+
+# Common post-load step:
+model = from_dict(data)
 if with_copilot:
-    sidecar_path = self.fixture_path.with_suffix(".copilot.json")
-    if sidecar_path.exists():
-        envelope = json.loads(sidecar_path.read_text())
+    sidecar = _sidecar_path_for_fixture(fixture_file)
+    if os.path.exists(sidecar):
+        with open(sidecar, "r", encoding="utf-8") as f:
+            envelope = json.load(f)
         model.copilot = CopilotReader.from_definition(envelope)
     # absence of sidecar is not an error — model.copilot stays None
+return model
 ```
 
-`SemanticLinkExtractor.extract(name, with_copilot=False)`:
+#### `SemanticLinkExtractor.extract(model_name, workspace=None, *, with_copilot=False)`
+
+After the existing extraction logic builds `model`, append:
 
 ```python
 if with_copilot:
+    model.copilot = self._extract_copilot(model_name, ws)
+return model
+
+def _extract_copilot(self, model_name: str, workspace: str) -> CopilotBundle | None:
+    """Fetch and parse the Copilot/ folder for the model. Returns None on
+    missing GUIDs (workspace or model not resolvable)."""
+    fabric = self._fabric
+    workspace_id = fabric.resolve_workspace_id(workspace)
+    if workspace_id is None:
+        logger.warning("Cannot resolve workspace id for %r; skipping Copilot extract.", workspace)
+        return None
+    model_id = fabric.resolve_item_id(model_name, type="SemanticModel", workspace=workspace)
+    if model_id is None:
+        logger.warning("Cannot resolve model id for %r; skipping Copilot extract.", model_name)
+        return None
+    token = self._fabric_bearer_token()
     from ..writeback.tmdl_client import TMDLClient
-    client = TMDLClient(self._fabric_credential(), self.workspace_id)
+    client = TMDLClient(token, workspace_id)
     envelope = client.get_definition(model_id)
-    model.copilot = CopilotReader.from_definition(envelope)
+    return CopilotReader.from_definition(envelope)
+
+def _fabric_bearer_token(self) -> str:
+    """Obtain a Power BI / Fabric bearer token from the Fabric notebook runtime."""
+    import notebookutils  # type: ignore[import-not-found]  # only available in Fabric
+    return notebookutils.credentials.getToken("pbi")
 ```
+
+**Notes on this path:**
+
+- `fabric.resolve_workspace_id` and `fabric.resolve_item_id` are the canonical sempy.fabric helpers for name → GUID lookup. Both return `None` (or raise) when the name does not exist in the runtime. Resolution failures are non-fatal: they log a warning and leave `model.copilot = None`. Existing tabular extraction (tables / measures / relationships) is untouched.
+- `TMDLClient.__init__(credential, workspace_id)` accepts a bearer token **string** directly (per its existing `_get_token` helper, which short-circuits for `isinstance(credential, str)`). No `azure.identity` token-acquisition flow needed inside Fabric.
+- Outside Fabric, `--with-copilot` without `--mock` raises `FabricEnvironmentError` from the existing notebook detection at extractor construction time. `_fabric_bearer_token()` therefore only runs in environments where `notebookutils` is importable.
 
 ### Exporter (`generator/export_copilot.py`)
 
+`BaseExporter.write()` actual signature in `src/fabric_ai_meta/generator/base.py`:
+
 ```python
+def write(self, model: SemanticModelMeta, output_dir: str) -> str: ...
+```
+
+It uses module-level `_slugify(model.name)` for the per-model subdir. `SemanticModelMeta` has no `slug` attribute; that's a derived value. `CopilotExporter` must match the same signature and slug derivation:
+
+```python
+import json
+import os
+from fabric_ai_meta.generator.base import BaseExporter, ExporterError, _slugify
+from fabric_ai_meta.models.metadata import SemanticModelMeta
+
 class CopilotExporter(BaseExporter):
     name = "copilot"
-    output_filename = "copilot/"            # marker: directory output, not single file
+    output_filename = ""                    # intentionally unused; write() is fully overridden
     description = "Microsoft Copilot/ folder mirror (AI Instructions, Verified Answers, AI Data Schema, etc.)"
 
     def generate(self, model: SemanticModelMeta) -> dict:
+        """JSON-serializable view of the bundle (no raw_bytes). Used by tests and
+        future schema validation; not used by write()."""
         if model.copilot is None:
             raise ExporterError(
-                "model.copilot is None. Re-run extract with --with-copilot."
+                "model.copilot is None. Re-run extract with with_copilot=True "
+                "(CLI: --with-copilot, or use `fabric-ai-meta export copilot`)."
             )
-        return model.copilot.to_dict()      # used by tests and for in-memory schema validation
+        return model.copilot.to_dict()
 
-    def write(self, model: SemanticModelMeta, output_dir: Path) -> Path:
-        """Override default JSON write — mirror Microsoft's Copilot/ layout verbatim."""
+    def write(self, model: SemanticModelMeta, output_dir: str) -> str:
+        """Mirror Microsoft's Copilot/ folder layout verbatim under
+        {output_dir}/{slug}/copilot/. Returns the absolute path of the copilot/
+        directory, or an empty string if the bundle had no parts to write."""
         if model.copilot is None:
-            raise ExporterError("model.copilot is None. Re-run extract with --with-copilot.")
+            raise ExporterError(
+                "model.copilot is None. Re-run extract with with_copilot=True."
+            )
 
-        copilot_dir = output_dir / model.slug / "copilot"
-        copilot_dir.mkdir(parents=True, exist_ok=True)
+        slug = _slugify(model.name) if model.name else "model"
+        copilot_dir = os.path.join(output_dir, slug, "copilot")
         b = model.copilot
 
+        wrote_anything = False
+
         if b.ai_instructions is not None:
-            instr_dir = copilot_dir / "Instructions"
-            instr_dir.mkdir(parents=True, exist_ok=True)
-            (instr_dir / "instructions.md").write_bytes(b.ai_instructions.raw_bytes)
+            instr_dir = os.path.join(copilot_dir, "Instructions")
+            os.makedirs(instr_dir, exist_ok=True)
+            with open(os.path.join(instr_dir, "instructions.md"), "wb") as f:
+                f.write(b.ai_instructions.raw_bytes)
+            wrote_anything = True
         if b.ai_data_schema is not None:
-            (copilot_dir / "schema.json").write_text(json.dumps(b.ai_data_schema.raw, indent=2))
+            os.makedirs(copilot_dir, exist_ok=True)
+            with open(os.path.join(copilot_dir, "schema.json"), "w", encoding="utf-8") as f:
+                json.dump(b.ai_data_schema.raw, f, indent=2)
+            wrote_anything = True
         if b.example_prompts is not None:
-            (copilot_dir / "examplePrompts.json").write_text(json.dumps(b.example_prompts.raw, indent=2))
+            os.makedirs(copilot_dir, exist_ok=True)
+            with open(os.path.join(copilot_dir, "examplePrompts.json"), "w", encoding="utf-8") as f:
+                json.dump(b.example_prompts.raw, f, indent=2)
+            wrote_anything = True
         if b.settings is not None:
-            (copilot_dir / "settings.json").write_text(json.dumps(b.settings.raw, indent=2))
+            os.makedirs(copilot_dir, exist_ok=True)
+            with open(os.path.join(copilot_dir, "settings.json"), "w", encoding="utf-8") as f:
+                json.dump(b.settings.raw, f, indent=2)
+            wrote_anything = True
         if b.version is not None:
-            (copilot_dir / "version.json").write_text(json.dumps(b.version.raw, indent=2))
+            os.makedirs(copilot_dir, exist_ok=True)
+            with open(os.path.join(copilot_dir, "version.json"), "w", encoding="utf-8") as f:
+                json.dump(b.version.raw, f, indent=2)
+            wrote_anything = True
         if b.verified_answers:
-            va_dir = copilot_dir / "VerifiedAnswers"
-            va_dir.mkdir(parents=True, exist_ok=True)
+            va_dir = os.path.join(copilot_dir, "VerifiedAnswers")
+            os.makedirs(va_dir, exist_ok=True)
             for va in b.verified_answers:
-                (va_dir / va.filename).write_text(json.dumps(va.raw, indent=2))
-        return copilot_dir
+                # va.filename is basename only (no Copilot/VerifiedAnswers/ prefix)
+                with open(os.path.join(va_dir, va.filename), "w", encoding="utf-8") as f:
+                    json.dump(va.raw, f, indent=2)
+            wrote_anything = True
+
+        return copilot_dir if wrote_anything else ""
 ```
 
-The default `BaseExporter.write()` dumps `generate()` as one JSON file. Copilot output is a directory tree, so `write()` is overridden. The `output_filename = "copilot/"` trailing slash signals directory mode cosmetically; the real layout is decided by `write()`.
+The default `BaseExporter.write()` dumps `generate()` as one JSON file. Copilot output is a directory tree, so `write()` is fully overridden and never calls `super().write()`. `output_filename` stays empty as a documentation signal that the field is unused; the parent's emptiness check never fires because we don't enter the parent's `write()`.
+
+Return contract: `write()` returns the absolute path of the copilot/ directory on success, or an empty string when the bundle had nothing to write (no primitives). The CLI handler treats an empty return as a notice condition.
 
 ### CLI
+
+User-visible commands:
 
 ```bash
 # Existing analyze gains opt-in flag
@@ -269,7 +389,37 @@ fabric-ai-meta export copilot MODEL --workspace W --mock           # uses sideca
 fabric-ai-meta export copilot MODEL --workspace W --output ./snapshot
 ```
 
-**Implicit `with_copilot=True` for the `copilot` exporter.** The CLI handler for `export` inspects the exporter name and passes `with_copilot=True` to `extract()` when the exporter is `copilot`. Other exporters call `extract()` with the default `with_copilot=False`. This keeps the surface user-friendly — nobody runs `export copilot` and forgets the flag.
+**Concrete CLI plumbing changes** (matching actual `src/fabric_ai_meta/cli.py` shapes):
+
+1. **`_run_analysis`** (used by `analyze`) gains `with_copilot: bool = False` parameter. The `analyze` Click command adds `@click.option("--with-copilot", is_flag=True, default=False, help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")` and threads `with_copilot=with_copilot` into `_run_analysis`. Inside `_run_analysis`, the single call site `extractor.extract(model_name, workspace)` becomes `extractor.extract(model_name, workspace, with_copilot=with_copilot)`.
+
+2. **`scan` command** gets the same `--with-copilot` flag. The inner loop's `extractor.extract(name, workspace)` becomes `extractor.extract(name, workspace, with_copilot=with_copilot)`. Empty bundles do not contribute to the workspace summary in v1.4.0 (deferred until governance signals are defined for Copilot artifacts).
+
+3. **`_export_single(model_name, workspace, exporter, mock=False)`** gains `with_copilot: bool = False`. The body's `extractor.extract(model_name, workspace)` becomes `extractor.extract(model_name, workspace, with_copilot=with_copilot)`. The success print is unchanged; if `exporter.write(...)` returns an empty string (CopilotExporter signaling "nothing written"), the handler prints `[yellow]No Copilot/ parts in model definition. Nothing exported.[/yellow]` instead of `[green]Written:[/green] {path}`.
+
+4. **`_register_exporter_commands()`** — the shared template that turns every discovered `BaseExporter` into a Click command — is extended to set `with_copilot=True` only when `ep_name == "copilot"`:
+
+   ```python
+   def _make_cmd(exporter_cls=exporter_cls, ep_name=ep_name):
+       @click.command(name=ep_name, help=exporter_cls.description or f"Export {ep_name} format.")
+       @click.argument("model_name")
+       @click.option("--workspace", "-w", default=None)
+       @click.option("--mock", is_flag=True, default=False,
+                     help="Use MockExtractor with fixture data.")
+       def _cmd(model_name, workspace, mock):
+           _export_single(
+               model_name, workspace, exporter_cls(),
+               mock=mock,
+               with_copilot=(ep_name == "copilot"),
+           )
+       return _cmd
+   ```
+
+   This is the "implicit `with_copilot=True` for `copilot`" behavior. Other built-in exporters (`langchain`, `openai`, `semantic-kernel`, `autogen`) keep their existing behavior unchanged (`with_copilot=False`). Plugin exporters likewise stay at `False` — if a future plugin wants Copilot data, the user can run `analyze --with-copilot` first to populate the bundle, then export. (Plugin-driven implicit copilot is out of scope.)
+
+**`export prep-for-ai`** at cli.py L515 is **not** modified in v1.4.0. Its current behavior is preserved. A later release may add an option to fold Copilot artifacts into the Prep for AI config bundle once we know what that integration should look like.
+
+**`apply-descriptions`** at cli.py — also unmodified in v1.4.0. Copilot writeback is the separate future `apply-copilot` work.
 
 ### Output Tree
 
@@ -354,7 +504,7 @@ Approximately 25 new tests across three files plus two fixtures.
 ## Versioning
 
 - Minor bump per project convention: **v1.3.5 → v1.4.0**. Reason: new public CLI command + new public Python API (`CopilotBundle`, `CopilotReader`, `CopilotExporter`, `SemanticModelMeta.copilot` field) = minor, not patch.
-- `__all__` count grows from 35 to ~40 (5 new exports: `CopilotBundle`, `AIInstructions`, `VerifiedAnswer`, `AIDataSchema`, `CopilotReader`).
+- `__all__` count grows from 35 to 40 (5 new top-level exports: `CopilotBundle`, `AIInstructions`, `VerifiedAnswer`, `AIDataSchema`, `CopilotReader`). The narrower dataclasses `ExamplePrompts`, `CopilotSettings`, `CopilotVersion` are intentionally **not** re-exported at the package top level — they are reachable through `CopilotBundle` fields and `from fabric_ai_meta.models.copilot import ...` but kept out of the public top-level surface to avoid name-pollution for what are essentially shape-only wrappers around `raw: dict`. Promotable in a future release if real consumers emerge.
 
 ## Out of Scope (Tracked for Future Work)
 
@@ -371,4 +521,6 @@ These are blocked on this design landing first.
 
 ## Open Questions
 
-None. All five brainstorming questions answered; no architectural gaps remain.
+1. **sempy.fabric helper names.** The spec assumes `fabric.resolve_workspace_id(workspace)` and `fabric.resolve_item_id(model_name, type="SemanticModel", workspace=...)` are the right helpers. These names follow the sempy.fabric convention but are not yet verified against the version pinned in `pyproject.toml` (`semantic-link-sempy>=0.8`). If the API differs in 0.8, `_extract_copilot` substitutes the actual helper. This is verifiable in the writing-plans phase against the installed `sempy.fabric` package; not a blocker for design approval.
+
+2. **What `scan --with-copilot` adds to `workspace-summary.json`.** v1.4.0 ships `--with-copilot` on `scan` but does **not** add new fields to the workspace summary. Each model's `copilot` is populated in-memory and discarded once the per-model export folder is written. A future release may add Copilot signals (e.g., `has_ai_instructions`, `verified_answer_count`) to `workspace-summary.json` once governance use cases are defined. Surfacing here so it's an explicit deferral, not an oversight.
