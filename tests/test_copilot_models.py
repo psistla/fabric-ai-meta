@@ -104,3 +104,19 @@ def test_semanticmodelmeta_from_dict_round_trip_omits_copilot():
     }
     model = from_dict(raw)
     assert model.copilot is None
+
+
+def test_public_api_exports():
+    """v1.4.0 promotes the high-confidence Copilot symbols to the top-level package."""
+    from fabric_ai_meta import (
+        AIDataSchema,
+        AIInstructions,
+        CopilotBundle,
+        CopilotReader,
+        VerifiedAnswer,
+    )
+    assert AIInstructions is not None
+    assert VerifiedAnswer is not None
+    assert AIDataSchema is not None
+    assert CopilotBundle is not None
+    assert CopilotReader is not None

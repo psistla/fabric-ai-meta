@@ -1,6 +1,6 @@
 """Fabric AI Meta: extracts, analyzes, and exports Microsoft Fabric semantic model metadata for AI consumption."""
 
-__version__ = "1.3.3"
+__version__ = "1.4.0"
 
 # Core data model
 # Analysis
@@ -21,6 +21,7 @@ from fabric_ai_meta.analyzer.scorer import score_model
 from fabric_ai_meta.extractor.base import BaseExtractor
 from fabric_ai_meta.extractor.mock import MockExtractor
 from fabric_ai_meta.generator.base import BaseExporter, ExporterError
+from fabric_ai_meta.generator.copilot_reader import CopilotReader
 from fabric_ai_meta.generator.export_autogen import to_autogen_tool
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
 from fabric_ai_meta.generator.export_openai import to_openai_function
@@ -30,6 +31,12 @@ from fabric_ai_meta.generator.registry import discover_exporters, get_exporter
 
 # Generators
 from fabric_ai_meta.generator.schema import generate_ai_ready_schema
+from fabric_ai_meta.models.copilot import (
+    AIDataSchema,
+    AIInstructions,
+    CopilotBundle,
+    VerifiedAnswer,
+)
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
     ColumnRole,
@@ -63,6 +70,12 @@ __all__ = [
     "TableMeta",
     "TableType",
     "from_dict",
+    # Copilot (Prep for AI) - v1.4.0
+    "AIDataSchema",
+    "AIInstructions",
+    "CopilotBundle",
+    "VerifiedAnswer",
+    "CopilotReader",
     # Extractors
     "BaseExtractor",
     "MockExtractor",
