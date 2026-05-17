@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-05-16
+
+### Changed
+- `attestations: true` is now pinned explicitly in the `pypa/gh-action-pypi-publish` step of `.github/workflows/publish.yml`. The action defaults to generating PEP 740 sigstore attestations since v1.10, so every release on PyPI was already shipping with provenance signatures; this commit makes the contract explicit in source so a future action default change cannot silently drop attestations from the wheel and sdist.
+
 ## [1.3.4] - 2026-05-16
 
 ### Changed
