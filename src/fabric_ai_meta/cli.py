@@ -458,7 +458,8 @@ def export_group():
     pass
 
 
-def _export_single(model_name: str, workspace: str, exporter, mock: bool = False) -> None:
+def _export_single(model_name: str, workspace: str, exporter, mock: bool = False,
+                   *, with_copilot: bool = False) -> None:
     """Run a single `BaseExporter` against the extracted model and write its output."""
     cfg = load_config()
     workspace = workspace or cfg.extraction.default_workspace
@@ -480,9 +481,12 @@ def _export_single(model_name: str, workspace: str, exporter, mock: bool = False
         from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
         extractor = SemanticLinkExtractor(workspace=workspace)
 
-    model = extractor.extract(model_name, workspace)
+    model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
     path = exporter.write(model, output)
-    console.print(f"[green]Written:[/green] {path}")
+    if path:
+        console.print(f"[green]Written:[/green] {path}")
+    else:
+        console.print("[yellow]No Copilot/ parts in model definition. Nothing exported.[/yellow]")
 
 
 def _register_exporter_commands() -> None:

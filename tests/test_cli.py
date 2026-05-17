@@ -395,3 +395,42 @@ def test_diff_missing_file_exits_nonzero(runner, tmp_path):
     current = str(tmp_path / "also-nonexistent.json")
     result = runner.invoke(main, ["diff", baseline, current])
     assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# Chunk 7: --with-copilot flag wiring
+# ---------------------------------------------------------------------------
+
+def test_export_single_passes_with_copilot_to_extractor(monkeypatch):
+    """_export_single(..., with_copilot=True) must pass it to extractor.extract."""
+    from unittest.mock import MagicMock
+
+    import fabric_ai_meta.cli as cli
+
+    captured_kwargs = {}
+
+    class StubExtractor:
+        def extract(self, model_name, workspace, **kwargs):
+            captured_kwargs.update(kwargs)
+            from fabric_ai_meta.models.metadata import SemanticModelMeta
+            return SemanticModelMeta(
+                name=model_name, workspace=workspace, description=None,
+                tables=[], relationships=[],
+                ai_readiness_score=None, scoring_breakdown={},
+                extraction_timestamp="2026-01-01T00:00:00Z", extraction_method="mock",
+            )
+
+    monkeypatch.setattr(
+        "fabric_ai_meta.extractor.mock.MockExtractor",
+        lambda fixture_path: StubExtractor()
+    )
+    monkeypatch.setattr(cli, "_get_fixture_path", lambda name: "/tmp/whatever.json")
+
+    fake_exporter = MagicMock()
+    fake_exporter.write.return_value = "/tmp/out/x"
+
+    cli._export_single(
+        "Adventure Works", "Production", fake_exporter,
+        mock=True, with_copilot=True,
+    )
+    assert captured_kwargs == {"with_copilot": True}
