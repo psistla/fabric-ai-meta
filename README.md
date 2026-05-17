@@ -1,8 +1,8 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.3.5-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-400%20passing-1a7f37?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.4.0-238636?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-441%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -85,6 +85,7 @@ fabric-ai-meta serve
 pip install 'fabric-ai-meta[llm,xmla]'
 fabric-ai-meta analyze "Sales Model" --workspace "Production" --llm-enrich
 fabric-ai-meta export prep-for-ai "Sales Model" --workspace "Production" --llm-enrich
+fabric-ai-meta export copilot "Sales Model" --workspace "Production"                            # snapshot the live Copilot/ folder to disk
 fabric-ai-meta apply-descriptions ./output/sales-model/prep-for-ai-config.json --mock           # preview
 fabric-ai-meta apply-descriptions ./output/sales-model/prep-for-ai-config.json --no-dry-run     # commit (in a Fabric notebook)
 ```
@@ -313,6 +314,22 @@ fabric-ai-meta export autogen "Adventure Works" --workspace "Production" --mock
 </details>
 
 <details>
+<summary><strong>export copilot</strong>: dump the Microsoft Copilot/ folder as files on disk</summary>
+
+```bash
+# Local dev with sidecar fixture
+fabric-ai-meta export copilot "Adventure Works" --workspace "Production" --mock
+
+# Live model (inside a Fabric notebook)
+fabric-ai-meta export copilot "Adventure Works" --workspace "Production"
+```
+
+Mirrors Microsoft's `Copilot/` folder layout under `{output}/{model-slug}/copilot/`: `Instructions/instructions.md`, `VerifiedAnswers/*.json`, `schema.json`, `examplePrompts.json`, `settings.json`, `version.json`. Read-only. The future `apply-copilot` command will write the inverse.
+
+**No `--with-copilot` needed:** this command implicitly enables Copilot extraction. Use `analyze --with-copilot` or `scan --with-copilot` to populate `model.copilot` alongside the other extractor outputs.
+</details>
+
+<details>
 <summary><strong>serve</strong>: start the MCP server for AI agents</summary>
 
 ```bash
@@ -486,7 +503,7 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-See `fabric_ai_meta.__all__` for the full list of 35 public exports.
+See `fabric_ai_meta.__all__` for the full list of 40 public exports.
 
 ---
 
@@ -524,7 +541,7 @@ Full walk-through with a worked dbt example, local testing, and name-conflict ru
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (400 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (441 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
@@ -538,7 +555,7 @@ All tests run locally. Fabric-dependent code is mocked via `MockExtractor` and f
 | Notebook | Purpose |
 |----------|---------|
 | [`notebooks/quickstart.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/quickstart.ipynb) | End-to-end walkthrough: authentication, model listing, analysis, export, governance |
-| [`notebooks/tmdl-spike.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/tmdl-spike.ipynb) | Research spike: inspect `getDefinition` output for AI Instructions and Verified Answers (the `Copilot/` folder layout that backs Prep for AI) |
+| [`notebooks/tmdl-spike.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/tmdl-spike.ipynb) | Read-only Copilot/ folder inspection: shows the raw `getDefinition` envelope the new `CopilotReader` API parses. |
 
 ### CI/CD Integration
 
