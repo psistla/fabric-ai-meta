@@ -156,3 +156,70 @@ def test_malformed_verified_answer_is_skipped_warning_logged(caplog):
         ]))
     assert [va.filename for va in bundle.verified_answers] == ["good.json"]
     assert any("Copilot/VerifiedAnswers/bad.json" in r.message for r in caplog.records)
+
+
+def test_ai_data_schema_keeps_raw_dict():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    schema = {"tables": [{"name": "Sales", "columns": ["amount"]}]}
+    bundle = CopilotReader.from_definition(_envelope([
+        {"path": "Copilot/schema.json", "payload": _b64(schema), "payloadType": "InlineBase64"},
+    ]))
+    assert bundle.ai_data_schema is not None
+    assert bundle.ai_data_schema.raw == schema
+
+
+def test_example_prompts_flat_list_shape():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {
+            "path": "Copilot/examplePrompts.json",
+            "payload": _b64(["What is total sales?", "Top 5 customers?"]),
+            "payloadType": "InlineBase64",
+        },
+    ]))
+    assert bundle.example_prompts is not None
+    assert bundle.example_prompts.prompts == ["What is total sales?", "Top 5 customers?"]
+
+
+def test_example_prompts_object_with_prompts_key_shape():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {
+            "path": "Copilot/examplePrompts.json",
+            "payload": _b64({"prompts": [{"prompt": "Show sales by region"}]}),
+            "payloadType": "InlineBase64",
+        },
+    ]))
+    assert bundle.example_prompts is not None
+    assert bundle.example_prompts.prompts == ["Show sales by region"]
+
+
+def test_settings_and_version_keep_raw_dict():
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    bundle = CopilotReader.from_definition(_envelope([
+        {"path": "Copilot/settings.json", "payload": _b64({"enabled": True}), "payloadType": "InlineBase64"},
+        {"path": "Copilot/version.json", "payload": _b64({"version": "1.0"}), "payloadType": "InlineBase64"},
+    ]))
+    assert bundle.settings is not None and bundle.settings.raw == {"enabled": True}
+    assert bundle.version is not None and bundle.version.raw == {"version": "1.0"}
+
+
+def test_non_inline_base64_payload_type_skipped(caplog):
+    import logging
+
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    with caplog.at_level(logging.WARNING, logger="fabric_ai_meta.generator.copilot_reader"):
+        bundle = CopilotReader.from_definition(_envelope([
+            {
+                "path": "Copilot/Instructions/instructions.md",
+                "payload": "ignored",
+                "payloadType": "RemoteFile",
+            },
+        ]))
+    assert bundle.ai_instructions is None
+    assert any("Unsupported payloadType" in r.message or "payloadType" in r.message for r in caplog.records)
