@@ -12,7 +12,11 @@
 
 **Branch:** Work on `master`. Commit per task. Push after each chunk completes.
 
-**Before starting:** Run `pytest tests/ -x -q` to confirm green baseline (expected: 399 passed, 1 skipped as of v1.3.5). If anything fails before any code is changed, stop and fix the environment.
+**Before starting:** Run `pytest tests/ -x -q` and record the actual baseline number (it should be roughly 399 passed, 1 skipped as of v1.3.5, but use the real count printed by your run as the source of truth for every "Expected: N passed" assertion later in the plan). If anything fails before any code is changed, stop and fix the environment first.
+
+**Known version-marker drift:** `pyproject.toml` (`1.3.5`) and `README.md` badge (`1.3.5`) reflect the current release, but `src/fabric_ai_meta/__init__.py:3` still reads `__version__ = "1.3.3"` — it was not bumped during the v1.3.4 / v1.3.5 patch releases. Task 8.1 fixes this.
+
+**Shell note:** The project's primary dev shell is Windows PowerShell. Every command block below uses POSIX-style syntax (`source venv/bin/activate`, `$(cat <<'EOF' ... EOF)` heredocs) for portability; running them inside Git Bash or WSL is the simplest path. Where a PowerShell equivalent is non-obvious (Chunk 9), the PS form is shown explicitly.
 
 ---
 
@@ -1097,7 +1101,7 @@ with open(OUT, "w", encoding="utf-8") as f:
 print(f"Wrote {OUT}")
 ```
 
-Save as `scripts/_one_off_make_copilot_fixture.py`, run with `python scripts/_one_off_make_copilot_fixture.py`, **delete the script after** (it's a one-time fixture generator; the fixture is the artifact we keep).
+Save as `scripts/_one_off_make_copilot_fixture.py`, run with `python scripts/_one_off_make_copilot_fixture.py`, **delete the script after** (it's a one-time fixture generator; the fixture is the artifact we keep). After deletion, run `git status` and confirm only `tests/fixtures/adventure_works.copilot.json` is untracked; if the throwaway script still shows up, delete it before staging.
 
 - [ ] **Step 2: Verify the fixture parses through CopilotReader**
 
@@ -1584,7 +1588,25 @@ Open `src/fabric_ai_meta/extractor/semantic_link.py`. Make three additions.
 
 No new top-level imports needed. All Fabric/notebookutils imports are inside method bodies.
 
-(b) Modify the `extract` signature and add the copilot block at the end. Locate the method and change its signature + add the trailing block:
+(b) Modify the `extract` signature and replace the trailing `return SemanticModelMeta(...)` block.
+
+**Current end of `extract` (around semantic_link.py L141-151):**
+
+```python
+        return SemanticModelMeta(
+            name=model_name,
+            workspace=ws,
+            description=None,
+            tables=table_metas,
+            relationships=relationships,
+            ai_readiness_score=None,
+            scoring_breakdown={},
+            extraction_timestamp=datetime.now(timezone.utc).isoformat(),
+            extraction_method="semantic_link",
+        )
+```
+
+**Change the signature** from `def extract(self, model_name: str, workspace: str | None = None) -> SemanticModelMeta:` to:
 
 ```python
     def extract(
@@ -1594,21 +1616,23 @@ No new top-level imports needed. All Fabric/notebookutils imports are inside met
         *,
         with_copilot: bool = False,
     ) -> SemanticModelMeta:
-        """Extract full metadata for a semantic model.
+```
 
-        Args:
-            model_name: Name of the Power BI / Fabric semantic model.
-            workspace: Workspace to use; defaults to self.workspace.
-            with_copilot: If True, also fetch the Copilot/ folder via
-                Fabric REST getDefinition and populate model.copilot.
+(Update the existing docstring too — add the `with_copilot:` arg line.)
 
-        Returns:
-            A fully populated SemanticModelMeta object.
-        """
-        ws = workspace or self.workspace
-        # ... existing body unchanged ...
+**Then replace the trailing bare return** above with this exact block:
+
+```python
         model = SemanticModelMeta(
-            # ... existing constructor args unchanged ...
+            name=model_name,
+            workspace=ws,
+            description=None,
+            tables=table_metas,
+            relationships=relationships,
+            ai_readiness_score=None,
+            scoring_breakdown={},
+            extraction_timestamp=datetime.now(timezone.utc).isoformat(),
+            extraction_method="semantic_link",
         )
 
         if with_copilot:
@@ -1617,7 +1641,7 @@ No new top-level imports needed. All Fabric/notebookutils imports are inside met
         return model
 ```
 
-> **Engineer note:** Do not rewrite the body of `extract`. Only (a) change the signature, (b) replace the bare `return SemanticModelMeta(...)` at the end with the variable assignment + conditional + `return model` pattern shown above.
+> **Engineer note:** Do not touch the body between the signature and the return — `tables_df`, `measures_df`, `rels_df`, the table-metas loop, and relationship parsing all stay exactly as they are.
 
 (c) Add two new private methods to the class:
 
@@ -2196,9 +2220,12 @@ def test_export_copilot_cli_invocation_populates_copilot_via_mock(tmp_path, monk
     assert (tmp_path / "adventure-works" / "copilot" / "Instructions" / "instructions.md").exists()
 
 
-def test_export_langchain_cli_does_not_pass_with_copilot(monkeypatch):
+def test_export_langchain_cli_does_not_pass_with_copilot(monkeypatch, tmp_path):
     """Non-copilot exporters must not trigger Copilot extraction."""
     from click.testing import CliRunner
+
+    import fabric_ai_meta.cli as cli
+    from fabric_ai_meta.config import Config, ExtractionConfig, OutputConfig
 
     captured = {}
     class StubExtractor:
@@ -2216,6 +2243,11 @@ def test_export_langchain_cli_does_not_pass_with_copilot(monkeypatch):
         "fabric_ai_meta.extractor.mock.MockExtractor",
         lambda fixture_path: StubExtractor()
     )
+    # Prevent the LangChainExporter from writing into the real ./output directory.
+    monkeypatch.setattr(cli, "load_config", lambda: Config(
+        extraction=ExtractionConfig(default_workspace="W"),
+        output=OutputConfig(output_dir=str(tmp_path)),
+    ))
 
     from fabric_ai_meta.cli import main
     runner = CliRunner()
@@ -2356,36 +2388,68 @@ Expected: FAIL — `--with-copilot` not yet on `analyze`.
 
 - [ ] **Step 3: Add the flag to `analyze`**
 
-Open `src/fabric_ai_meta/cli.py`. Find the `analyze` command (around L290) and its `_run_analysis` helper (around L77). Two changes:
+Open `src/fabric_ai_meta/cli.py`. Three concrete changes (exact signatures verified against the current file):
 
-(a) On the `analyze` Click command (right next to its other `@click.option` lines), add:
+**(a) `_run_analysis` signature (cli.py L77)** — current:
+
+```python
+def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
+                  include_sample_values: bool, llm_enrich: bool, mock: bool) -> None:
+```
+
+Add `with_copilot` at the end (keyword-only is fine; default False):
+
+```python
+def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
+                  include_sample_values: bool, llm_enrich: bool, mock: bool,
+                  *, with_copilot: bool = False) -> None:
+```
+
+**(b) The single `extractor.extract` call inside `_run_analysis` (currently L111):**
+
+```python
+        model = extractor.extract(model_name, workspace)
+```
+
+becomes:
+
+```python
+        model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
+```
+
+**(c) The `analyze` Click command and handler (currently L290-311):**
+
+Add this Click option in the option block right before the function `def`:
 
 ```python
 @click.option("--with-copilot", is_flag=True, default=False,
               help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
 ```
 
-(b) In the `analyze` handler body, the function signature gains `with_copilot` (Click maps option to kwarg automatically). The call to `_run_analysis(...)` must pass it through. Update both signatures:
+The handler signature changes from:
 
 ```python
-def _run_analysis(
-    model_name: str, workspace: str, output: str, fmt: str,
-    # ... other existing params ...
-    with_copilot: bool = False,
-) -> None:
-    # ... existing body unchanged until the extractor.extract call ...
-    model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
-    # ... rest unchanged ...
+def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock):
 ```
 
-And in the `analyze` Click handler that wraps `_run_analysis`:
+to:
 
 ```python
-def analyze(model_name, workspace, output, fmt, ..., with_copilot):
-    _run_analysis(model_name, workspace, output, fmt, ..., with_copilot=with_copilot)
+def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock, with_copilot):
 ```
 
-> **Engineer note:** The exact parameter list of `analyze` and `_run_analysis` is longer than shown — read the actual signatures and insert `with_copilot` at the end of both. Click will pick up the new option automatically and pass it.
+And the call site at L311:
+
+```python
+    _run_analysis(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock)
+```
+
+becomes:
+
+```python
+    _run_analysis(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock,
+                  with_copilot=with_copilot)
+```
 
 - [ ] **Step 4: Run the tests + full suite**
 
@@ -2460,7 +2524,31 @@ Expected: FAIL — flag not on `scan` yet.
 
 - [ ] **Step 3: Add flag to `scan`**
 
-Open `src/fabric_ai_meta/cli.py`. Find the `scan` command (around L325). Add the `--with-copilot` option. In the body, find the inner extractor loop's `extractor.extract(...)` call (around L355–360) and update it to pass `with_copilot=with_copilot`. Mirror Task 7.3's pattern.
+Open `src/fabric_ai_meta/cli.py`. Find the `scan` command (around L321). The scan command does **not** call `extractor.extract` directly — it delegates to `_run_analysis` (already updated in Task 7.3 to accept `with_copilot`). So three concrete changes:
+
+**(a) Add the Click option** right before the `scan` function `def` (in the same option block as the existing `--workspace`, `--mock`, etc.):
+
+```python
+@click.option("--with-copilot", is_flag=True, default=False,
+              help="Also fetch the Copilot/ folder via Fabric REST getDefinition for each model.")
+```
+
+**(b) Add `with_copilot` to the `scan` handler signature** — append it as the last parameter (Click maps option to kwarg by name).
+
+**(c) The inner `_run_analysis` call at L362:**
+
+```python
+                result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock)
+```
+
+becomes:
+
+```python
+                result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock,
+                                       with_copilot=with_copilot)
+```
+
+> **Engineer note:** The test in Step 1 stubs `MockExtractor` to capture `extract()` kwargs and asserts `with_copilot=True` made it through. Since `scan` calls `_run_analysis` which calls `extractor.extract(..., with_copilot=with_copilot)` (already wired in Task 7.3 Step 3 (b)), this completes the chain.
 
 - [ ] **Step 4: Run the test + full suite**
 
@@ -2528,11 +2616,13 @@ Expected: FAIL — not exported.
 
 Open `src/fabric_ai_meta/__init__.py`. Update `__version__` and add the 5 new public exports.
 
-(a) Top of file:
+(a) Top of file — change line 3 from the current `__version__ = "1.3.3"` (stale from before the v1.3.4 / v1.3.5 patches) to:
 
 ```python
 __version__ = "1.4.0"
 ```
+
+The Edit operation's `old_string` should be the literal `__version__ = "1.3.3"` — confirm with a `grep -n __version__ src/fabric_ai_meta/__init__.py` first.
 
 (b) With the other `from fabric_ai_meta.models.metadata import (...)` block, add a new import block:
 
@@ -2889,7 +2979,17 @@ curl -s https://pypi.org/pypi/fabric-ai-meta/json | python -c "import sys,json; 
 
 Expected: `latest: 1.4.0`.
 
-- [ ] **Step 3: Verify attestations**
+- [ ] **Step 3: Verify attestations** (Windows-friendly — uses `$env:TEMP`, works in PowerShell)
+
+PowerShell:
+
+```powershell
+$tmp = Join-Path $env:TEMP "prov.json"
+curl.exe -s -o $tmp -w "HTTP %{http_code}`n" `
+  "https://pypi.org/integrity/fabric-ai-meta/1.4.0/fabric_ai_meta-1.4.0-py3-none-any.whl/provenance"
+```
+
+Or bash / WSL / Git Bash:
 
 ```
 curl -s -o /tmp/prov.json -w "HTTP %{http_code}\n" \
@@ -2902,7 +3002,9 @@ Expected: `HTTP 200`.
 
 - [ ] **Step 1: Edit auto-created release**
 
-`publish.yml`'s `attach-to-release` job auto-creates a placeholder release. Replace its notes:
+`publish.yml`'s `attach-to-release` job auto-creates a placeholder release. Replace its notes.
+
+**From Git Bash / WSL** (heredoc works):
 
 ```bash
 gh release edit v1.4.0 \
@@ -2910,30 +3012,67 @@ gh release edit v1.4.0 \
   --notes "$(cat <<'EOF'
 ### Added
 - CopilotBundle data model + CopilotReader parser surface the Microsoft Copilot/ folder (AI Instructions, Verified Answers, AI Data Schema, example prompts, settings, version) as typed Python objects.
-- New \`--with-copilot\` opt-in flag on \`analyze\` and \`scan\` populates \`SemanticModelMeta.copilot\` alongside the existing extractor outputs.
-- New \`fabric-ai-meta export copilot MODEL\` CLI mirrors Microsoft's Copilot/ folder layout to \`./output/<slug>/copilot/\` on disk.
-- MockExtractor reads a sidecar \`<fixture>.copilot.json\` file when called with \`with_copilot=True\`.
+- New --with-copilot opt-in flag on analyze and scan populates SemanticModelMeta.copilot alongside the existing extractor outputs.
+- New fabric-ai-meta export copilot MODEL CLI mirrors Microsoft's Copilot/ folder layout to ./output/<slug>/copilot/ on disk.
+- MockExtractor reads a sidecar <fixture>.copilot.json file when called with_copilot=True.
 
 ### Notes
-- Read-only in v1.4.0; the future \`CopilotWriter\` / \`apply-copilot\` CLI does the inverse.
+- Read-only in v1.4.0; the future CopilotWriter / apply-copilot CLI does the inverse.
 
 ### Install
-\`\`\`bash
-pip install --upgrade fabric-ai-meta
-\`\`\`
+    pip install --upgrade fabric-ai-meta
 
 Full changelog: https://github.com/psistla/fabric-ai-meta/blob/master/CHANGELOG.md
 EOF
 )"
 ```
 
+**From PowerShell** (use a here-string and a temp file; PowerShell has no command-substitution equivalent of `$(...)` that plays nicely with `gh release edit`'s `--notes` arg):
+
+```powershell
+$notes = @'
+### Added
+- CopilotBundle data model + CopilotReader parser surface the Microsoft Copilot/ folder (AI Instructions, Verified Answers, AI Data Schema, example prompts, settings, version) as typed Python objects.
+- New --with-copilot opt-in flag on analyze and scan populates SemanticModelMeta.copilot alongside the existing extractor outputs.
+- New fabric-ai-meta export copilot MODEL CLI mirrors Microsoft's Copilot/ folder layout to ./output/<slug>/copilot/ on disk.
+- MockExtractor reads a sidecar <fixture>.copilot.json file when called with_copilot=True.
+
+### Notes
+- Read-only in v1.4.0; the future CopilotWriter / apply-copilot CLI does the inverse.
+
+### Install
+    pip install --upgrade fabric-ai-meta
+
+Full changelog: https://github.com/psistla/fabric-ai-meta/blob/master/CHANGELOG.md
+'@
+
+$tmp = Join-Path $env:TEMP "v140-notes.md"
+Set-Content -Path $tmp -Value $notes -Encoding utf8
+gh release edit v1.4.0 --title "v1.4.0: read half of Prep for AI writeback" --notes-file $tmp
+Remove-Item $tmp
+```
+
 ### Task 9.5: Post-release sanity check
 
 - [ ] **Step 1: Fresh install from PyPI in a throwaway venv**
 
+**PowerShell:**
+
+```powershell
+$venv = Join-Path $env:TEMP "v140check"
+python -m venv $venv
+& "$venv\Scripts\Activate.ps1"
+pip install --upgrade fabric-ai-meta
+python -c "import fabric_ai_meta as f; print('Version:', f.__version__); print('Has CopilotReader:', hasattr(f, 'CopilotReader')); print('Has CopilotBundle:', hasattr(f, 'CopilotBundle')); print('Has AIInstructions:', hasattr(f, 'AIInstructions')); print('Has VerifiedAnswer:', hasattr(f, 'VerifiedAnswer')); print('Has AIDataSchema:', hasattr(f, 'AIDataSchema'))"
+deactivate
+Remove-Item -Recurse -Force $venv
+```
+
+**Git Bash / WSL / Linux / macOS:**
+
 ```bash
 python -m venv /tmp/v140check
-source /tmp/v140check/bin/activate    # or .\Scripts\activate on Windows
+source /tmp/v140check/bin/activate
 pip install --upgrade fabric-ai-meta
 python -c "
 import fabric_ai_meta as f
@@ -2945,6 +3084,7 @@ print('Has VerifiedAnswer:', hasattr(f, 'VerifiedAnswer'))
 print('Has AIDataSchema:', hasattr(f, 'AIDataSchema'))
 "
 deactivate
+rm -rf /tmp/v140check
 ```
 
 Expected: `Version: 1.4.0` and every `Has X: True`.
