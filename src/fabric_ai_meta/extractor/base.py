@@ -9,8 +9,18 @@ class BaseExtractor(ABC):
     """Base class for all semantic model extractors."""
 
     @abstractmethod
-    def extract(self, model_name: str, workspace: str) -> SemanticModelMeta:
-        """Extract metadata for a semantic model and return a SemanticModelMeta."""
+    def extract(
+        self, model_name: str, workspace: str, *, with_copilot: bool = False
+    ) -> SemanticModelMeta:
+        """Extract metadata for a semantic model.
+
+        Args:
+            model_name: Name of the semantic model.
+            workspace: Workspace name.
+            with_copilot: If True, also fetch and populate `SemanticModelMeta.copilot`
+                with the model's `Copilot/` folder (AI Instructions, Verified Answers,
+                etc.). When False (default), `copilot` is left None.
+        """
         ...
 
     @abstractmethod

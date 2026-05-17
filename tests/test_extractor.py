@@ -267,3 +267,15 @@ def test_semanticmodelmeta_copilot_defaults_to_none_and_is_optional():
     d = model.to_dict()
     assert "copilot" in d
     assert d["copilot"] is None
+
+
+def test_baseextractor_extract_accepts_with_copilot_kwarg():
+    """v1.4.0: extract() gains a kw-only with_copilot flag (default False)."""
+    import inspect
+    from fabric_ai_meta.extractor.base import BaseExtractor
+
+    sig = inspect.signature(BaseExtractor.extract)
+    assert "with_copilot" in sig.parameters
+    param = sig.parameters["with_copilot"]
+    assert param.kind is inspect.Parameter.KEYWORD_ONLY
+    assert param.default is False
