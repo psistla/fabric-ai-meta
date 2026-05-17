@@ -75,7 +75,8 @@ def _get_fixture_path(model_name: str) -> str:
 
 
 def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
-                  include_sample_values: bool, llm_enrich: bool, mock: bool) -> None:
+                  include_sample_values: bool, llm_enrich: bool, mock: bool,
+                  *, with_copilot: bool = False) -> None:
     """Core analysis flow shared by analyze and scan commands."""
     from fabric_ai_meta.analyzer.classifier import (
         classify_column_role,
@@ -108,7 +109,7 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
             from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
             extractor = SemanticLinkExtractor(workspace=workspace)
 
-        model = extractor.extract(model_name, workspace)
+        model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
         progress.update(task, description=f"Extracted '{model_name}' ({len(model.tables)} tables)")
 
         # Step 2: Heuristic classification
@@ -294,7 +295,9 @@ def auth_logout():
 @click.option("--include-sample-values", is_flag=True, default=False)
 @click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM-assisted classification.")
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
-def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock):
+@click.option("--with-copilot", is_flag=True, default=False,
+              help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
+def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock, with_copilot):
     """Analyze a semantic model and generate AI-ready metadata exports."""
     cfg = load_config()
     workspace = workspace or cfg.extraction.default_workspace
@@ -308,7 +311,8 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
     ))
 
     try:
-        _run_analysis(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock)
+        _run_analysis(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock,
+                      with_copilot=with_copilot)
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)
