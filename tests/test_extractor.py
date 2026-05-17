@@ -313,3 +313,21 @@ def test_mockextractor_fixture_path_no_sidecar_leaves_copilot_none(tmp_path):
     ex = MockExtractor(fixture_path=str(fixture))
     model = ex.extract("Tiny", "W", with_copilot=True)
     assert model.copilot is None
+
+
+def test_mockextractor_fixture_dir_loads_copilot_sidecar():
+    from fabric_ai_meta.extractor.mock import MockExtractor
+
+    ex = MockExtractor(fixture_dir="tests/fixtures")
+    model = ex.extract("Adventure Works", "ws", with_copilot=True)
+    assert model.copilot is not None
+    assert model.copilot.ai_instructions is not None
+
+
+def test_mockextractor_fixture_dir_list_models_skips_copilot_sidecars():
+    from fabric_ai_meta.extractor.mock import MockExtractor
+
+    ex = MockExtractor(fixture_dir="tests/fixtures")
+    models = ex.list_models("ws")
+    assert not any(m.lower().endswith(".copilot") for m in models)
+    assert not any(".copilot.json" in m for m in models)
