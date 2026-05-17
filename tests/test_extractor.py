@@ -245,3 +245,25 @@ def test_enterprise_model_round_trip(enterprise_sales_model):
     assert restored_model.name == enterprise_sales_model.name
     assert len(restored_model.tables) == len(enterprise_sales_model.tables)
     assert len(restored_model.relationships) == len(enterprise_sales_model.relationships)
+
+
+def test_semanticmodelmeta_copilot_defaults_to_none_and_is_optional():
+    """v1.4.0 adds an optional copilot field; existing constructors must not break."""
+    from fabric_ai_meta.models.metadata import SemanticModelMeta
+
+    model = SemanticModelMeta(
+        name="X",
+        workspace="W",
+        description=None,
+        tables=[],
+        relationships=[],
+        ai_readiness_score=None,
+        scoring_breakdown={},
+        extraction_timestamp="2026-01-01T00:00:00Z",
+        extraction_method="mock",
+    )
+    assert model.copilot is None
+    # Round-trip must still work; copilot omitted from input dict
+    d = model.to_dict()
+    assert "copilot" in d
+    assert d["copilot"] is None

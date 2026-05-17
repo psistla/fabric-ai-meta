@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Optional
 
+from fabric_ai_meta.models.copilot import CopilotBundle
+
 
 class TableType(Enum):
     FACT = "fact"
@@ -148,10 +150,13 @@ class SemanticModelMeta:
     scoring_breakdown: dict = field(default_factory=dict)
     extraction_timestamp: Optional[str] = None
     extraction_method: Optional[str] = None  # "semantic_link" or "xmla"
+    copilot: Optional[CopilotBundle] = None
 
     def to_dict(self) -> dict:
         """Return a JSON-serializable dict."""
-        return asdict(self, dict_factory=_dict_factory)
+        d = asdict(self, dict_factory=_dict_factory)
+        d["copilot"] = self.copilot.to_dict() if self.copilot is not None else None
+        return d
 
 
 def from_dict(data: dict) -> SemanticModelMeta:
