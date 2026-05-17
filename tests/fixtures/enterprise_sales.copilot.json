@@ -1,0 +1,46 @@
+{
+  "definition": {
+    "parts": [
+      {
+        "path": "Copilot/Instructions/instructions.md",
+        "payload": "IyBFbnRlcnByaXNlIFNhbGVzIE1vZGVsIC0gQUkgSW5zdHJ1Y3Rpb25zCgojIyBQaXBlbGluZSBkZWZpbml0aW9ucwoKLSBQaXBlbGluZSB2YWx1ZSA9IHN1bSBvZiBPcGVuIE9wcG9ydHVuaXRpZXMgW0Ftb3VudF0gd2hlcmUgU3RhZ2VOYW1lICE9IENsb3NlZCBMb3N0LgotIFdlaWdodGVkIHBpcGVsaW5lID0gc3VtIG9mIFtBbW91bnRdICogW1Byb2JhYmlsaXR5XSBmb3IgdGhlIHNhbWUgc2V0LgotIEFjdGl2ZSBkZWFscyA9IE9wcG9ydHVuaXRpZXMgd2l0aCBDbG9zZURhdGUgaW4gbmV4dCA5MCBkYXlzIGFuZCBJc0Nsb3NlZCA9IEZBTFNFLgoKIyMgV2luLXJhdGUgZGVmaW5pdGlvbnMKCi0gV2luIHJhdGUgPSBDT1VOVChDbG9zZWQgV29uKSAvIENPVU5UKEFsbCBDbG9zZWQpIGJ5IG1vbnRoLgotIEFsd2F5cyBleGNsdWRlIGludGVybmFsIHRlc3QgYWNjb3VudHMgKHVzZSBBY2NvdW50c1tJc1Rlc3RdIGZpbHRlcikuCgojIyBEYXRlIGhhbmRsaW5nCgotIEFsd2F5cyB1c2UgdGhlIFtEYXRlXSB0YWJsZSBmb3IgdGltZSBmaWx0ZXJzOyBuZXZlciBmaWx0ZXIgb24gcmF3IHRpbWVzdGFtcCBjb2x1bW5zLgo=",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/schema.json",
+        "payload": "eyJ2ZXJzaW9uIjogIjEuMCIsICJ0YWJsZXMiOiBbeyJuYW1lIjogIk9wcG9ydHVuaXRpZXMiLCAiY29sdW1ucyI6IFsiQW1vdW50IiwgIlByb2JhYmlsaXR5IiwgIlN0YWdlTmFtZSIsICJDbG9zZURhdGUiXX0sIHsibmFtZSI6ICJBY2NvdW50cyIsICJjb2x1bW5zIjogWyJBY2NvdW50TmFtZSIsICJJbmR1c3RyeSIsICJJc1Rlc3QiXX0sIHsibmFtZSI6ICJVc2VycyIsICJjb2x1bW5zIjogWyJGdWxsTmFtZSIsICJSZWdpb24iLCAiTWFuYWdlcklkIl19LCB7Im5hbWUiOiAiRGF0ZSIsICJjb2x1bW5zIjogWyJEYXRlIiwgIlllYXIiLCAiUXVhcnRlciIsICJNb250aCJdfSwgeyJuYW1lIjogIlByb2R1Y3RzIiwgImNvbHVtbnMiOiBbIlByb2R1Y3ROYW1lIiwgIkNhdGVnb3J5IiwgIkxpc3RQcmljZSJdfV19",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/examplePrompts.json",
+        "payload": "eyJwcm9tcHRzIjogWyJTaG93IHBpcGVsaW5lIGJ5IHF1YXJ0ZXIuIiwgIldoYXQgaXMgbXkgd2luIHJhdGUgdGhpcyB5ZWFyPyIsICJUb3AgMTAgZGVhbHMgY2xvc2luZyBpbiB0aGUgbmV4dCAzMCBkYXlzLiJdfQ==",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/VerifiedAnswers/deal-size-distribution.json",
+        "payload": "eyJxdWVzdGlvbiI6ICJXaGF0IGlzIHRoZSBkZWFsIHNpemUgZGlzdHJpYnV0aW9uPyIsICJkYXgiOiAiRVZBTFVBVEUgU1VNTUFSSVpFQ09MVU1OUyhPcHBvcnR1bml0aWVzW0RlYWxTaXplQmFuZF0sIFwiQ291bnRcIiwgQ09VTlRST1dTKE9wcG9ydHVuaXRpZXMpKSJ9",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/VerifiedAnswers/pipeline-by-quarter.json",
+        "payload": "eyJxdWVzdGlvbiI6ICJTaG93IHBpcGVsaW5lIHZhbHVlIGJ5IHF1YXJ0ZXIuIiwgImRheCI6ICJFVkFMVUFURSBTVU1NQVJJWkVDT0xVTU5TKCdEYXRlJ1tRdWFydGVyXSwgXCJQaXBlbGluZVwiLCBbUGlwZWxpbmUgVmFsdWVdKSJ9",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/VerifiedAnswers/win-rate.json",
+        "payload": "eyJxdWVzdGlvbiI6ICJXaGF0IGlzIHRoZSB3aW4gcmF0ZSBieSBtb250aD8iLCAiZGF4IjogIkVWQUxVQVRFIFNVTU1BUklaRUNPTFVNTlMoJ0RhdGUnW01vbnRoXSwgXCJXaW4gUmF0ZVwiLCBbV2luIFJhdGVdKSJ9",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/settings.json",
+        "payload": "eyJlbmFibGVkIjogdHJ1ZSwgInZlcmlmaWVkQW5zd2Vyc09ubHkiOiBmYWxzZX0=",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/version.json",
+        "payload": "eyJ2ZXJzaW9uIjogIjEuMCIsICJsYXN0U3luYyI6ICIyMDI2LTA1LTAxVDAwOjAwOjAwWiJ9",
+        "payloadType": "InlineBase64"
+      }
+    ]
+  }
+}

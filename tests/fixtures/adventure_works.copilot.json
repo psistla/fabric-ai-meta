@@ -1,0 +1,41 @@
+{
+  "definition": {
+    "parts": [
+      {
+        "path": "Copilot/Instructions/instructions.md",
+        "payload": "IyBBZHZlbnR1cmUgV29ya3MgQUkgSW5zdHJ1Y3Rpb25zCgotIEFsd2F5cyBwcmVmZXIgRElTVElOQ1RDT1VOVCgpIG92ZXIgQ09VTlQoKSBmb3IgY3VzdG9tZXIgY291bnRzLgotIFRvdGFsIFNhbGVzIGxpdmVzIG9uIHRoZSBTYWxlcyB0YWJsZSwgbm90IE9yZGVycy4KLSBEYXRlIGZpbHRlcnMgc2hvdWxkIHVzZSB0aGUgRGF0ZSB0YWJsZSwgbmV2ZXIgcmF3IE9yZGVyRGF0ZSBjb2x1bW5zLgo=",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/schema.json",
+        "payload": "eyJ2ZXJzaW9uIjogIjEuMCIsICJ0YWJsZXMiOiBbeyJuYW1lIjogIlNhbGVzIiwgImNvbHVtbnMiOiBbIlRvdGFsQW1vdW50IiwgIk9yZGVyRGF0ZSIsICJDdXN0b21lcktleSJdfSwgeyJuYW1lIjogIkRhdGUiLCAiY29sdW1ucyI6IFsiRGF0ZSIsICJZZWFyIiwgIk1vbnRoTmFtZSJdfV19",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/examplePrompts.json",
+        "payload": "WyJXaGF0IHdlcmUgdG90YWwgc2FsZXMgbGFzdCBxdWFydGVyPyIsICJTaG93IHRvcCA1IGN1c3RvbWVycyBieSByZXZlbnVlLiJd",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/VerifiedAnswers/total-sales-by-year.json",
+        "payload": "eyJxdWVzdGlvbiI6ICJXaGF0IHdlcmUgdG90YWwgc2FsZXMgYnkgeWVhcj8iLCAiZGF4IjogIkVWQUxVQVRFIFNVTU1BUklaRUNPTFVNTlMoJ0RhdGUnW1llYXJdLCBcIlRvdGFsXCIsIFtUb3RhbCBTYWxlc10pIn0=",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/VerifiedAnswers/top-customers.json",
+        "payload": "eyJxdWVzdGlvbiI6ICJXaG8gYXJlIHRoZSB0b3AgNSBjdXN0b21lcnM/IiwgImRheCI6ICJFVkFMVUFURSBUT1BOKDUsIEN1c3RvbWVycywgW1RvdGFsIFNhbGVzXSwgREVTQykifQ==",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/settings.json",
+        "payload": "eyJlbmFibGVkIjogdHJ1ZSwgIm1vZGVsIjogImRlZmF1bHQifQ==",
+        "payloadType": "InlineBase64"
+      },
+      {
+        "path": "Copilot/version.json",
+        "payload": "eyJ2ZXJzaW9uIjogIjEuMCJ9",
+        "payloadType": "InlineBase64"
+      }
+    ]
+  }
+}

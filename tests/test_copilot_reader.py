@@ -251,3 +251,44 @@ def test_full_envelope_with_all_six_primitives_populates_every_field():
     assert bundle.settings is not None
     assert bundle.version is not None
     assert [va.filename for va in bundle.verified_answers] == ["q1.json", "q2.json"]
+
+
+def test_adventure_works_sidecar_fixture_parses_cleanly():
+    import json
+    from pathlib import Path
+
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    fixture = Path("tests/fixtures/adventure_works.copilot.json")
+    envelope = json.loads(fixture.read_text(encoding="utf-8"))
+    bundle = CopilotReader.from_definition(envelope)
+
+    assert bundle.ai_instructions is not None
+    assert "DISTINCTCOUNT" in bundle.ai_instructions.markdown
+    assert bundle.ai_data_schema is not None
+    assert any(t["name"] == "Sales" for t in bundle.ai_data_schema.raw["tables"])
+    assert bundle.example_prompts is not None
+    assert len(bundle.example_prompts.prompts) == 2
+    assert [va.filename for va in bundle.verified_answers] == [
+        "top-customers.json",
+        "total-sales-by-year.json",
+    ]
+    assert bundle.settings is not None
+    assert bundle.version is not None
+
+
+def test_enterprise_sales_sidecar_fixture_parses_cleanly():
+    import json
+    from pathlib import Path
+
+    from fabric_ai_meta.generator.copilot_reader import CopilotReader
+
+    fixture = Path("tests/fixtures/enterprise_sales.copilot.json")
+    envelope = json.loads(fixture.read_text(encoding="utf-8"))
+    bundle = CopilotReader.from_definition(envelope)
+
+    assert bundle.ai_instructions is not None
+    assert bundle.ai_data_schema is not None
+    assert len(bundle.verified_answers) >= 3
+    names = [va.filename for va in bundle.verified_answers]
+    assert names == sorted(names)

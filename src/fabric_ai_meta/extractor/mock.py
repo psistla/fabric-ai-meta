@@ -59,6 +59,9 @@ class MockExtractor(BaseExtractor):
         for fname in sorted(os.listdir(self.fixture_dir)):
             if not fname.endswith(".json"):
                 continue
+            # Skip sidecar fixtures (e.g. *.copilot.json) which are not model files.
+            if fname.endswith(".copilot.json"):
+                continue
             fpath = os.path.join(self.fixture_dir, fname)
             try:
                 with open(fpath, "r", encoding="utf-8") as f:
@@ -81,6 +84,9 @@ class MockExtractor(BaseExtractor):
         target_slug = _slugify(model_name)
         for fname in sorted(os.listdir(self.fixture_dir)):
             if not fname.endswith(".json"):
+                continue
+            # Skip sidecar fixtures (e.g. *.copilot.json) which are not model files.
+            if fname.endswith(".copilot.json"):
                 continue
             fpath = os.path.join(self.fixture_dir, fname)
             try:
