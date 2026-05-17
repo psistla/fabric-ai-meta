@@ -112,3 +112,8 @@ jobs:
         with:
           # No `password` / `username` set: uses OIDC trusted publishing.
           skip-existing: true
+          # Explicitly generate and upload PEP 740 sigstore attestations for
+          # the wheel and sdist. This is the default in pypa/gh-action-pypi-publish
+          # since v1.10, but pin it here so a future action default change
+          # cannot silently drop provenance signatures from our releases.
+          attestations: true
