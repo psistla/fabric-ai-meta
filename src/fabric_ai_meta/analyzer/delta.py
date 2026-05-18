@@ -1,6 +1,33 @@
 """Compare two workspace summaries and produce a delta report."""
 
 
+def _compute_copilot_changes(
+    baseline_signals: dict | None,
+    current_signals: dict | None,
+) -> dict | None:
+    """Diff Copilot signal blocks between two snapshots.
+
+    Returns ``None`` unless BOTH sides have Copilot signals - asymmetric input
+    (one scan was run with ``--with-copilot`` and the other without) cannot
+    be meaningfully diffed without producing false regression alerts.
+    """
+    if not isinstance(baseline_signals, dict) or not isinstance(current_signals, dict):
+        return None
+
+    def _delta(key: str, default: int = 0) -> int:
+        return current_signals.get(key, default) - baseline_signals.get(key, default)
+
+    b_has_instr = bool(baseline_signals.get("has_ai_instructions"))
+    c_has_instr = bool(current_signals.get("has_ai_instructions"))
+    return {
+        "ai_instructions_added": (not b_has_instr) and c_has_instr,
+        "ai_instructions_removed": b_has_instr and (not c_has_instr),
+        "verified_answer_count_change": _delta("verified_answer_count"),
+        "ai_data_schema_table_count_change": _delta("ai_data_schema_table_count"),
+        "example_prompt_count_change": _delta("example_prompt_count"),
+    }
+
+
 def compare_workspace_summaries(baseline: dict, current: dict) -> dict:
     """Compare two workspace-summary.json dicts and return a delta report.
 
@@ -76,6 +103,8 @@ def compare_workspace_summaries(baseline: dict, current: dict) -> dict:
         else:
             desc_change = None
 
+        copilot_changes = _compute_copilot_changes(b.get("copilot"), c.get("copilot"))
+
         if score_change is not None and abs(score_change) > 1e-9:
             status = "improved" if score_change > 0 else "degraded"
         elif table_change != 0 or measure_change != 0:
@@ -83,7 +112,15 @@ def compare_workspace_summaries(baseline: dict, current: dict) -> dict:
         else:
             status = "unchanged"
 
-        model_deltas.append({
+        # A Copilot regression downgrades an otherwise-unchanged model.
+        if (
+            copilot_changes is not None
+            and copilot_changes.get("ai_instructions_removed")
+            and status == "unchanged"
+        ):
+            status = "degraded"
+
+        delta_entry = {
             "name": name,
             "status": status,
             "score_before": b_score,
@@ -92,7 +129,10 @@ def compare_workspace_summaries(baseline: dict, current: dict) -> dict:
             "table_count_change": table_change,
             "measure_count_change": measure_change,
             "description_coverage_change": round(desc_change, 6) if desc_change is not None else None,
-        })
+        }
+        if copilot_changes is not None:
+            delta_entry["copilot_changes"] = copilot_changes
+        model_deltas.append(delta_entry)
 
     return {
         "summary": {
@@ -161,5 +201,24 @@ def format_delta_text(delta: dict) -> str:
             lines.append(f"  v {name} (degraded{', score: ' + sc_str if sc_str else ''})")
         else:
             lines.append(f"  = {name} (unchanged)")
+
+        cop = md.get("copilot_changes")
+        if isinstance(cop, dict):
+            notes: list[str] = []
+            if cop.get("ai_instructions_removed"):
+                notes.append("AI Instructions removed")
+            if cop.get("ai_instructions_added"):
+                notes.append("AI Instructions added")
+            for key, label in (
+                ("verified_answer_count_change", "verified answers"),
+                ("ai_data_schema_table_count_change", "schema tables"),
+                ("example_prompt_count_change", "example prompts"),
+            ):
+                change = cop.get(key, 0)
+                if change:
+                    sign = "+" if change > 0 else ""
+                    notes.append(f"{label} {sign}{change}")
+            if notes:
+                lines.append(f"      copilot: {'; '.join(notes)}")
 
     return "\n".join(lines)

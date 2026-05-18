@@ -46,6 +46,9 @@
       "items": {
         "type": "string"
       }
+    },
+    "copilot_completeness": {
+      "$ref": "#/$defs/copilot_completeness"
     }
   },
   "$defs": {
@@ -139,6 +142,68 @@
         }
       },
       "additionalProperties": false
+    },
+    "copilot_completeness": {
+      "type": "object",
+      "description": "Aggregate Copilot governance signals. Present only when at least one model carries a CopilotBundle.",
+      "required": [
+        "models_with_copilot",
+        "models_with_copilot_names",
+        "models_without_ai_instructions",
+        "total_verified_answers",
+        "per_model_signals"
+      ],
+      "properties": {
+        "models_with_copilot": { "type": "integer", "minimum": 0 },
+        "models_with_copilot_names": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "models_without_ai_instructions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "total_verified_answers": { "type": "integer", "minimum": 0 },
+        "per_model_signals": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/copilot_model_signals" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "copilot_core_signals": {
+      "type": "object",
+      "description": "Seven canonical Copilot signals shared with the workspace-summary schema.",
+      "required": [
+        "has_ai_instructions",
+        "ai_instructions_length",
+        "verified_answer_count",
+        "ai_data_schema_table_count",
+        "example_prompt_count",
+        "copilot_enabled",
+        "copilot_version"
+      ],
+      "properties": {
+        "has_ai_instructions": { "type": "boolean" },
+        "ai_instructions_length": { "type": "integer", "minimum": 0 },
+        "verified_answer_count": { "type": "integer", "minimum": 0 },
+        "ai_data_schema_table_count": { "type": "integer", "minimum": 0 },
+        "example_prompt_count": { "type": "integer", "minimum": 0 },
+        "copilot_enabled": { "type": ["boolean", "null"] },
+        "copilot_version": { "type": ["string", "null"] }
+      }
+    },
+    "copilot_model_signals": {
+      "allOf": [
+        { "$ref": "#/$defs/copilot_core_signals" },
+        {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" }
+          }
+        }
+      ]
     }
   }
 }

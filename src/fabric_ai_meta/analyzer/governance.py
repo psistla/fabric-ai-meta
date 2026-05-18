@@ -97,12 +97,66 @@ def find_duplicate_measures(models: list[SemanticModelMeta]) -> list[dict]:
     return result
 
 
+def _has_any_copilot_artifact(signals: dict) -> bool:
+    """Return True if a signals dict reports at least one non-empty primitive."""
+    return any([
+        signals.get("has_ai_instructions"),
+        signals.get("verified_answer_count", 0) > 0,
+        signals.get("ai_data_schema_table_count", 0) > 0,
+        signals.get("example_prompt_count", 0) > 0,
+    ])
+
+
+def aggregate_copilot_signals(
+    name_signal_pairs: list[tuple[str, dict]],
+) -> dict:
+    """Workspace-level rollup of per-model Copilot signals.
+
+    Input is a list of ``(model_name, signals_dict)`` so callers can use this
+    over either live ``CopilotBundle`` objects or already-serialized signals
+    blocks in a ``workspace-summary.json``.
+    """
+    models_with_any = sorted(
+        name for name, sig in name_signal_pairs if _has_any_copilot_artifact(sig)
+    )
+    missing_instructions = sorted(
+        name for name, sig in name_signal_pairs
+        if not sig.get("has_ai_instructions")
+    )
+    total_verified_answers = sum(
+        sig.get("verified_answer_count", 0) for _, sig in name_signal_pairs
+    )
+    return {
+        "models_with_copilot": len(models_with_any),
+        "models_with_copilot_names": models_with_any,
+        "models_without_ai_instructions": missing_instructions,
+        "total_verified_answers": total_verified_answers,
+    }
+
+
+def find_copilot_completeness(models: list[SemanticModelMeta]) -> dict | None:
+    """Aggregate Copilot signals across models that carry a CopilotBundle.
+
+    Returns ``None`` when no model has ``.copilot`` populated (the user did
+    not run extraction with ``with_copilot=True``). Otherwise returns a dict
+    with per-model signals plus workspace-level rollup counters.
+    """
+    with_copilot = [m for m in models if m.copilot is not None]
+    if not with_copilot:
+        return None
+
+    pairs = [(m.name, m.copilot.signals()) for m in with_copilot]
+    per_model = [{"name": name, **sig} for name, sig in pairs]
+    rollup = aggregate_copilot_signals(pairs)
+    return {**rollup, "per_model_signals": per_model}
+
+
 def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
     """Generate a cross-model governance scorecard report.
 
     Returns:
         Dict with keys: summary, score_ranking, naming_inconsistencies,
-        duplicate_measures, recommendations
+        duplicate_measures, recommendations, copilot_completeness (optional).
     """
     scored = [
         (m.name, m.ai_readiness_score)
@@ -155,7 +209,15 @@ def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
                 "run with --llm-enrich to generate missing descriptions"
             )
 
-    return {
+    copilot_completeness = find_copilot_completeness(models)
+    if copilot_completeness is not None:
+        for name in copilot_completeness["models_without_ai_instructions"]:
+            recommendations.append(
+                f"'{name}' has no AI Instructions; add Copilot/Instructions/instructions.md "
+                "to guide Copilot answer behavior"
+            )
+
+    report = {
         "summary": {
             "model_count": len(models),
             "average_readiness_score": avg_score,
@@ -169,6 +231,9 @@ def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
         "duplicate_measures": duplicate_measures,
         "recommendations": recommendations,
     }
+    if copilot_completeness is not None:
+        report["copilot_completeness"] = copilot_completeness
+    return report
 
 
 def write_governance_report(report: dict, workspace: str, output_path: str) -> str:

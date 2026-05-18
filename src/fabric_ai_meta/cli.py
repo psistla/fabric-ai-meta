@@ -38,6 +38,27 @@ def _write_json(path: str, data: dict) -> None:
         json.dump(data, f, indent=2)
 
 
+def _empty_copilot_signals() -> dict:
+    """Signal shape for a model whose Copilot/ folder is absent or unreadable.
+
+    Single source of truth: an empty `CopilotBundle`'s `signals()` output.
+    Keeps the scan-time fallback shape in lockstep with the live signals shape.
+    """
+    from fabric_ai_meta.models.copilot import CopilotBundle
+    return CopilotBundle().signals()
+
+
+def _aggregate_copilot_signals(model_summaries: list[dict]) -> dict:
+    """Workspace-level rollup, delegating to the shared aggregator."""
+    from fabric_ai_meta.analyzer.governance import aggregate_copilot_signals
+    pairs = [
+        (m["name"], m["copilot"])
+        for m in model_summaries
+        if isinstance(m.get("copilot"), dict)
+    ]
+    return aggregate_copilot_signals(pairs)
+
+
 def _list_mock_models() -> list[str]:
     """List model names available from fixture files in the tests/fixtures directory."""
     here = os.path.dirname(os.path.abspath(__file__))
@@ -379,7 +400,7 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
                     for t in model.tables
                 )
                 desc_coverage = round(described / total_objs, 4) if total_objs > 0 else 0.0
-                model_summaries.append({
+                entry = {
                     "name": name,
                     "slug": slug,
                     "ai_readiness_score": round(score, 4),
@@ -389,7 +410,14 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
                     "extraction_timestamp": model.extraction_timestamp,
                     "output_directory": f"{slug}/",
                     "errors": [],
-                })
+                }
+                if with_copilot:
+                    entry["copilot"] = (
+                        model.copilot.signals()
+                        if model.copilot is not None
+                        else _empty_copilot_signals()
+                    )
+                model_summaries.append(entry)
             except Exception as e:
                 model_summaries.append({
                     "name": name,
@@ -434,6 +462,8 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
         "score_ranking": score_ranking,
         "recommendations": recommendations,
     }
+    if with_copilot:
+        workspace_summary["copilot_summary"] = _aggregate_copilot_signals(model_summaries)
 
     _ensure_dir(output)
     summary_path = os.path.join(output, "workspace-summary.json")
@@ -511,7 +541,7 @@ def _register_exporter_commands() -> None:
                 _export_single(
                     model_name, workspace, exporter_cls(),
                     mock=mock,
-                    with_copilot=(ep_name == "copilot"),
+                    with_copilot=exporter_cls.requires_copilot,
                 )
             return _cmd
 
@@ -680,7 +710,9 @@ def score(model_name, workspace, score_all, mock):
 @click.option("--report", default=None, help="Output file path for governance report JSON.")
 @click.option("--output", "-o", default="./output", show_default=True, help="Output directory (report defaults here).")
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture files.")
-def governance(workspace, report, output, mock):
+@click.option("--with-copilot", is_flag=True, default=False,
+              help="Also extract each model's Copilot/ folder and include the copilot_completeness section.")
+def governance(workspace, report, output, mock, with_copilot):
     """Generate cross-model governance report for a workspace."""
     console.print(Panel(
         f"[bold]governance[/bold]  workspace=[cyan]{workspace}[/cyan]",
@@ -712,7 +744,7 @@ def governance(workspace, report, output, mock):
         for name in model_names:
             t = progress.add_task(f"Extracting {name}...", total=None)
             try:
-                m = extractor.extract(name, workspace)
+                m = extractor.extract(name, workspace, with_copilot=with_copilot)
                 for tbl in m.tables:
                     tbl.table_type = classify_table_heuristic(tbl, m.relationships)
                     for c in tbl.columns:
@@ -866,6 +898,98 @@ def apply_descriptions(config_path, workspace, dry_run, mock):
         console.print("[yellow]Errors:[/yellow]")
         for err in result.errors:
             console.print(f"  - {err}")
+        # Exit non-zero on errors so CI gates can detect failed writebacks.
+        if not result.dry_run:
+            sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# apply-copilot command
+# ---------------------------------------------------------------------------
+
+@main.command("apply-copilot")
+@click.argument("copilot_dir", type=click.Path(exists=True, file_okay=False))
+@click.option("--model", "-m", required=True, help="Semantic model name.")
+@click.option("--workspace", "-w", required=True, help="Fabric workspace name.")
+@click.option("--dry-run/--no-dry-run", default=True,
+              help="Preview changes without writing (default: dry-run on).")
+@click.option("--mock", is_flag=True, default=False,
+              help="Use MockCopilotWriter for local testing (no service contact).")
+def apply_copilot(copilot_dir, model, workspace, dry_run, mock):
+    """Apply a Copilot/ folder to a semantic model via updateDefinition."""
+    console.print(Panel(
+        f"[bold]apply-copilot[/bold]  dir=[cyan]{copilot_dir}[/cyan]  "
+        f"model=[cyan]{model}[/cyan]  workspace=[cyan]{workspace}[/cyan]  "
+        f"dry_run=[cyan]{dry_run}[/cyan]  mock=[cyan]{mock}[/cyan]",
+        title="fabric-ai-meta"
+    ))
+
+    try:
+        from fabric_ai_meta.generator.copilot_reader import CopilotReader
+        bundle = CopilotReader.from_directory(copilot_dir)
+    except Exception as e:
+        console.print(f"[red]Could not load Copilot folder {copilot_dir}: {e}[/red]")
+        sys.exit(1)
+
+    try:
+        if mock:
+            from fabric_ai_meta.writeback.copilot_writer import MockCopilotWriter
+            writer = MockCopilotWriter()
+        else:
+            from fabric_ai_meta.auth.entra import (
+                FabricEnvironmentError,
+                detect_notebook_environment,
+            )
+            if not detect_notebook_environment():
+                raise FabricEnvironmentError()
+            from fabric_ai_meta.writeback.copilot_writer import (
+                SemanticLinkCopilotWriter,
+            )
+            writer = SemanticLinkCopilotWriter()
+
+        result = writer.apply_copilot(
+            bundle=bundle,
+            model_name=model,
+            workspace=workspace,
+            dry_run=dry_run,
+        )
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+    if result.dry_run:
+        label = "DRY RUN"
+    elif result.succeeded:
+        label = "APPLIED"
+    else:
+        label = "FAILED"
+    console.print(
+        f"[bold]{label}[/bold]: "
+        f"ai_instructions={result.ai_instructions_updated}, "
+        f"verified_answers={result.verified_answers_written}, "
+        f"schema={result.ai_data_schema_updated}, "
+        f"prompts={result.example_prompts_updated}, "
+        f"settings={result.settings_updated}, "
+        f"version={result.version_updated}, "
+        f"total={result.total_changes}"
+    )
+
+    if result.changes:
+        tbl = Table(title=f"{label}: planned changes", show_header=True)
+        tbl.add_column("Operation")
+        tbl.add_column("Primitive")
+        tbl.add_column("Path")
+        for change in result.changes:
+            tbl.add_row(change["operation"], change["primitive"], change["path"])
+        console.print(tbl)
+
+    if result.errors:
+        console.print("[yellow]Errors:[/yellow]")
+        for err in result.errors:
+            console.print(f"  - {err}")
+        # Exit non-zero on errors so CI gates can detect failed writebacks.
+        if not result.dry_run:
+            sys.exit(1)
 
 
 # ---------------------------------------------------------------------------

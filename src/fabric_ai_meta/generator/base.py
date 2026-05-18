@@ -36,6 +36,9 @@ class BaseExporter(ABC):
     name: ClassVar[str] = ""
     output_filename: ClassVar[str] = ""
     description: ClassVar[str] = ""
+    # When True, the CLI calls `extractor.extract(..., with_copilot=True)` so the
+    # exporter can rely on `model.copilot` being populated. Override per exporter.
+    requires_copilot: ClassVar[bool] = False
 
     @abstractmethod
     def generate(self, model: SemanticModelMeta) -> dict:

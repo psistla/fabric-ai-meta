@@ -401,6 +401,67 @@ Microsoft Fabric stores Prep for AI primitives - AI Instructions, Verified Answe
 
 ### Limits
 
-- Read-only in v1.4.0. The inverse writeback (`apply-copilot`) is planned for a later release.
 - Models with no Copilot configuration produce an empty bundle and the exporter prints a notice (no `copilot/` directory written).
 - Outside a Fabric notebook, `--with-copilot` without `--mock` raises `FabricEnvironmentError`.
+
+## Applying Copilot artifacts back to a model (`apply-copilot`, v1.5.0)
+
+The inverse of `export copilot`. Reads a local `Copilot/` folder and writes it to a live semantic model through the Fabric REST `updateDefinition` long-running operation. Closes the read-edit-write loop for Prep for AI.
+
+### When to use this
+
+- You edited `Instructions/instructions.md` locally and want to push the change without manually re-uploading through the Power BI Service UI.
+- You renamed or added Verified Answers and need the model to reflect the new set.
+- You are version-controlling Copilot artifacts and want CI to apply the source-of-truth folder back on every merge.
+
+### Three-step workflow
+
+1. **Snapshot the live folder.** Either pull from the live model or start from a sidecar:
+
+   ```bash
+   fabric-ai-meta export copilot "Sales Model" --workspace "Production"
+   ```
+
+2. **Edit the local files.** Modify `Instructions/instructions.md`, add or delete `VerifiedAnswers/*.json`, refresh `schema.json`, etc.
+
+3. **Dry-run, then apply.** Default is dry-run; nothing is written until you pass `--no-dry-run`.
+
+   ```bash
+   # Local preview against the mock writer (no service contact)
+   fabric-ai-meta apply-copilot ./output/sales-model/copilot \
+     --model "Sales Model" --workspace "Production" --mock
+
+   # Real dry-run from inside a Fabric notebook (fetches current envelope, computes diff, does not write)
+   fabric-ai-meta apply-copilot ./output/sales-model/copilot \
+     --model "Sales Model" --workspace "Production"
+
+   # Commit the changes via updateDefinition
+   fabric-ai-meta apply-copilot ./output/sales-model/copilot \
+     --model "Sales Model" --workspace "Production" --no-dry-run
+   ```
+
+### What gets written
+
+- All `Copilot/` parts in the new folder replace the live model's `Copilot/` subtree.
+- Any `Copilot/` part on the live model that is NOT in the local folder is deleted (full-replace semantics). To preserve a primitive, round-trip it through `export copilot` first.
+- Non-Copilot parts of the model definition (TMDL under `definition/`, project metadata) are preserved byte-for-byte.
+
+### Output
+
+The command prints `DRY RUN`, `APPLIED`, or `FAILED`, followed by a per-primitive table of planned changes (operation: `create` / `update` / `delete`). Non-zero exit on errors during a real apply, so CI can detect failed writebacks.
+
+### Track Copilot completeness across the workspace
+
+`scan --with-copilot` and `governance --with-copilot` now include per-model and workspace-level Copilot signals:
+
+```bash
+fabric-ai-meta scan --workspace "Production" --with-copilot
+fabric-ai-meta governance --workspace "Production" --with-copilot --report ./gov.json
+```
+
+The reports surface `models_without_ai_instructions`, `verified_answer_count`, `ai_data_schema_table_count`, and similar per model, plus workspace rollups. Use these to drive a governance bar like "every production model must have AI Instructions."
+
+### Limits
+
+- Refresh-latency warning for DirectQuery / Direct Lake models is not yet emitted. The Fabric REST write returns success on the metadata change itself; downstream cache invalidation is out of scope.
+- The mock writer reports every primitive as `create` because it has no live envelope to diff against; in real mode you will see the full `create` / `update` / `delete` vocabulary.

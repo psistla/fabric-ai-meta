@@ -44,6 +44,9 @@
       "items": {
         "type": "string"
       }
+    },
+    "copilot_summary": {
+      "$ref": "#/$defs/copilot_summary"
     }
   },
   "$defs": {
@@ -62,7 +65,61 @@
         "errors": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "copilot": {
+          "$ref": "#/$defs/copilot_signals"
         }
+      },
+      "additionalProperties": false
+    },
+    "copilot_signals": {
+      "description": "Per-model governance signals derived from the Copilot/ folder. Same seven canonical signals as copilot_core_signals in the governance-report schema.",
+      "allOf": [
+        { "$ref": "#/$defs/copilot_core_signals" }
+      ]
+    },
+    "copilot_core_signals": {
+      "type": "object",
+      "description": "Seven canonical Copilot signals shared with the governance-report schema. Sourced from CopilotBundle.signals().",
+      "required": [
+        "has_ai_instructions",
+        "ai_instructions_length",
+        "verified_answer_count",
+        "ai_data_schema_table_count",
+        "example_prompt_count",
+        "copilot_enabled",
+        "copilot_version"
+      ],
+      "properties": {
+        "has_ai_instructions": { "type": "boolean" },
+        "ai_instructions_length": { "type": "integer", "minimum": 0 },
+        "verified_answer_count": { "type": "integer", "minimum": 0 },
+        "ai_data_schema_table_count": { "type": "integer", "minimum": 0 },
+        "example_prompt_count": { "type": "integer", "minimum": 0 },
+        "copilot_enabled": { "type": ["boolean", "null"] },
+        "copilot_version": { "type": ["string", "null"] }
+      }
+    },
+    "copilot_summary": {
+      "type": "object",
+      "description": "Workspace-level rollup of per-model Copilot signals. Present when scan was run with --with-copilot.",
+      "required": [
+        "models_with_copilot",
+        "models_with_copilot_names",
+        "models_without_ai_instructions",
+        "total_verified_answers"
+      ],
+      "properties": {
+        "models_with_copilot": { "type": "integer", "minimum": 0 },
+        "models_with_copilot_names": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "models_without_ai_instructions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "total_verified_answers": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": false
     }

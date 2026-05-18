@@ -232,7 +232,7 @@ def from_dict(data: dict) -> SemanticModelMeta:
         for r in data.get("relationships", [])
     ]
 
-    return SemanticModelMeta(
+    model = SemanticModelMeta(
         name=data["name"],
         workspace=data["workspace"],
         description=data.get("description"),
@@ -243,3 +243,5 @@ def from_dict(data: dict) -> SemanticModelMeta:
         extraction_timestamp=data.get("extraction_timestamp"),
         extraction_method=data.get("extraction_method"),
     )
+    model.copilot = CopilotBundle.from_dict(data.get("copilot"))
+    return model

@@ -1,8 +1,11 @@
 """Parse a Fabric REST getDefinition response into a CopilotBundle.
 
-Pure functions: no I/O, no network, no auth. Network and auth live in
-`fabric_ai_meta.writeback.tmdl_client.TMDLClient`. Reader takes a dict,
-returns a bundle.
+Two entry points:
+- ``CopilotReader.from_definition(envelope)`` — pure, no I/O.
+- ``CopilotReader.from_directory(path)`` — load from an on-disk ``copilot/``
+  folder (the inverse of ``CopilotExporter.write``).
+
+Network and auth live in ``fabric_ai_meta.writeback.tmdl_client.TMDLClient``.
 
 Read paths are deliberately lenient. A malformed individual part is logged
 and skipped; the rest of the envelope still produces a valid CopilotBundle.
@@ -13,6 +16,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import os
 from typing import Any
 
 from fabric_ai_meta.models.copilot import (
@@ -71,6 +75,76 @@ class CopilotReader:
         return bundle
 
     @staticmethod
+    def from_directory(copilot_dir: str) -> CopilotBundle:
+        """Load a CopilotBundle from an on-disk ``copilot/`` directory.
+
+        Expects the layout produced by ``CopilotExporter.write``:
+
+        - ``Instructions/instructions.md`` — bytes
+        - ``VerifiedAnswers/*.json`` — JSON files
+        - ``schema.json`` — JSON (AI Data Schema)
+        - ``examplePrompts.json`` — JSON
+        - ``settings.json`` — JSON
+        - ``version.json`` — JSON
+
+        Each file is optional. Missing files leave the corresponding bundle
+        field as ``None`` / ``[]``. Malformed JSON in any single file is
+        logged and skipped.
+        """
+        bundle = CopilotBundle()
+
+        instr_path = os.path.join(copilot_dir, "Instructions", "instructions.md")
+        if os.path.isfile(instr_path):
+            with open(instr_path, "rb") as f:
+                raw_bytes = f.read()
+            try:
+                markdown = raw_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                markdown = raw_bytes.decode("utf-8", errors="replace")
+            bundle.ai_instructions = AIInstructions(markdown=markdown, raw_bytes=raw_bytes)
+
+        schema_path = os.path.join(copilot_dir, "schema.json")
+        if os.path.isfile(schema_path):
+            raw = _read_json_or_none(schema_path)
+            if raw is not None:
+                bundle.ai_data_schema = AIDataSchema(raw=raw)
+
+        prompts_path = os.path.join(copilot_dir, "examplePrompts.json")
+        if os.path.isfile(prompts_path):
+            raw = _read_json_or_none(prompts_path)
+            if raw is not None:
+                bundle.example_prompts = ExamplePrompts(
+                    prompts=_extract_prompt_strings(raw), raw=raw
+                )
+
+        settings_path = os.path.join(copilot_dir, "settings.json")
+        if os.path.isfile(settings_path):
+            raw = _read_json_or_none(settings_path)
+            if raw is not None:
+                bundle.settings = CopilotSettings(raw=raw)
+
+        version_path = os.path.join(copilot_dir, "version.json")
+        if os.path.isfile(version_path):
+            raw = _read_json_or_none(version_path)
+            if raw is not None:
+                bundle.version = CopilotVersion(raw=raw)
+
+        va_dir = os.path.join(copilot_dir, "VerifiedAnswers")
+        if os.path.isdir(va_dir):
+            for fname in sorted(os.listdir(va_dir)):
+                if not fname.endswith(".json"):
+                    continue
+                raw = _read_json_or_none(os.path.join(va_dir, fname))
+                if raw is None:
+                    continue
+                question = _extract_question(raw)
+                bundle.verified_answers.append(
+                    VerifiedAnswer(filename=fname, question=question, raw=raw)
+                )
+
+        return bundle
+
+    @staticmethod
     def _parse_ai_instructions(part: dict) -> AIInstructions:
         raw_bytes = _decode_part_bytes(part)
         try:
@@ -87,13 +161,9 @@ class CopilotReader:
         raw = _decode_part_json(part)
         path = str(part.get("path") or "")
         filename = path.rsplit("/", 1)[-1] if "/" in path else path
-        question = None
-        if isinstance(raw, dict):
-            for key in ("question", "Question", "questionText", "name", "Name"):
-                if isinstance(raw.get(key), str):
-                    question = raw[key]
-                    break
-        return VerifiedAnswer(filename=filename, question=question, raw=raw)
+        return VerifiedAnswer(
+            filename=filename, question=_extract_question(raw), raw=raw
+        )
 
     @staticmethod
     def _parse_ai_data_schema(part: dict) -> AIDataSchema:
@@ -102,25 +172,7 @@ class CopilotReader:
     @staticmethod
     def _parse_example_prompts(part: dict) -> ExamplePrompts:
         raw = _decode_part_json(part)
-        prompts: list[str] = []
-        candidates: list[Any] = []
-        if isinstance(raw, list):
-            candidates = raw
-        elif isinstance(raw, dict):
-            for key in ("prompts", "examples", "items"):
-                val = raw.get(key)
-                if isinstance(val, list):
-                    candidates = val
-                    break
-        for c in candidates:
-            if isinstance(c, str):
-                prompts.append(c)
-            elif isinstance(c, dict):
-                for key in ("prompt", "text", "value"):
-                    if isinstance(c.get(key), str):
-                        prompts.append(c[key])
-                        break
-        return ExamplePrompts(prompts=prompts, raw=raw)
+        return ExamplePrompts(prompts=_extract_prompt_strings(raw), raw=raw)
 
     @staticmethod
     def _parse_copilot_settings(part: dict) -> CopilotSettings:
@@ -154,3 +206,44 @@ def _decode_part_bytes(part: dict) -> bytes:
 
 def _decode_part_json(part: dict) -> Any:
     return json.loads(_decode_part_bytes(part).decode("utf-8"))
+
+
+def _read_json_or_none(path: str) -> Any:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Skipping malformed JSON file %r: %s", path, exc)
+        return None
+
+
+def _extract_question(raw: Any) -> str | None:
+    if not isinstance(raw, dict):
+        return None
+    for key in ("question", "Question", "questionText", "name", "Name"):
+        if isinstance(raw.get(key), str):
+            return raw[key]
+    return None
+
+
+def _extract_prompt_strings(raw: Any) -> list[str]:
+    """Extract a flat list of prompt strings from the loosely-typed JSON."""
+    prompts: list[str] = []
+    candidates: list[Any] = []
+    if isinstance(raw, list):
+        candidates = raw
+    elif isinstance(raw, dict):
+        for key in ("prompts", "examples", "items"):
+            val = raw.get(key)
+            if isinstance(val, list):
+                candidates = val
+                break
+    for c in candidates:
+        if isinstance(c, str):
+            prompts.append(c)
+        elif isinstance(c, dict):
+            for key in ("prompt", "text", "value"):
+                if isinstance(c.get(key), str):
+                    prompts.append(c[key])
+                    break
+    return prompts

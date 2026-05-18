@@ -23,6 +23,7 @@ class CopilotExporter(BaseExporter):
         "Microsoft Copilot/ folder mirror (AI Instructions, Verified Answers, "
         "AI Data Schema, example prompts, settings, version)."
     )
+    requires_copilot: ClassVar[bool] = True
 
     def generate(self, model: SemanticModelMeta) -> dict:
         """JSON-serializable view of the bundle. Used by tests and future schema validation."""

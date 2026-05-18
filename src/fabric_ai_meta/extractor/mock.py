@@ -133,12 +133,20 @@ class MockExtractor(BaseExtractor):
     def _attach_copilot(model: SemanticModelMeta, fixture_file: str) -> None:
         """Load ``<base>.copilot.json`` (if present) and attach to ``model.copilot``.
 
-        Silent when the sidecar does not exist (copilot stays None).
+        Silent when the sidecar does not exist (copilot stays None). A
+        malformed sidecar logs a warning and leaves ``copilot=None`` rather
+        than crashing the entire extraction.
         """
+        import logging
         base, _ = os.path.splitext(fixture_file)
         sidecar = base + ".copilot.json"
         if not os.path.exists(sidecar):
             return
-        with open(sidecar, "r", encoding="utf-8") as f:
-            envelope = json.load(f)
-        model.copilot = CopilotReader.from_definition(envelope)
+        try:
+            with open(sidecar, "r", encoding="utf-8") as f:
+                envelope = json.load(f)
+            model.copilot = CopilotReader.from_definition(envelope)
+        except (OSError, json.JSONDecodeError) as exc:
+            logging.getLogger(__name__).warning(
+                "Skipping malformed Copilot sidecar %r: %s", sidecar, exc
+            )

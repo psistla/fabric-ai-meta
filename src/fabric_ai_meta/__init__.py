@@ -1,6 +1,6 @@
 """Fabric AI Meta: extracts, analyzes, and exports Microsoft Fabric semantic model metadata for AI consumption."""
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 # Core data model
 # Analysis
@@ -48,6 +48,13 @@ from fabric_ai_meta.models.metadata import (
     TableMeta,
     TableType,
     from_dict,
+)
+from fabric_ai_meta.writeback.copilot_writer import (
+    CopilotWritebackResult,
+    CopilotWriter,
+    MockCopilotWriter,
+    SemanticLinkCopilotWriter,
+    splice_copilot_into_envelope,
 )
 from fabric_ai_meta.writeback.description_writer import (
     DescriptionWriter,
@@ -100,9 +107,15 @@ __all__ = [
     "ExporterError",
     "discover_exporters",
     "get_exporter",
-    # Writeback
+    # Writeback (descriptions)
     "DescriptionWriter",
     "MockWriter",
     "SemanticLinkWriter",
     "WritebackResult",
+    # Writeback (Copilot) - v1.5.0
+    "CopilotWriter",
+    "MockCopilotWriter",
+    "SemanticLinkCopilotWriter",
+    "CopilotWritebackResult",
+    "splice_copilot_into_envelope",
 ]

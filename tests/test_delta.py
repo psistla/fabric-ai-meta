@@ -23,8 +23,8 @@ def _make_summary(models, timestamp="2026-04-01T00:00:00Z"):
     }
 
 
-def _make_model(name, score=0.7, tables=4, measures=5, desc_cov=0.8):
-    return {
+def _make_model(name, score=0.7, tables=4, measures=5, desc_cov=0.8, copilot=None):
+    entry = {
         "name": name,
         "slug": name.lower().replace(" ", "-"),
         "ai_readiness_score": score,
@@ -35,6 +35,116 @@ def _make_model(name, score=0.7, tables=4, measures=5, desc_cov=0.8):
         "output_directory": f"{name.lower().replace(' ', '-')}/",
         "errors": [],
     }
+    if copilot is not None:
+        entry["copilot"] = copilot
+    return entry
+
+
+def _copilot_signals(
+    has_ai_instructions=True, verified_answer_count=2,
+    ai_data_schema_table_count=3, example_prompt_count=2,
+    copilot_enabled=True, copilot_version="1.0",
+    ai_instructions_length=42,
+):
+    return {
+        "has_ai_instructions": has_ai_instructions,
+        "ai_instructions_length": ai_instructions_length,
+        "verified_answer_count": verified_answer_count,
+        "ai_data_schema_table_count": ai_data_schema_table_count,
+        "example_prompt_count": example_prompt_count,
+        "copilot_enabled": copilot_enabled,
+        "copilot_version": copilot_version,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Copilot signal delta tests (S7-04)
+# ---------------------------------------------------------------------------
+
+def test_delta_omits_copilot_changes_when_neither_side_has_signals():
+    baseline = _make_summary([_make_model("M", score=0.6)])
+    current = _make_summary([_make_model("M", score=0.6)])
+    delta = compare_workspace_summaries(baseline, current)
+    md = next(d for d in delta["model_deltas"] if d["name"] == "M")
+    assert "copilot_changes" not in md
+
+
+def test_delta_omits_copilot_changes_when_only_one_side_has_signals():
+    """Toggling --with-copilot between scans must NOT report false regressions."""
+    baseline = _make_summary([
+        _make_model("M", score=0.6, copilot=_copilot_signals(has_ai_instructions=True))
+    ])
+    current = _make_summary([_make_model("M", score=0.6)])  # no copilot
+    delta = compare_workspace_summaries(baseline, current)
+    md = next(d for d in delta["model_deltas"] if d["name"] == "M")
+    assert "copilot_changes" not in md
+    assert md["status"] == "unchanged"
+
+    # Mirror case: copilot only in current.
+    baseline = _make_summary([_make_model("M", score=0.6)])
+    current = _make_summary([
+        _make_model("M", score=0.6, copilot=_copilot_signals(has_ai_instructions=True))
+    ])
+    delta = compare_workspace_summaries(baseline, current)
+    md = next(d for d in delta["model_deltas"] if d["name"] == "M")
+    assert "copilot_changes" not in md
+
+
+def test_delta_detects_ai_instructions_removal():
+    baseline = _make_summary([
+        _make_model("M", score=0.7, copilot=_copilot_signals(has_ai_instructions=True))
+    ])
+    current = _make_summary([
+        _make_model("M", score=0.7, copilot=_copilot_signals(
+            has_ai_instructions=False, ai_instructions_length=0,
+        ))
+    ])
+    delta = compare_workspace_summaries(baseline, current)
+    md = next(d for d in delta["model_deltas"] if d["name"] == "M")
+    assert md["copilot_changes"]["ai_instructions_removed"] is True
+    # Removal of AI Instructions on an otherwise-unchanged model downgrades status.
+    assert md["status"] == "degraded"
+
+
+def test_delta_detects_ai_instructions_added():
+    baseline = _make_summary([
+        _make_model("M", score=0.7, copilot=_copilot_signals(
+            has_ai_instructions=False, ai_instructions_length=0,
+        ))
+    ])
+    current = _make_summary([
+        _make_model("M", score=0.7, copilot=_copilot_signals(has_ai_instructions=True))
+    ])
+    delta = compare_workspace_summaries(baseline, current)
+    md = next(d for d in delta["model_deltas"] if d["name"] == "M")
+    assert md["copilot_changes"]["ai_instructions_added"] is True
+    assert md["copilot_changes"]["ai_instructions_removed"] is False
+
+
+def test_delta_detects_verified_answer_count_change():
+    baseline = _make_summary([
+        _make_model("M", copilot=_copilot_signals(verified_answer_count=5))
+    ])
+    current = _make_summary([
+        _make_model("M", copilot=_copilot_signals(verified_answer_count=3))
+    ])
+    delta = compare_workspace_summaries(baseline, current)
+    md = next(d for d in delta["model_deltas"] if d["name"] == "M")
+    assert md["copilot_changes"]["verified_answer_count_change"] == -2
+
+
+def test_delta_format_text_mentions_copilot_regression():
+    baseline = _make_summary([
+        _make_model("M", copilot=_copilot_signals(has_ai_instructions=True))
+    ])
+    current = _make_summary([
+        _make_model("M", copilot=_copilot_signals(
+            has_ai_instructions=False, ai_instructions_length=0,
+        ))
+    ])
+    delta = compare_workspace_summaries(baseline, current)
+    text = format_delta_text(delta)
+    assert "AI Instructions removed" in text
 
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-05-17
+
+### Added
+- `CopilotWriter` ABC + `MockCopilotWriter` + `SemanticLinkCopilotWriter` under `fabric_ai_meta.writeback.copilot_writer`. Closes the write half of Prep for AI started in v1.4.0. `SemanticLinkCopilotWriter` resolves workspace and model ids via `sempy.fabric`, calls Fabric REST `getDefinition`, splices the bundle's Copilot parts into the full TMDL envelope, then posts the result through `updateDefinition` and polls the long-running operation to completion.
+- `CopilotWritebackResult` dataclass: per-primitive counts + planned changes list + `dry_run` + `succeeded` + `errors`. JSON-serializable via `to_dict()`.
+- `splice_copilot_into_envelope(envelope, bundle) -> (new_envelope, changes)` pure helper. Replace semantics: any existing `Copilot/` part not present in the new bundle is removed; non-Copilot parts (TMDL under `definition/`, project metadata) are preserved byte-for-byte.
+- `fabric-ai-meta apply-copilot COPILOT_DIR --model M --workspace W [--dry-run/--no-dry-run] [--mock]` CLI command. Reads a Copilot/ folder produced by `export copilot`, applies it to a live semantic model via Fabric REST.
+- `CopilotReader.from_directory(path) -> CopilotBundle` inverse of `CopilotExporter.write`. Round-trip pattern: `export copilot` → edit local folder → `apply-copilot`.
+- `CopilotBundle.signals() -> dict` returns seven canonical governance signals: `has_ai_instructions`, `ai_instructions_length`, `verified_answer_count`, `ai_data_schema_table_count`, `example_prompt_count`, `copilot_enabled`, `copilot_version`.
+- `CopilotBundle.from_dict(data)` inverse of `to_dict()`. `SemanticModelMeta.from_dict()` now round-trips the `copilot` field; previously dropped silently.
+- `scan --with-copilot` populates per-model `copilot` block + top-level `copilot_summary` rollup (`models_with_copilot`, `models_without_ai_instructions`, `total_verified_answers`) in `workspace-summary.json`.
+- `governance --with-copilot` populates `copilot_completeness` section in the governance report and emits a recommendation per model missing AI Instructions.
+- `compare_workspace_summaries` surfaces Copilot regressions in `model_delta.copilot_changes` (added/removed AI Instructions, verified-answer count delta, schema-table count delta, prompt count delta). Removal of AI Instructions on an otherwise-unchanged model downgrades the model's status to `degraded`.
+- `TMDLClient.update_definition(model_id, definition)` method with built-in LRO polling. Honors `Location` header, distinguishes synchronous 200 from async 202, raises on `Failed` terminal status or timeout.
+- `BaseExporter.requires_copilot: ClassVar[bool] = False` opt-in flag. The CLI export dispatch uses this so third-party plugins can request `with_copilot=True` extraction without monkey-patching the registration code. `CopilotExporter.requires_copilot = True`.
+- Shared `copilot_core_signals` `$ref` definition in `schemas/workspace-summary/v1.json` and `schemas/governance-report/v1.json`. Single source of truth for the seven-signal shape across both output formats.
+
+### Changed
+- `__all__` count grows from 40 to 45. Five new top-level exports: `CopilotWriter`, `MockCopilotWriter`, `SemanticLinkCopilotWriter`, `CopilotWritebackResult`, `splice_copilot_into_envelope`.
+- `apply-descriptions` now exits non-zero when errors occur in a non-dry-run invocation. Brings it to parity with `apply-copilot`. CI gates that consume the exit code will now distinguish a clean writeback from one that hit XMLA errors.
+- `MockCopilotWriter` reports planned changes with `operation` values from the same `{create, update, delete}` vocabulary as `SemanticLinkCopilotWriter`, instead of the v0 `write` placeholder. Tests pinned to this enum.
+- `TMDLClient.update_definition` floors `poll_interval_seconds` at 0.5s in production to avoid rate-limiting the Fabric API; tests opt out by passing 0 explicitly.
+
+### Fixed
+- `MockExtractor._attach_copilot` no longer crashes the whole model extract when the `<fixture>.copilot.json` sidecar contains malformed JSON or fails to open; logs a warning and leaves `model.copilot = None`.
+- `_compute_copilot_changes` returns `None` (not a phantom diff) when only one snapshot was scanned with `--with-copilot`. Prevents false `ai_instructions_removed` / `degraded` status alerts when the flag is toggled between scans.
+- `splice_copilot_into_envelope` filters out parts with empty or `None` paths from the existing envelope rather than forwarding them to `updateDefinition`.
+- `_bundle_to_copilot_parts` validates `VerifiedAnswer.filename` is a safe basename. Rejects path-traversal segments (`..`, `/`, `\`) that could be introduced programmatically.
+- `CopilotWritebackResult.dry_run` now accurately reflects the requested mode even when the write fails; the new `succeeded` flag carries the success signal independently. CLI prints `DRY RUN` / `APPLIED` / `FAILED` labels accordingly.
+- `format_delta_text` renders all three Copilot count deltas (verified answers, schema tables, example prompts), matching the JSON output. Previously only verified-answer count was shown.
+
+### Notes
+- The first real Fabric notebook run with `apply-copilot --no-dry-run` will verify the assumed `sempy.fabric.resolve_workspace_id` / `resolve_item_id` helper names against the actual sempy 0.8 surface; resolver failures raise a clear `RuntimeError` rather than silently no-op.
+- Refresh-latency warning for DirectQuery / Direct Lake models on `apply-copilot` is intentionally deferred. The Fabric REST `updateDefinition` LRO returns success on the metadata write itself; downstream cache invalidation for DQ / Direct Lake is out of scope for v1.5.0.
+- Write semantics are full-replace within `Copilot/`. To preserve a primitive untouched, round-trip it: `CopilotReader.from_definition` (or `from_directory`) → mutate → `apply-copilot`. Non-Copilot parts of the model definition are always preserved.
+
 ## [1.4.0] - 2026-05-17
 
 ### Added

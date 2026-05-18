@@ -1,8 +1,8 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.4.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-441%20passing-1a7f37?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.5.0-238636?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-504%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -324,9 +324,37 @@ fabric-ai-meta export copilot "Adventure Works" --workspace "Production" --mock
 fabric-ai-meta export copilot "Adventure Works" --workspace "Production"
 ```
 
-Mirrors Microsoft's `Copilot/` folder layout under `{output}/{model-slug}/copilot/`: `Instructions/instructions.md`, `VerifiedAnswers/*.json`, `schema.json`, `examplePrompts.json`, `settings.json`, `version.json`. Read-only. The future `apply-copilot` command will write the inverse.
+Mirrors Microsoft's `Copilot/` folder layout under `{output}/{model-slug}/copilot/`: `Instructions/instructions.md`, `VerifiedAnswers/*.json`, `schema.json`, `examplePrompts.json`, `settings.json`, `version.json`. Pair with the `apply-copilot` command (v1.5.0) to write a modified folder back to a live model via the Fabric REST `updateDefinition` LRO.
 
 **No `--with-copilot` needed:** this command implicitly enables Copilot extraction. Use `analyze --with-copilot` or `scan --with-copilot` to populate `model.copilot` alongside the other extractor outputs.
+</details>
+
+<details>
+<summary><strong>apply-copilot</strong>: write a Copilot/ folder back to a live semantic model (v1.5.0)</summary>
+
+```bash
+# Preview the writeback locally with the mock writer
+fabric-ai-meta apply-copilot ./output/adventure-works/copilot \
+  --model "Adventure Works" --workspace "Production" --mock
+
+# Inside a Fabric notebook, dry-run the diff against the live model (default)
+fabric-ai-meta apply-copilot ./output/adventure-works/copilot \
+  --model "Adventure Works" --workspace "Production"
+
+# Commit the changes through Fabric REST updateDefinition (long-running operation)
+fabric-ai-meta apply-copilot ./output/adventure-works/copilot \
+  --model "Adventure Works" --workspace "Production" --no-dry-run
+```
+
+Reads a Copilot/ folder produced by `export copilot`, splices the new artifacts into the model's full TMDL definition envelope (preserving all non-Copilot parts byte-for-byte), and posts the result through `updateDefinition`. Long-running operation polling is built in. Existing Copilot parts not present in the new folder are removed (replace semantics).
+
+**Round-trip workflow:**
+
+```text
+export copilot → edit local Copilot/ folder → apply-copilot → live model
+```
+
+Pair with `scan --with-copilot` and `governance --with-copilot` to track Copilot completeness across the workspace.
 </details>
 
 <details>
@@ -541,7 +569,7 @@ Full walk-through with a worked dbt example, local testing, and name-conflict ru
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run full test suite (441 tests, no Fabric runtime or real LLM calls required)
+# Run full test suite (504 tests, no Fabric runtime or real LLM calls required)
 pytest tests/ -x -q
 
 # Run with coverage
