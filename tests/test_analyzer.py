@@ -432,3 +432,55 @@ def test_generate_governance_report_summary_fields(adventure_works_model, contos
     assert summary["model_count"] == 2
     assert "average_readiness_score" in summary
     assert "lowest_scoring_model" in summary
+
+
+# ---------------------------------------------------------------------------
+# Model-level classification pipeline (WIRE-01)
+# ---------------------------------------------------------------------------
+
+def test_classify_model_in_place_wires_measure_dependencies(adventure_works_model):
+    """WIRE-01: parse_measure_dependencies output must land on MeasureMeta.
+
+    Regression for the v1.5.0 bug where these fields were computed and discarded,
+    visible only because fixtures pre-baked them.
+    """
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+
+    model = adventure_works_model
+    for t in model.tables:
+        for m in t.measures:
+            m.depends_on_measures = []
+            m.depends_on_columns = []
+            m.implicit_filters = []
+
+    classify_model_in_place(model)
+
+    measures = [m for t in model.tables for m in t.measures]
+    assert any(m.depends_on_columns for m in measures), (
+        "no measure got depends_on_columns; wiring did not run"
+    )
+
+
+def test_classify_model_in_place_renames_implicit_business_rules():
+    """The one field whose name differs between producer and destination."""
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+
+    measure = MeasureMeta(
+        name="Bike YTD",
+        dax_expression=(
+            "TOTALYTD(CALCULATE(SUM(Sales[Amount]), Product[Category] = \"Bikes\"), "
+            "'Date'[Date])"
+        ),
+        description=None, ai_description=None, category=MeasureCategory.UNKNOWN,
+        display_folder=None, format_string=None,
+    )
+    table = TableMeta(
+        name="Sales", description=None, ai_description=None,
+        table_type=TableType.UNKNOWN, grain=None, measures=[measure],
+    )
+    model = SemanticModelMeta(name="M", workspace="W", description=None, tables=[table])
+
+    classify_model_in_place(model)
+
+    assert measure.implicit_filters == ['= "Bikes"']
+    assert measure.category == MeasureCategory.TIME_INTELLIGENCE
