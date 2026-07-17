@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-07-17
+
+Local extraction. The tool now reads real semantic models from disk with no Fabric notebook, no tenant, and no auth.
+
+### Added
+- `PbipExtractor` under `fabric_ai_meta.extractor.pbip`: parses a Power BI `*.SemanticModel` folder of TMDL (`definition/**/*.tmdl`) into `SemanticModelMeta`, and reads the sibling `Copilot/` folder via the existing `CopilotReader.from_directory()`. Hand-rolled tab-indent TMDL parser covering tables, columns, measures (single-line and indentation-continuation DAX), relationships, and partition mode. Auto-generated date tables (`LocalDateTable_*`, `DateTableTemplate_*`) and their relationships are skipped. New top-level export; `__all__` grows from 45 to 46.
+- `--pbip PATH` option on `analyze`, `scan`, `score` (including `--all`), `governance`, and every `export <framework>` command. Accepts either a single `*.SemanticModel` folder or a directory of them (a Git Integration repo). Mutually exclusive with `--mock` and `--workspace`; conflicts raise a usage error. Copilot discovery is automatic in this mode since reading a local folder is free.
+- `extractor/factory.py` (`_build_extractor`) and `analyzer/pipeline.py` (`classify_model_in_place`): shared construction and classification paths used by both the CLI and the MCP server, so the two surfaces can no longer return different results for the same model.
+
+### Fixed
+- Measure dependencies computed by `parse_measure_dependencies` are now written onto `MeasureMeta` (`depends_on_measures`, `depends_on_columns`, `implicit_filters`). Previously they were computed and discarded, so in live Fabric mode `ai-ready-schema.json` silently dropped three keys and the `business_rules_documented` scoring dimension always read zero. **This activates a scoring dimension that never ran against real data, so existing users' readiness scores can move up or down, and any `scripts/ci-governance-check.py` threshold may flip.**
+- `export <framework>` now classifies the model before writing, so exporters emit real measure categories instead of `"unknown"` in live Fabric mode. Mock fixtures had masked this by pre-baking `category`.
+- `score --all --mock` no longer raises `FabricEnvironmentError`; it had no mock branch despite the documented `--mock` parity.
+- `governance --mock` no longer depends on the working directory; it used a relative fixtures path and broke when run outside the repo root.
+
 ## [1.5.0] - 2026-05-17
 
 ### Added

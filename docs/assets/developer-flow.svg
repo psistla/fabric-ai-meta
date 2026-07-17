@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" viewBox="0 0 720 588" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-label="fabric-ai-meta developer flow: install, pick a source (local .pbip, Fabric notebook, or mock fixtures), run a command, get JSON outputs, then feed to AI frameworks, writeback, or MCP.">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6" fill="none" stroke="#656d76" stroke-width="1.4"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="718" height="586" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+
+  <!-- arrows: install -> sources -->
+  <g fill="none" stroke="#656d76" stroke-width="1.4" marker-end="url(#ah)">
+    <path d="M360,68 L128,108"/>
+    <path d="M360,68 L360,108"/>
+    <path d="M360,68 L592,108"/>
+    <!-- sources -> command -->
+    <path d="M125,186 L350,226"/>
+    <path d="M360,186 L360,226"/>
+    <path d="M595,186 L370,226"/>
+    <!-- command -> outputs -->
+    <path d="M360,322 L360,354"/>
+    <!-- outputs -> consumers -->
+    <path d="M360,430 L128,462"/>
+    <path d="M360,430 L360,462"/>
+    <path d="M360,430 L592,462"/>
+  </g>
+
+  <!-- Install -->
+  <rect x="210" y="24" width="300" height="44" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="360" y="51" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">pip install fabric-ai-meta</text>
+
+  <!-- Source: pbip (highlighted) -->
+  <rect x="20" y="110" width="210" height="76" rx="8" fill="#ddf4ff" stroke="#0969da"/>
+  <text x="125" y="140" text-anchor="middle" font-size="15" font-weight="600" fill="#0a3069">--pbip</text>
+  <text x="125" y="160" text-anchor="middle" font-size="12" fill="#0550ae">local .SemanticModel</text>
+  <text x="125" y="176" text-anchor="middle" font-size="12" fill="#0550ae">folder, no auth</text>
+
+  <!-- Source: Fabric -->
+  <rect x="255" y="110" width="210" height="76" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="360" y="140" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">Fabric notebook</text>
+  <text x="360" y="160" text-anchor="middle" font-size="12" fill="#57606a">live model</text>
+  <text x="360" y="176" text-anchor="middle" font-size="12" fill="#57606a">ambient credential</text>
+
+  <!-- Source: mock -->
+  <rect x="490" y="110" width="210" height="76" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="595" y="140" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">--mock</text>
+  <text x="595" y="160" text-anchor="middle" font-size="12" fill="#57606a">fixtures</text>
+  <text x="595" y="176" text-anchor="middle" font-size="12" fill="#57606a">for dev / CI</text>
+
+  <!-- Command -->
+  <rect x="160" y="228" width="400" height="94" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="360" y="258" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">Run a command</text>
+  <text x="360" y="284" text-anchor="middle" font-size="12" fill="#57606a">analyze  ·  scan  ·  score</text>
+  <text x="360" y="302" text-anchor="middle" font-size="12" fill="#57606a">governance  ·  export &lt;framework&gt;</text>
+
+  <!-- Outputs -->
+  <rect x="160" y="356" width="400" height="74" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="360" y="384" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">JSON outputs</text>
+  <text x="360" y="406" text-anchor="middle" font-size="12" fill="#57606a">ai-ready-schema  ·  langchain-tool</text>
+  <text x="360" y="423" text-anchor="middle" font-size="12" fill="#57606a">readiness-score  ·  governance-report</text>
+
+  <!-- Consumer: AI frameworks -->
+  <rect x="20" y="464" width="210" height="78" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="125" y="492" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">AI frameworks</text>
+  <text x="125" y="513" text-anchor="middle" font-size="12" fill="#57606a">LangChain  ·  OpenAI</text>
+  <text x="125" y="530" text-anchor="middle" font-size="12" fill="#57606a">Semantic Kernel  ·  AutoGen</text>
+
+  <!-- Consumer: Writeback -->
+  <rect x="255" y="464" width="210" height="78" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="360" y="492" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">Writeback</text>
+  <text x="360" y="513" text-anchor="middle" font-size="12" fill="#57606a">apply-descriptions</text>
+  <text x="360" y="530" text-anchor="middle" font-size="12" fill="#57606a">apply-copilot</text>
+
+  <!-- Consumer: MCP -->
+  <rect x="490" y="464" width="210" height="78" rx="8" fill="#f6f8fa" stroke="#656d76"/>
+  <text x="595" y="492" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">MCP server</text>
+  <text x="595" y="513" text-anchor="middle" font-size="12" fill="#57606a">serve tools to</text>
+  <text x="595" y="530" text-anchor="middle" font-size="12" fill="#57606a">Claude Code / Desktop</text>
+
+  <!-- Legend -->
+  <rect x="20" y="558" width="14" height="14" rx="3" fill="#ddf4ff" stroke="#0969da"/>
+  <text x="42" y="569" font-size="12" fill="#57606a">Blue = new in v1.6 (local extraction, no Fabric or tenant needed)</text>
+</svg>

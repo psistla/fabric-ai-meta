@@ -1,6 +1,6 @@
 [project]
 name = "fabric-ai-meta"
-version = "1.5.0"
+version = "1.6.0"
 description = "Extract Microsoft Fabric semantic model metadata. AI-ready exports for LangChain, OpenAI, Semantic Kernel, AutoGen, and custom plugins. Multi-provider LLM enrichment, MCP server, and cross-model governance."
 readme = "README.md"
 requires-python = ">=3.10"

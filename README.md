@@ -1,12 +1,15 @@
 # fabric-ai-meta
 
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.5.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-504%20passing-1a7f37?style=flat-square)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/fabric-ai-meta?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/fabric-ai-meta)
+![Version](https://img.shields.io/badge/version-1.6.0-238636?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-539%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
 Extract, classify, and export metadata from Microsoft Fabric semantic models for AI frameworks.
+
+**Turn any Power BI model into AI-ready metadata from your laptop.** No Fabric tenant, no notebook, no sign-in: point it at a local `.pbip` folder and go.
 
 **Automates Prep for AI** across 100+ models. No manual configuration.
 **Exports to LangChain, OpenAI, Semantic Kernel, AutoGen.** One extraction, every framework.
@@ -23,11 +26,29 @@ Optional extras: `[llm]` for multi-provider LLM enrichment, `[mcp]` for the MCP 
 
 ### Quickstart
 
+Point it at a model you already have. In Power BI Desktop: **File > Save As > .pbip** (5 seconds, no sign-in), then:
+
 ```bash
-fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --output ./output
+pip install fabric-ai-meta
+fabric-ai-meta analyze "Sales" --pbip ./Sales.SemanticModel
 ```
 
-Produces `ai-ready-schema.json`, `readiness-score.json`, `measure-dependency-graph.json`, and four framework exports in `./output/adventure-works/`.
+One command reads the local TMDL, classifies every table and measure, scores the model, and writes `./output/sales/`:
+
+```text
+ai-ready-schema.json        # tables, measures, relationships, all classified
+readiness-score.json        # {"score": 0.82}  <- how AI-ready this model is
+langchain-tool.json         # drop straight into LangChain (+ OpenAI, Semantic Kernel, AutoGen)
+measure-dependency-graph.json
+```
+
+It reads your DAX, so a `TOTALYTD(...)` measure comes back understood, not guessed:
+
+```json
+{ "name": "Sales YTD", "category": "time_intelligence", "requires_date_filter": true }
+```
+
+No model handy? `fabric-ai-meta analyze "Adventure Works" --mock` runs the whole flow on bundled fixtures.
 
 > **New to the tool?** The [end-to-end user guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md) walks every capability from install to writeback in plain language with persona-mapped workflow paths. The [`notebooks/quickstart.ipynb`](https://github.com/psistla/fabric-ai-meta/blob/master/notebooks/quickstart.ipynb) notebook gives the same tour inside a Fabric runtime.
 
@@ -40,6 +61,23 @@ Produces `ai-ready-schema.json`, `readiness-score.json`, `measure-dependency-gra
 ## Typical Workflows
 
 Different goals need different command sequences. Pick the one that matches you, or read the full [user guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md) for the long version.
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/developer-flow.svg" alt="Developer flow: install, pick a source (local .pbip, Fabric notebook, or mock), run a command, get JSON outputs, feed to AI frameworks / writeback / MCP" width="720">
+</p>
+
+<details>
+<summary><strong>Local model on your laptop (no Fabric)</strong></summary>
+
+```bash
+pip install fabric-ai-meta
+# In Power BI Desktop: File > Save As > .pbip
+fabric-ai-meta analyze "Your Model" --pbip ./YourModel.SemanticModel   # one model
+fabric-ai-meta score --all --pbip ./git-integration-repo               # a whole repo of them
+fabric-ai-meta governance --pbip ./git-integration-repo --output ./gov # cross-model report
+fabric-ai-meta export langchain "Your Model" --pbip ./YourModel.SemanticModel
+```
+</details>
 
 <details>
 <summary><strong>Solo BI developer exploring the tool</strong></summary>
@@ -149,8 +187,7 @@ This is not a replacement for Microsoft's tools. It is an **automation layer on 
 
 ## Architecture
 
-`sempy.fabric` requires the Microsoft Fabric notebook runtime and does not work locally.
-The tool operates in two modes detected automatically at startup:
+`sempy.fabric` requires the Microsoft Fabric notebook runtime, so **live workspace** extraction only runs inside Fabric. Everything else runs on any machine: read a real local model from a `.pbip` / TMDL folder with `--pbip`, or bundled fixtures with `--mock`. The mode is detected automatically at startup:
 
 ```text
                           CLI command
@@ -160,46 +197,45 @@ The tool operates in two modes detected automatically at startup:
                       |  Environment?  |
                       +-------+--------+
                               |
-       +----------------------+----------------------+
-       |                                             |
-  Fabric runtime                                Local machine
-  (FABRIC_NOTEBOOK_ID set                            |
-   or notebookutils importable)                      v
-       |                                       +-----------+
-       v                                       |  --mock?  |
-  +-------------------+                        +-----+-----+
-  | Fabric Mode       |                              |
-  | SemanticLink-     |                +-------------+-------------+
-  | Extractor         |                |                           |
-  | (ambient creds)   |                v                           v
-  +---------+---------+         +-------------+         +-----------------------+
-            |                   | Local/CI    |         | FabricEnvironmentError|
-            |                   | Mode        |         +-----------------------+
-            |                   | MockExtractor|
-            |                   | (fixture JSON)|
-            |                   +------+--------+
-            |                          |
-            +-------------+------------+
-                          |
-                          v
-                    +-----------+
-                    | Core      |
-                    | Engine    |
-                    +-----+-----+
-                          |
-                          v
-                +--------------------+
-                | Analyzer           |
-                | Classify · Score · |
-                | Governance         |
-                +---------+----------+
-                          |
-                          v
-                +--------------------+
-                | Generator          |
-                | Schemas · Exports ·|
-                | Reports            |
-                +--------------------+
+       +----------------------+---------------------------+
+       |                                                  |
+  Fabric runtime                                     Local machine
+  (FABRIC_NOTEBOOK_ID set                                 |
+   or notebookutils importable)                           v
+       |                                          +----------------+
+       v                                          | --pbip / --mock|
+  +-------------------+                           +-------+--------+
+  | Fabric Mode       |                                   |
+  | SemanticLink-     |         +---------------------+---+-----------------+
+  | Extractor         |         |                     |                     |
+  | (ambient creds)   |         v                     v                     v
+  +---------+---------+  +--------------+     +--------------+     +--------------------+
+            |            | Local .pbip  |     | Local/CI     |     | Neither flag:      |
+            |            | PbipExtractor|     | MockExtractor|     | FabricEnvironment- |
+            |            | (TMDL folder)|     | (fixture JSON)|    | Error              |
+            |            +------+-------+     +------+-------+     +--------------------+
+            |                   |                    |
+            +---------+---------+--------------------+
+                      |
+                      v
+                +-----------+
+                | Core      |
+                | Engine    |
+                +-----+-----+
+                      |
+                      v
+            +--------------------+
+            | Analyzer           |
+            | Classify · Score · |
+            | Governance         |
+            +---------+----------+
+                      |
+                      v
+            +--------------------+
+            | Generator          |
+            | Schemas · Exports ·|
+            | Reports            |
+            +--------------------+
 ```
 
 This ASCII diagram renders identically on GitHub and PyPI; the equivalent table is below for screen readers and narrow viewports.
@@ -207,9 +243,10 @@ This ASCII diagram renders identically on GitHub and PyPI; the equivalent table 
 | Mode | Where it runs | Extractor | Auth |
 |------|--------------|-----------|------|
 | **Fabric mode** | Fabric notebook | `SemanticLinkExtractor` | Ambient (automatic) |
-| **Local/CI mode** | Any machine | `MockExtractor` + fixture JSON | None needed |
+| **Local `.pbip` mode** | Any machine | `PbipExtractor` + local TMDL | None needed |
+| **Local/CI mock mode** | Any machine | `MockExtractor` + fixture JSON | None needed |
 
-> **Every command supports `--mock`:** `analyze`, `scan`, `export`, `score`, `governance`, and `apply-descriptions` all work locally without a Fabric connection.
+> **Runs locally two ways, no Fabric connection needed:** `--pbip <folder>` reads a real local model and `--mock` runs on bundled fixtures. Both work on `analyze`, `scan`, `score`, `governance`, and `export`.
 
 ---
 
@@ -219,6 +256,9 @@ This ASCII diagram renders identically on GitHub and PyPI; the equivalent table 
 <summary><strong>analyze</strong>: extract, classify, score, and export a single model</summary>
 
 ```bash
+# Local model from disk, no Fabric (--pbip is exclusive with --mock and --workspace)
+fabric-ai-meta analyze "Your Model" --pbip ./YourModel.SemanticModel
+
 # Local dev with mock fixtures
 fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock
 
@@ -235,6 +275,9 @@ fabric-ai-meta analyze "Adventure Works" --workspace "Production" --mock --outpu
 
 ```bash
 fabric-ai-meta scan --workspace "Production" --mock --output ./output
+
+# Or scan a local directory of *.SemanticModel folders (a Git Integration repo)
+fabric-ai-meta scan --pbip ./git-integration-repo --output ./output
 ```
 
 Produces per-model output directories and a `workspace-summary.json` with score ranking.

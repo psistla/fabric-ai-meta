@@ -4,6 +4,23 @@ A plain-language walk-through of every fabric-ai-meta capability, in the order a
 
 For per-command reference (every flag, every option), see the `Usage` section in the [README](../README.md). For CI/CD recipes see [`ci-cd-guide.md`](ci-cd-guide.md). For building your own exporter see [`plugin-development.md`](plugin-development.md).
 
+The whole flow at a glance:
+
+```mermaid
+flowchart TB
+  I[pip install fabric-ai-meta] --> SRC{Where is the model?}
+  SRC --> PBIP[--pbip PATH<br/>local .SemanticModel folder<br/>no Fabric, no auth]
+  SRC --> FAB[Fabric notebook<br/>ambient credential]
+  SRC --> MOCK[--mock<br/>bundled fixtures]
+  PBIP --> CMD[Run a command<br/>analyze / scan / score<br/>governance / export]
+  FAB --> CMD
+  MOCK --> CMD
+  CMD --> OUT[(JSON outputs<br/>ai-ready-schema, langchain-tool,<br/>readiness-score, governance-report)]
+  OUT --> AI([AI frameworks<br/>LangChain / OpenAI / Semantic Kernel / AutoGen])
+  OUT --> WB[Writeback<br/>apply-descriptions / apply-copilot]
+  OUT --> MCP([serve: tools over MCP])
+```
+
 ---
 
 ## 1. Install
@@ -29,15 +46,23 @@ For airgapped or restricted environments that cannot reach PyPI directly, downlo
 
 ---
 
-## 2. Try it locally first (no Fabric required)
+## 2. Extract from a local model (.pbip / TMDL, no Fabric)
 
-Two fixture models ship with the package (Adventure Works, Contoso Sales). Run any command with `--mock`:
+The fastest way to see real output is to point the tool at a model you already have. In Power BI Desktop, open your report and choose **File > Save As > Power BI project (.pbip)**. That writes a `*.SemanticModel` folder of TMDL to disk. No sign-in, no tenant. Then:
 
 ```bash
-fabric-ai-meta analyze "Adventure Works" --mock --output ./output
+# One model
+fabric-ai-meta analyze "Your Model" --pbip ./YourModel.SemanticModel --output ./output
+
+# A whole Git Integration repo of *.SemanticModel folders
+fabric-ai-meta scan --pbip ./git-integration-repo --output ./output
+fabric-ai-meta score --all --pbip ./git-integration-repo
+fabric-ai-meta governance --pbip ./git-integration-repo --output ./gov
 ```
 
-You get 7 files in `./output/adventure-works/`:
+`--pbip` is available on `analyze`, `scan`, `score`, `governance`, and every `export` command. It is mutually exclusive with `--mock` and `--workspace` (you point at a folder, not a workspace), and it reads any sibling `Copilot/` folder automatically.
+
+You get 7 files in `./output/your-model/`:
 
 | File | What it is |
 |------|------------|
@@ -49,7 +74,13 @@ You get 7 files in `./output/adventure-works/`:
 | `measure-dependency-graph.json` | DAX measure dependency graph |
 | `extraction-raw.json` | Raw extracted metadata |
 
-Now you know the shape of every output before connecting to real Fabric.
+**What score to expect from a local model.** Sample values are never read from disk, so a `.pbip` extraction cannot reach a perfect score. A well-modeled model with at least one attribute or measure column tops out around **0.90**; if its rule-eligible measures carry no hardcoded literal (for example a plain `TOTALYTD` with no filter), the achievable maximum drops to about **0.75**. Treat the number as a documentation-and-structure readiness signal, not a grade out of 1.0.
+
+**No model handy?** Two fixture models ship with the package (Adventure Works, Contoso Sales). Swap `--pbip <folder>` for `--mock` to run the exact same flow on them:
+
+```bash
+fabric-ai-meta analyze "Adventure Works" --mock --output ./output
+```
 
 ---
 
@@ -320,9 +351,9 @@ Different personas need different command sequences. Pick the one that matches y
 
 ```
 1. Install                           pip install fabric-ai-meta
-2. Try locally                       fabric-ai-meta analyze "Adventure Works" --mock
-3. Try real workspace                fabric-ai-meta analyze "Your Model" --workspace ...
-4. Export to your framework          fabric-ai-meta export openai "Your Model" --workspace ...
+2. Save your model                   Power BI Desktop: File > Save As > .pbip
+3. Analyze it locally, no Fabric     fabric-ai-meta analyze "Your Model" --pbip ./YourModel.SemanticModel
+4. Export to your framework          fabric-ai-meta export openai "Your Model" --pbip ./YourModel.SemanticModel
 ```
 
 ### Enterprise governance team
