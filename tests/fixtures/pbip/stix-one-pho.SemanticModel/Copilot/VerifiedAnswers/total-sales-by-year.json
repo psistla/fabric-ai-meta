@@ -1,0 +1,4 @@
+{
+  "question": "What were total sales by year?",
+  "dax": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"Total\", [Total Sales])"
+}

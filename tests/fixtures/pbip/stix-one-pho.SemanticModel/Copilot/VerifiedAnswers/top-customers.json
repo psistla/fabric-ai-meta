@@ -1,0 +1,4 @@
+{
+  "question": "Who are the top 5 customers?",
+  "dax": "EVALUATE TOPN(5, Customers, [Total Sales], DESC)"
+}

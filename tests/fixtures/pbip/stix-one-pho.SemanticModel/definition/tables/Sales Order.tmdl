@@ -1,0 +1,121 @@
+/// List of sales.
+table 'Sales Order'
+	lineageTag: 1017f6ec-b299-4f7a-a7fa-18fbb5f2449f
+
+	/// This measure provides month over month revenue (pstest).
+	measure 'Revenue MoM %' =
+			
+			VAR CurrentRevenue =
+			    SUM ( 'Sales Order'[money] )
+			VAR PriorRevenue =
+			    CALCULATE (
+			        SUM ( 'Sales Order'[money] ),
+			        DATEADD ( 'Sales Order'[date], -1, MONTH )
+			    )
+			VAR HasBothPeriods =
+			    NOT ISBLANK ( CurrentRevenue ) && NOT ISBLANK ( PriorRevenue )
+			VAR Result =
+			    DIVIDE ( CurrentRevenue - PriorRevenue, PriorRevenue )
+			RETURN
+			    IF ( HasBothPeriods, Result )
+		lineageTag: e2071bde-fd93-4d4d-bb31-4a629b575dac
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Revenue 7D Avg' =
+			
+			VAR LastVisibleDate =
+			    MAX ( SalesOrderLarge[Date] )
+			VAR Window =
+			    DATESINPERIOD ( SalesOrderLarge[Date], LastVisibleDate, -7, DAY )
+			VAR DaysWithSales =
+			    CALCULATE ( DISTINCTCOUNT ( SalesOrderLarge[date] ), Window )
+			VAR WindowRevenue =
+			    CALCULATE ( SUM ( SalesOrderLarge[money] ), Window )
+			RETURN
+			    DIVIDE ( WindowRevenue, DaysWithSales )
+		isHidden
+		lineageTag: d437bd75-2f2b-490e-817a-b44efc471730
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Coffee YTD' = TOTALYTD(CALCULATE(SUM(SalesOrderLarge[money]), SalesOrderLarge[coffee_name] = "Hot Chocolate"), SalesOrderLarge[date])
+		lineageTag: 012cea49-291d-4459-8640-7a131a90dab5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: ba42913d-f579-42ac-acd9-fc67f018355a
+		summarizeBy: none
+		sourceColumn: date
+
+		variation Variation
+			isDefault
+			relationship: 6b51877e-3b42-4410-a9e5-aadd7192c5ab
+			defaultHierarchy: LocalDateTable_e0e3caed-45d8-4613-9f3e-e0d961cf4e1f.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: df6d9f9e-b739-4b1d-ad54-493d2d5d59a8
+		summarizeBy: none
+		sourceColumn: datetime
+
+		variation Variation
+			isDefault
+			relationship: 55c04930-2a27-4e3e-8eac-3ae58b009b91
+			defaultHierarchy: LocalDateTable_9fee344e-9c72-4802-806a-b81856b4a0ea.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	/// pstest
+	column cash_type
+		dataType: string
+		lineageTag: 184a9598-2708-4d4e-821e-1f818f27a13d
+		summarizeBy: none
+		sourceColumn: cash_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column money
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 159df7e9-c316-4857-ab81-39affde80a09
+		summarizeBy: sum
+		sourceColumn: money
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column coffee_name
+		dataType: string
+		lineageTag: e6a200e0-58e8-4769-ac11-3c3b86f8c297
+		summarizeBy: none
+		sourceColumn: coffee_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Sales Order' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\prasa\Downloads\coffee-sales-dataset\small.csv"),[Delimiter=",", Columns=5, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"date", type date}, {"datetime", type datetime}, {"cash_type", type text}, {"money", Int64.Type}, {"coffee_name", type text}})
+				in
+				    #"Changed Type"
+
+	changedProperty = Name
+
+	annotation PBI_ResultType = Table
+

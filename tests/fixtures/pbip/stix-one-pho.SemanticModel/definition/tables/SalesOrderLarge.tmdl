@@ -1,0 +1,81 @@
+table SalesOrderLarge
+	lineageTag: 7ec3d9da-3378-4cad-8cd7-987d5fe0e886
+
+	column date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 1abb0799-59ed-407e-9c98-50ae374923b6
+		summarizeBy: none
+		sourceColumn: date
+
+		variation Variation
+			isDefault
+			relationship: e83515b7-00f1-42c4-8431-8129529ca8fe
+			defaultHierarchy: LocalDateTable_e69f3103-691e-4a46-b43b-b71c86d314cb.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: c8e2b65b-c8a2-4027-9568-5b76848916ec
+		summarizeBy: none
+		sourceColumn: datetime
+
+		variation Variation
+			isDefault
+			relationship: 93575940-c9d8-473f-9242-cccf094d3dfa
+			defaultHierarchy: LocalDateTable_4cb2f39a-5d5c-4d88-bc5d-d7ad046e89ab.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column cash_type
+		dataType: string
+		lineageTag: 83121f1a-de94-4048-9c3b-330e282f42dd
+		summarizeBy: none
+		sourceColumn: cash_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column card
+		dataType: string
+		lineageTag: d585b63f-2aaa-4dc3-ac44-f79a33dcccbc
+		summarizeBy: none
+		sourceColumn: card
+
+		annotation SummarizationSetBy = Automatic
+
+	column money
+		dataType: double
+		lineageTag: 7ae80d09-f4d1-41cc-9b86-76445c0db67f
+		summarizeBy: sum
+		sourceColumn: money
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column coffee_name
+		dataType: string
+		lineageTag: 681113aa-273a-4af5-ad26-b5c1d1ec3428
+		summarizeBy: none
+		sourceColumn: coffee_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition SalesOrderLarge = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\prasa\Downloads\coffee-sales-dataset\large.csv"),[Delimiter=",", Columns=6, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"date", type date}, {"datetime", type datetime}, {"cash_type", type text}, {"card", type text}, {"money", type number}, {"coffee_name", type text}})
+				in
+				    #"Changed Type"
+
+	changedProperty = Name
+
+	annotation PBI_ResultType = Table
+

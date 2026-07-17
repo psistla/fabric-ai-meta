@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "tables": [
+    {
+      "name": "Sales",
+      "columns": [
+        "TotalAmount",
+        "OrderDate",
+        "CustomerKey"
+      ]
+    },
+    {
+      "name": "Date",
+      "columns": [
+        "Date",
+        "Year",
+        "MonthName"
+      ]
+    }
+  ]
+}

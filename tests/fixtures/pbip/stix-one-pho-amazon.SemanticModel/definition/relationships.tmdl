@@ -1,0 +1,15 @@
+relationship a83c020d-e0fe-4c7f-a859-ad7d1e981ad7
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'All Items'.'Order Date'
+	toColumn: LocalDateTable_e43ae5fd-9170-4ac1-a420-43e55dbb08b3.Date
+
+relationship 88276b90-2219-4a8e-bc63-8ff76c3a315e
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'All Items'.'Release Date'
+	toColumn: LocalDateTable_0b67c352-30ce-4c49-bf9a-600e4e636c4b.Date
+
+relationship e3a58370-5ad0-4593-81ef-2b943749fe7c
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'All Items'.'Shipment Date'
+	toColumn: LocalDateTable_d006c574-cce5-4331-bde3-0a17c4537dda.Date
+

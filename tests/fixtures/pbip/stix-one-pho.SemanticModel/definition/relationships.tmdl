@@ -1,0 +1,31 @@
+relationship 6b51877e-3b42-4410-a9e5-aadd7192c5ab
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Sales Order'.date
+	toColumn: LocalDateTable_e0e3caed-45d8-4613-9f3e-e0d961cf4e1f.Date
+
+relationship 55c04930-2a27-4e3e-8eac-3ae58b009b91
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Sales Order'.datetime
+	toColumn: LocalDateTable_9fee344e-9c72-4802-806a-b81856b4a0ea.Date
+
+relationship e83515b7-00f1-42c4-8431-8129529ca8fe
+	joinOnDateBehavior: datePartOnly
+	fromColumn: SalesOrderLarge.date
+	toColumn: LocalDateTable_e69f3103-691e-4a46-b43b-b71c86d314cb.Date
+
+relationship 93575940-c9d8-473f-9242-cccf094d3dfa
+	joinOnDateBehavior: datePartOnly
+	fromColumn: SalesOrderLarge.datetime
+	toColumn: LocalDateTable_4cb2f39a-5d5c-4d88-bc5d-d7ad046e89ab.Date
+
+relationship bfce4227-5955-e529-239f-435236a826aa
+	fromColumn: SalesOrderLarge.card
+	toColumn: cards.card
+
+relationship 15892f7f-1300-feed-d4d5-e59585d748fe
+	isActive: false
+	crossFilteringBehavior: bothDirections
+	toCardinality: many
+	fromColumn: SalesOrderLarge.cash_type
+	toColumn: 'Sales Order'.cash_type
+

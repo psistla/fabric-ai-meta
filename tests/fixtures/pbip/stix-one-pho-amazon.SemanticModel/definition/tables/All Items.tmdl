@@ -1,0 +1,300 @@
+/// testing ps-test
+table 'All Items'
+	lineageTag: fd957a51-503f-46e5-813b-8377c84665d7
+
+	column 'Order Date'
+		dataType: dateTime
+		isHidden
+		formatString: Long Date
+		lineageTag: efc74777-4051-4919-938c-b93e9f436fc0
+		summarizeBy: none
+		sourceColumn: Order Date
+
+		variation Variation
+			isDefault
+			relationship: a83c020d-e0fe-4c7f-a859-ad7d1e981ad7
+			defaultHierarchy: LocalDateTable_e43ae5fd-9170-4ac1-a420-43e55dbb08b3.'Date Hierarchy'
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Order ID'
+		dataType: string
+		lineageTag: 9c29b525-8c9e-44e1-9f1f-69d20aa3298b
+		summarizeBy: none
+		sourceColumn: Order ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Title
+		dataType: string
+		lineageTag: 7aafadd2-3a28-4fc9-b72f-7b51decb4e25
+		summarizeBy: none
+		sourceColumn: Title
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		dataType: string
+		lineageTag: dc752c16-8b72-4cd5-9c5a-a5c8a3b0e0d8
+		summarizeBy: none
+		sourceColumn: Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column ASIN/ISBN
+		dataType: string
+		lineageTag: 027f4995-edbf-48f6-9f00-08c455db174c
+		summarizeBy: none
+		sourceColumn: ASIN/ISBN
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'UNSPSC Code'
+		dataType: int64
+		formatString: 0
+		lineageTag: 9c0e743a-4957-4bb3-b4d4-630d312726c9
+		summarizeBy: count
+		sourceColumn: UNSPSC Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Website
+		dataType: string
+		lineageTag: 4d77e84b-3f04-467f-88d1-4b70c32f1b4d
+		summarizeBy: none
+		sourceColumn: Website
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Release Date'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 5191a692-65bc-40dc-a627-474d2000ab71
+		summarizeBy: none
+		sourceColumn: Release Date
+
+		variation Variation
+			isDefault
+			relationship: 88276b90-2219-4a8e-bc63-8ff76c3a315e
+			defaultHierarchy: LocalDateTable_0b67c352-30ce-4c49-bf9a-600e4e636c4b.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column Condition
+		dataType: string
+		lineageTag: 46f5e417-a4b8-4000-bc40-d6a77105666d
+		summarizeBy: none
+		sourceColumn: Condition
+
+		annotation SummarizationSetBy = Automatic
+
+	column Seller
+		dataType: string
+		lineageTag: 965e1c60-d1a7-481c-b7b8-9db347e62454
+		summarizeBy: none
+		sourceColumn: Seller
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Seller Credentials'
+		dataType: string
+		lineageTag: bcafd107-3ef7-4713-a054-fc74e802086b
+		summarizeBy: none
+		sourceColumn: Seller Credentials
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'List Price Per Unit'
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		lineageTag: 3891d36a-f84e-4540-8347-98051db98646
+		summarizeBy: sum
+		sourceColumn: List Price Per Unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Purchase Price Per Unit'
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		lineageTag: 6315e00c-a8d6-433a-ae09-a5b6349fe6ed
+		summarizeBy: sum
+		sourceColumn: Purchase Price Per Unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column Quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: 4ad611d1-f117-48bc-825f-369a967267fd
+		summarizeBy: sum
+		sourceColumn: Quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Purchase Order Number'
+		dataType: string
+		lineageTag: bf5099c6-ccfd-442a-8672-373f9f6a13a6
+		summarizeBy: none
+		sourceColumn: Purchase Order Number
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'PO Line Number'
+		dataType: string
+		lineageTag: e1ce1032-248f-4374-ac30-3fb966416118
+		summarizeBy: none
+		sourceColumn: PO Line Number
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Shipment Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 828a88a5-7afa-47fa-9584-3ceac636e342
+		summarizeBy: none
+		sourceColumn: Shipment Date
+
+		variation Variation
+			isDefault
+			relationship: e3a58370-5ad0-4593-81ef-2b943749fe7c
+			defaultHierarchy: LocalDateTable_d006c574-cce5-4331-bde3-0a17c4537dda.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Shipping Address City'
+		dataType: string
+		lineageTag: a751e363-3f08-441d-bc84-ae503aae19ec
+		summarizeBy: none
+		sourceColumn: Shipping Address City
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Shipping Address State'
+		dataType: string
+		lineageTag: f9a8bb91-e2d0-4a0c-ac4d-a0e2e15a1eee
+		summarizeBy: none
+		sourceColumn: Shipping Address State
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Order Status'
+		dataType: string
+		lineageTag: 479d3848-fa3a-4c5a-9093-87948173b30d
+		summarizeBy: none
+		sourceColumn: Order Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Carrier Name & Tracking Number'
+		dataType: string
+		lineageTag: 6e238cc3-67a9-4b58-819d-ffd6259967ac
+		summarizeBy: none
+		sourceColumn: Carrier Name & Tracking Number
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Item Subtotal'
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		lineageTag: cf12404b-77c9-472f-9e3e-dbc74c80233a
+		summarizeBy: sum
+		sourceColumn: Item Subtotal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Item Subtotal Tax'
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		lineageTag: ffdd3bdc-9b61-43eb-bc13-c4038753a6c8
+		summarizeBy: sum
+		sourceColumn: Item Subtotal Tax
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Item Total'
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		lineageTag: e8f05a5d-d352-47d9-8ea0-ee3d9e87b899
+		summarizeBy: sum
+		sourceColumn: Item Total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Tax Exemption Applied'
+		dataType: string
+		lineageTag: 7b4b8d52-7996-4ecc-9fb7-6e1c12793bd6
+		summarizeBy: none
+		sourceColumn: Tax Exemption Applied
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tax Exemption Type'
+		dataType: string
+		lineageTag: 6728c0e0-d1d3-40f5-95e5-49c70c484f46
+		summarizeBy: none
+		sourceColumn: Tax Exemption Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Exemption Opt-Out'
+		dataType: string
+		lineageTag: f34a19f5-6000-491f-8a65-3f66669e1a4b
+		summarizeBy: none
+		sourceColumn: Exemption Opt-Out
+
+		annotation SummarizationSetBy = Automatic
+
+	column Currency
+		dataType: string
+		lineageTag: 241afad1-bb0f-4d34-8b3a-c5bab57cd694
+		summarizeBy: none
+		sourceColumn: Currency
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Group Name'
+		dataType: string
+		lineageTag: 8a475fc2-49d5-446f-82c3-8ee2deab49a6
+		summarizeBy: none
+		sourceColumn: Group Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column c_Year = YEAR('All Items'[Order Date])
+		formatString: 0
+		lineageTag: 1ccf4fd2-19c2-48c4-8e1a-2fb1e3ce762e
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'All Items-8b4fb33d-be2b-43df-93fc-3b054db14e6b' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\prasa\OneDrive\Desktop\01-Jan-2012_to_09-Dec-2022.csv"),[Delimiter=",", Columns=36, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Order Date", type date}, {"Order ID", type text}, {"Title", type text}, {"Category", type text}, {"ASIN/ISBN", type text}, {"UNSPSC Code", Int64.Type}, {"Website", type text}, {"Release Date", type datetime}, {"Condition", type text}, {"Seller", type text}, {"Seller Credentials", type text}, {"List Price Per Unit", Currency.Type}, {"Purchase Price Per Unit", Currency.Type}, {"Quantity", Int64.Type}, {"Payment Instrument Type", type text}, {"Purchase Order Number", type text}, {"PO Line Number", type text}, {"Ordering Customer Email", type text}, {"Shipment Date", type date}, {"Shipping Address Name", type text}, {"Shipping Address Street 1", type text}, {"Shipping Address Street 2", type text}, {"Shipping Address City", type text}, {"Shipping Address State", type text}, {"Shipping Address Zip", type text}, {"Order Status", type text}, {"Carrier Name & Tracking Number", type text}, {"Item Subtotal", Currency.Type}, {"Item Subtotal Tax", Currency.Type}, {"Item Total", Currency.Type}, {"Tax Exemption Applied", type text}, {"Tax Exemption Type", type text}, {"Exemption Opt-Out", type text}, {"Buyer Name", type text}, {"Currency", type text}, {"Group Name", type text}}),
+				    #"Removed Columns" = Table.RemoveColumns(#"Changed Type",{"Ordering Customer Email", "Buyer Name", "Shipping Address Street 1", "Payment Instrument Type", "Shipping Address Name", "Shipping Address Zip", "Shipping Address Street 2"})
+				in
+				    #"Removed Columns"
+
+	changedProperty = Name
+
+	annotation PBI_ResultType = Table
+

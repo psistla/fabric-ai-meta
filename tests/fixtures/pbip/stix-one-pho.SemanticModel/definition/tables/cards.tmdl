@@ -1,0 +1,33 @@
+table cards
+	isHidden
+	lineageTag: 2ef1fa88-ef96-4457-910c-9681f145823c
+
+	column card
+		dataType: string
+		isHidden
+		lineageTag: 04c3310b-226e-4ecd-846b-b0cdc2f11612
+		summarizeBy: none
+		sourceColumn: card
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition cards = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\prasa\Downloads\coffee-sales-dataset\cards.csv"),[Delimiter=",", Columns=1, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}}),
+				    #"Removed Duplicates" = Table.Distinct(#"Changed Type"),
+				    #"Promoted Headers" = Table.PromoteHeaders(#"Removed Duplicates", [PromoteAllScalars=true]),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Promoted Headers",{{"card", type text}})
+				in
+				    #"Changed Type1"
+
+	changedProperty = IsHidden
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
