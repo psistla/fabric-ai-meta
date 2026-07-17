@@ -976,3 +976,47 @@ def test_export_single_classifies_before_writing(monkeypatch):
     assert measure.category != MeasureCategory.UNKNOWN, (
         "_export_single wrote without classifying; measure category stayed UNKNOWN"
     )
+
+
+# ---------------------------------------------------------------------------
+# --pbip local extraction full pipeline (Chunk 5)
+# ---------------------------------------------------------------------------
+
+PBIP_DIR = os.path.join(FIXTURES_DIR, "pbip")
+
+
+def test_pbip_full_pipeline(tmp_path, monkeypatch):
+    """Drive score, governance, analyze, and every exporter over real TMDL, and
+    prove the exported measure categories are classified (not left 'unknown')."""
+    runner = CliRunner()
+    monkeypatch.chdir(tmp_path)  # keep default ./output writes inside tmp
+
+    # score --all over a directory of *.SemanticModel folders
+    r = runner.invoke(main, ["score", "--all", "--pbip", PBIP_DIR])
+    assert r.exit_code == 0, r.output
+
+    # governance over the same repo
+    gov_out = tmp_path / "gov"
+    r = runner.invoke(main, ["governance", "--pbip", PBIP_DIR, "--output", str(gov_out)])
+    assert r.exit_code == 0, r.output
+    assert (gov_out / "governance-report.json").exists()
+
+    # every registered exporter runs clean on a real TMDL model
+    from fabric_ai_meta.generator.registry import discover_exporters
+
+    for fmt in discover_exporters():
+        r = runner.invoke(main, ["export", fmt, "stix-one-pho", "--pbip", PBIP_DIR])
+        assert r.exit_code == 0, f"export {fmt} failed: {r.output}"
+
+    # analyze writes ai-ready-schema.json carrying real measure categories
+    an_out = tmp_path / "an"
+    r = runner.invoke(
+        main, ["analyze", "stix-one-pho", "--pbip", PBIP_DIR, "--output", str(an_out)]
+    )
+    assert r.exit_code == 0, r.output
+    with open(an_out / "stix-one-pho" / "ai-ready-schema.json", encoding="utf-8") as f:
+        schema = json.load(f)
+    categories = {m["name"]: m["category"] for m in schema["measures"]}
+    assert categories, "no measures in exported schema"
+    assert categories.get("Coffee YTD") == "time_intelligence"
+    assert "unknown" not in categories.values()

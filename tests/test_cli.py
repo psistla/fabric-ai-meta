@@ -591,3 +591,71 @@ def test_governance_mock_works_from_any_cwd(tmp_path, monkeypatch):
         ["governance", "--mock", "--workspace", "ws", "--output", str(tmp_path / "out")],
     )
     assert result.exit_code == 0, result.output
+
+
+# ---------------------------------------------------------------------------
+# --pbip local extraction (Chunk 5)
+# ---------------------------------------------------------------------------
+
+PBIP_DIR = os.path.join(FIXTURES_DIR, "pbip")
+
+
+def test_analyze_pbip_and_mock_mutually_exclusive(runner):
+    result = runner.invoke(main, ["analyze", "stix-one-pho", "--pbip", PBIP_DIR, "--mock"])
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_analyze_pbip_and_workspace_mutually_exclusive(runner):
+    result = runner.invoke(
+        main, ["analyze", "stix-one-pho", "--pbip", PBIP_DIR, "--workspace", "ws"]
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_scan_pbip_and_mock_mutually_exclusive(runner):
+    result = runner.invoke(main, ["scan", "--pbip", PBIP_DIR, "--mock"])
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_score_pbip_and_workspace_mutually_exclusive(runner):
+    result = runner.invoke(
+        main, ["score", "--all", "--pbip", PBIP_DIR, "--workspace", "ws"]
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_export_pbip_and_mock_mutually_exclusive(runner):
+    result = runner.invoke(
+        main, ["export", "langchain", "stix-one-pho", "--pbip", PBIP_DIR, "--mock"]
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_cli_analyze_agrees_with_mcp(runner, tmp_path):
+    """CLI and MCP share one extractor factory and one classify pipeline, so the
+    same model must score identically and expose the same schema keys via both."""
+    from fabric_ai_meta import mcp_server
+
+    name = "Adventure Works"
+    ws = "ws"
+    result = runner.invoke(
+        main, ["analyze", name, "--mock", "--workspace", ws, "--output", str(tmp_path)]
+    )
+    assert result.exit_code == 0, result.output
+
+    out_dir = tmp_path / "adventure-works"
+    with open(out_dir / "readiness-score.json", encoding="utf-8") as f:
+        cli_score = json.load(f)["score"]
+    with open(out_dir / "ai-ready-schema.json", encoding="utf-8") as f:
+        cli_schema = json.load(f)
+
+    mcp_score = mcp_server.score_model(name, ws, mock=True)["score"]
+    mcp_schema = mcp_server.generate_schema(name, ws, mock=True)
+
+    assert cli_score == mcp_score
+    assert set(cli_schema.keys()) == set(mcp_schema.keys())

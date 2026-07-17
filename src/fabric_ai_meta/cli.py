@@ -77,9 +77,26 @@ def _list_mock_models() -> list[str]:
     return models
 
 
+def _resolve_source(mock: bool, pbip: str | None, workspace: str | None,
+                    *, workspace_required: bool = False) -> None:
+    """Validate the --mock / --pbip / --workspace combination.
+
+    --pbip reads a local *.SemanticModel folder from disk, so it takes no
+    workspace and is not a mock. Raises click.UsageError on any conflict.
+    """
+    if pbip and mock:
+        raise click.UsageError("--pbip and --mock are mutually exclusive.")
+    if pbip and workspace:
+        raise click.UsageError("--pbip and --workspace are mutually exclusive.")
+    if workspace_required and not pbip and not workspace:
+        raise click.UsageError(
+            "Provide --workspace, or --pbip to read a local .SemanticModel folder."
+        )
+
+
 def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
                   include_sample_values: bool, llm_enrich: bool, mock: bool,
-                  *, with_copilot: bool = False) -> None:
+                  *, with_copilot: bool = False, pbip: str | None = None) -> None:
     """Core analysis flow shared by analyze and scan commands."""
     from fabric_ai_meta.analyzer.dax_parser import build_dependency_graph
     from fabric_ai_meta.analyzer.scorer import score_model
@@ -98,7 +115,7 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
         task = progress.add_task(f"Extracting '{model_name}'...", total=None)
         from fabric_ai_meta.extractor.factory import _build_extractor
         extractor = _build_extractor(
-            workspace=workspace, mock=mock, model_name=model_name
+            workspace=workspace, mock=mock, pbip=pbip, model_name=model_name
         )
 
         model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
@@ -285,22 +302,26 @@ def auth_logout():
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
 @click.option("--with-copilot", is_flag=True, default=False,
               help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
-def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock, with_copilot):
+@click.option("--pbip", default=None, type=click.Path(exists=True),
+              help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
+def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock, with_copilot, pbip):
     """Analyze a semantic model and generate AI-ready metadata exports."""
+    _resolve_source(mock, pbip, workspace)
     cfg = load_config()
-    workspace = workspace or cfg.extraction.default_workspace
+    if not pbip:
+        workspace = workspace or cfg.extraction.default_workspace
     output = output or cfg.output.output_dir
 
     console.print(Panel(
         f"[bold]analyze[/bold]  model=[cyan]{model_name}[/cyan]  "
-        f"workspace=[cyan]{workspace}[/cyan]  "
+        f"workspace=[cyan]{workspace or pbip}[/cyan]  "
         f"mock=[cyan]{mock}[/cyan]",
         title="fabric-ai-meta"
     ))
 
     try:
         _run_analysis(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock,
-                      with_copilot=with_copilot)
+                      with_copilot=with_copilot or bool(pbip), pbip=pbip)
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)
@@ -311,27 +332,32 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
 # ---------------------------------------------------------------------------
 
 @main.command("scan")
-@click.option("--workspace", "-w", required=True, help="Fabric workspace name.")
+@click.option("--workspace", "-w", default=None, help="Fabric workspace name.")
 @click.option("--output", "-o", default=None, help="Output directory.")
 @click.option("--format", "fmt", default="json", type=click.Choice(["json"]))
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
 @click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM-assisted enrichment for each model.")
 @click.option("--with-copilot", is_flag=True, default=False,
               help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
-def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
+@click.option("--pbip", default=None, type=click.Path(exists=True),
+              help="Scan a local directory of *.SemanticModel folders (no Fabric, no workspace).")
+def scan(workspace, output, fmt, mock, llm_enrich, with_copilot, pbip):
     """Scan all models in a workspace and generate AI-ready exports."""
     from datetime import datetime, timezone
+
+    _resolve_source(mock, pbip, workspace, workspace_required=True)
+    with_copilot = with_copilot or bool(pbip)
 
     cfg = load_config()
     output = output or cfg.output.output_dir
 
     console.print(Panel(
-        f"[bold]scan[/bold]  workspace=[cyan]{workspace}[/cyan]  mock=[cyan]{mock}[/cyan]",
+        f"[bold]scan[/bold]  workspace=[cyan]{workspace or pbip}[/cyan]  mock=[cyan]{mock}[/cyan]",
         title="fabric-ai-meta"
     ))
 
     from fabric_ai_meta.extractor.factory import _build_extractor
-    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
+    extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=None)
     model_names = extractor.list_models(workspace)
 
     console.print(f"Found [bold]{len(model_names)}[/bold] models in workspace.")
@@ -344,7 +370,7 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
             task = progress.add_task(f"Analyzing {name}...", total=None)
             try:
                 result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock,
-                                        with_copilot=with_copilot)
+                                        with_copilot=with_copilot, pbip=pbip)
                 model, score = result
                 slug = _slugify(name)
                 table_count = len(model.tables)
@@ -411,7 +437,7 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
     workspace_summary = {
         "$schema": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/workspace-summary/v1.json",
         "version": "1.0",
-        "workspace": workspace,
+        "workspace": workspace or pbip,
         "scan_timestamp": scan_timestamp,
         "model_count": len(model_summaries),
         "average_readiness_score": avg_score,
@@ -453,21 +479,22 @@ def export_group():
 
 
 def _export_single(model_name: str, workspace: str, exporter, mock: bool = False,
-                   *, with_copilot: bool = False) -> None:
+                   *, with_copilot: bool = False, pbip: str | None = None) -> None:
     """Run a single `BaseExporter` against the extracted model and write its output."""
     cfg = load_config()
-    workspace = workspace or cfg.extraction.default_workspace
+    if not pbip:
+        workspace = workspace or cfg.extraction.default_workspace
     output = cfg.output.output_dir
 
     console.print(Panel(
         f"[bold]export {exporter.name}[/bold]  model=[cyan]{model_name}[/cyan]  "
-        f"workspace=[cyan]{workspace}[/cyan]  mock=[cyan]{mock}[/cyan]",
+        f"workspace=[cyan]{workspace or pbip}[/cyan]  mock=[cyan]{mock}[/cyan]",
         title="fabric-ai-meta"
     ))
 
     from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
     from fabric_ai_meta.extractor.factory import _build_extractor
-    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
+    extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
 
     model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
     classify_model_in_place(model)
@@ -489,11 +516,15 @@ def _register_exporter_commands() -> None:
             @click.option("--workspace", "-w", default=None)
             @click.option("--mock", is_flag=True, default=False,
                           help="Use MockExtractor with fixture data.")
-            def _cmd(model_name, workspace, mock):
+            @click.option("--pbip", default=None, type=click.Path(exists=True),
+                          help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
+            def _cmd(model_name, workspace, mock, pbip):
+                _resolve_source(mock, pbip, workspace)
                 _export_single(
                     model_name, workspace, exporter_cls(),
                     mock=mock,
-                    with_copilot=exporter_cls.requires_copilot,
+                    with_copilot=exporter_cls.requires_copilot or bool(pbip),
+                    pbip=pbip,
                 )
             return _cmd
 
@@ -562,21 +593,25 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
 @click.option("--workspace", "-w", default=None, help="Fabric workspace name.")
 @click.option("--all", "score_all", is_flag=True, default=False, help="Score all models in workspace.")
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor for local dev.")
-def score(model_name, workspace, score_all, mock):
+@click.option("--pbip", default=None, type=click.Path(exists=True),
+              help="Score a local *.SemanticModel folder or directory of them (no Fabric, no workspace).")
+def score(model_name, workspace, score_all, mock, pbip):
     """Show AI readiness score for one or all models."""
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
 
+    _resolve_source(mock, pbip, workspace)
     cfg = load_config()
-    workspace = workspace or cfg.extraction.default_workspace
+    if not pbip:
+        workspace = workspace or cfg.extraction.default_workspace
 
     console.print(Panel(
-        f"[bold]score[/bold]  workspace=[cyan]{workspace}[/cyan]  all=[cyan]{score_all}[/cyan]",
+        f"[bold]score[/bold]  workspace=[cyan]{workspace or pbip}[/cyan]  all=[cyan]{score_all}[/cyan]",
         title="fabric-ai-meta"
     ))
 
     def _score_one(name: str) -> tuple:
         from fabric_ai_meta.extractor.factory import _build_extractor
-        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=name)
+        extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=name)
         m = extractor.extract(name, workspace)
         from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
         classify_model_in_place(m)
@@ -586,7 +621,7 @@ def score(model_name, workspace, score_all, mock):
     if score_all:
         from fabric_ai_meta.extractor.factory import _build_extractor
         names = _build_extractor(
-            workspace=workspace, mock=mock, model_name=None
+            workspace=workspace, mock=mock, pbip=pbip, model_name=None
         ).list_models(workspace)
     else:
         if not model_name:
@@ -624,23 +659,28 @@ def score(model_name, workspace, score_all, mock):
 # ---------------------------------------------------------------------------
 
 @main.command("governance")
-@click.option("--workspace", "-w", required=True, help="Fabric workspace name.")
+@click.option("--workspace", "-w", default=None, help="Fabric workspace name.")
 @click.option("--report", default=None, help="Output file path for governance report JSON.")
 @click.option("--output", "-o", default="./output", show_default=True, help="Output directory (report defaults here).")
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture files.")
 @click.option("--with-copilot", is_flag=True, default=False,
               help="Also extract each model's Copilot/ folder and include the copilot_completeness section.")
-def governance(workspace, report, output, mock, with_copilot):
+@click.option("--pbip", default=None, type=click.Path(exists=True),
+              help="Report over a local directory of *.SemanticModel folders (no Fabric, no workspace).")
+def governance(workspace, report, output, mock, with_copilot, pbip):
     """Generate cross-model governance report for a workspace."""
+    _resolve_source(mock, pbip, workspace, workspace_required=True)
+    with_copilot = with_copilot or bool(pbip)
+
     console.print(Panel(
-        f"[bold]governance[/bold]  workspace=[cyan]{workspace}[/cyan]",
+        f"[bold]governance[/bold]  workspace=[cyan]{workspace or pbip}[/cyan]",
         title="fabric-ai-meta"
     ))
 
     from fabric_ai_meta.analyzer.governance import generate_governance_report, write_governance_report
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
     from fabric_ai_meta.extractor.factory import _build_extractor
-    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
+    extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=None)
 
     model_names = extractor.list_models(workspace)
 
@@ -663,7 +703,7 @@ def governance(workspace, report, output, mock, with_copilot):
     gov_report = generate_governance_report(models)
 
     report_path = report or os.path.join(output, "governance-report.json")
-    write_governance_report(gov_report, workspace, report_path)
+    write_governance_report(gov_report, workspace or pbip, report_path)
     console.print(f"[green]Governance report written to:[/green] {report_path}")
 
     # Print summary table
