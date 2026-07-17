@@ -12,7 +12,12 @@ Grounded strictly in the committed fixtures under tests/fixtures/pbip/
 
 from __future__ import annotations
 
-from fabric_ai_meta.models.metadata import TableMeta, TableType
+from fabric_ai_meta.models.metadata import (
+    ColumnMeta,
+    ColumnRole,
+    TableMeta,
+    TableType,
+)
 
 
 def _unquote(name: str) -> str:
@@ -55,6 +60,14 @@ class _Node:
     def has_flag(self, flag: str, depth: int) -> bool:
         return flag in self.child_props(depth)
 
+    def prop_value(self, key: str, depth: int) -> str | None:
+        """Value of a `key: value` child at `depth`, or None if absent."""
+        prefix = key + ":"
+        for c in self.children:
+            if c.depth == depth and c.header.startswith(prefix):
+                return c.header[len(prefix):].strip()
+        return None
+
 
 def _parse_tree(text: str) -> _Node:
     """Build a depth-nested tree. Consecutive `///` lines attach as the
@@ -86,11 +99,30 @@ def _find(root: _Node, prefix: str) -> _Node | None:
     return None
 
 
+def _parse_column(node: _Node) -> ColumnMeta:
+    """A `column <name>` block into ColumnMeta. `role` is left UNKNOWN for the
+    classifier. Nested `variation` blocks are ignored (they are deeper children
+    and never match a column property key)."""
+    d = node.depth + 1
+    name = _unquote(node.header[len("column ") :].strip())
+    return ColumnMeta(
+        name=name,
+        data_type=node.prop_value("dataType", d) or "",
+        description=node.description,
+        ai_description=None,
+        role=ColumnRole.UNKNOWN,
+        is_hidden=node.has_flag("isHidden", d),
+        display_folder=None,
+        format_string=node.prop_value("formatString", d),
+        sort_by_column=None,
+    )
+
+
 def _parse_table_file(path: str) -> TableMeta:
     """Parse one `definition/tables/<name>.tmdl` into a TableMeta.
 
-    Task 10 scope: name, `///` description, table-level `isHidden`. Columns,
-    measures, and partition mode are populated by later parser tasks.
+    Populated so far: name, `///` description, table-level `isHidden`, and
+    columns. Measures and partition mode arrive in later parser tasks.
     """
     with open(path, encoding="utf-8") as f:
         text = f.read()
@@ -102,6 +134,9 @@ def _parse_table_file(path: str) -> TableMeta:
 
     name = _unquote(node.header[len("table ") :].strip())
     is_hidden = node.has_flag("isHidden", node.depth + 1)
+    columns = [
+        _parse_column(c) for c in node.children if c.header.startswith("column ")
+    ]
 
     return TableMeta(
         name=name,
@@ -109,7 +144,7 @@ def _parse_table_file(path: str) -> TableMeta:
         ai_description=None,
         table_type=TableType.UNKNOWN,
         grain=None,
-        columns=[],
+        columns=columns,
         measures=[],
         is_hidden=is_hidden,
     )
