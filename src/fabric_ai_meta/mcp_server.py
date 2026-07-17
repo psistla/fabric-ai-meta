@@ -13,25 +13,12 @@ import dataclasses
 import json
 from typing import Any
 
+from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
 from fabric_ai_meta.extractor.factory import _build_extractor
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-
-
-def _classify_in_place(model) -> None:
-    from fabric_ai_meta.analyzer.classifier import (
-        classify_column_role,
-        classify_measure_heuristic,
-        classify_table_heuristic,
-    )
-    for table in model.tables:
-        table.table_type = classify_table_heuristic(table, model.relationships)
-        for col in table.columns:
-            col.role = classify_column_role(col, table, model.relationships)
-        for m in table.measures:
-            m.category = classify_measure_heuristic(m)
 
 
 def _error(message: str) -> dict:
@@ -72,7 +59,7 @@ def analyze_model(model_name: str, workspace: str, mock: bool = True) -> dict:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
         extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
         model = extractor.extract(model_name, workspace)
-        _classify_in_place(model)
+        classify_model_in_place(model)
         overall, breakdown = _score(model)
         return {
             "model": model_name,
@@ -95,7 +82,7 @@ def score_model(model_name: str, workspace: str, mock: bool = True) -> dict:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
         extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
         model = extractor.extract(model_name, workspace)
-        _classify_in_place(model)
+        classify_model_in_place(model)
         overall, breakdown = _score(model)
         return {
             "model": model_name,
@@ -116,7 +103,7 @@ def generate_schema(model_name: str, workspace: str, mock: bool = True) -> dict:
         from fabric_ai_meta.generator.schema import generate_ai_ready_schema
         extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
         model = extractor.extract(model_name, workspace)
-        _classify_in_place(model)
+        classify_model_in_place(model)
         return generate_ai_ready_schema(model)
     except Exception as exc:
         return _error(str(exc))
@@ -137,7 +124,7 @@ def governance_report(workspace: str, mock: bool = True) -> dict:
         models = []
         for name in names:
             m = extractor.extract(name, workspace)
-            _classify_in_place(m)
+            classify_model_in_place(m)
             overall, breakdown = _score(m)
             m.ai_readiness_score = overall
             m.scoring_breakdown = breakdown
