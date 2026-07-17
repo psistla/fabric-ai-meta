@@ -928,3 +928,51 @@ class TestSchemaValidation:
             with open(path) as f:
                 schema = json.load(f)
             assert schema["$id"] == expected_id, f"{path}: $id mismatch"
+
+
+# ---------------------------------------------------------------------------
+# WIRE-02: _export_single classifies before writing
+# ---------------------------------------------------------------------------
+
+def test_export_single_classifies_before_writing(monkeypatch):
+    """WIRE-02: _export_single extracted and wrote without ever classifying.
+
+    Real Fabric mode emitted category "unknown" for every measure. Mock fixtures
+    hid it by pre-baking category, so this builds an UNKNOWN model, drives the
+    real export path, and asserts the model the exporter received was classified.
+    """
+    measure = MeasureMeta(
+        name="Total Sales",
+        dax_expression="SUM(Sales[Amount])",
+        description=None, ai_description=None,
+        category=MeasureCategory.UNKNOWN,   # as a real extractor leaves it
+        display_folder=None, format_string=None,
+    )
+    table = TableMeta(
+        name="Sales", description=None, ai_description=None,
+        table_type=TableType.UNKNOWN, grain=None, measures=[measure],
+    )
+    model = SemanticModelMeta(name="M", workspace="W", description=None, tables=[table])
+
+    class _StubExtractor:
+        def extract(self, model_name, workspace, *, with_copilot=False):
+            return model
+
+        def list_models(self, workspace):
+            return ["M"]
+
+    monkeypatch.setattr(
+        "fabric_ai_meta.extractor.factory._build_extractor",
+        lambda **kw: _StubExtractor(),
+    )
+
+    # Drive the real export path.
+    from fabric_ai_meta.cli import _export_single
+    from fabric_ai_meta.generator.builtin_exporters import BUILTIN_EXPORTERS
+
+    exporter_cls = next(e for e in BUILTIN_EXPORTERS if e.name == "langchain")
+    _export_single("M", "W", exporter_cls(), mock=True)
+
+    assert measure.category != MeasureCategory.UNKNOWN, (
+        "_export_single wrote without classifying; measure category stayed UNKNOWN"
+    )

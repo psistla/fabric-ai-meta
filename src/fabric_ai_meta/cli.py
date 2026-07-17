@@ -465,10 +465,12 @@ def _export_single(model_name: str, workspace: str, exporter, mock: bool = False
         title="fabric-ai-meta"
     ))
 
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
     from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
 
     model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
+    classify_model_in_place(model)
     path = exporter.write(model, output)
     if path:
         console.print(f"[green]Written:[/green] {path}")
