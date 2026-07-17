@@ -12,15 +12,27 @@ Grounded strictly in the committed fixtures under tests/fixtures/pbip/
 
 from __future__ import annotations
 
+import json
+import logging
+import os
+import re
+
+from fabric_ai_meta.extractor.base import BaseExtractor
+from fabric_ai_meta.generator.copilot_reader import CopilotReader
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
     ColumnRole,
     MeasureCategory,
     MeasureMeta,
     RelationshipMeta,
+    SemanticModelMeta,
     TableMeta,
     TableType,
 )
+
+logger = logging.getLogger(__name__)
+
+_AUTO_DATE_TABLE = re.compile(r"^(LocalDateTable_|DateTableTemplate_)")
 
 
 def _unquote(name: str) -> str:
@@ -266,3 +278,115 @@ def _parse_relationships_file(path: str) -> list[RelationshipMeta]:
             is_active=node.prop_value("isActive", d) != "false",
         ))
     return rels
+
+
+# ---------------------------------------------------------------------------
+# Extractor
+# ---------------------------------------------------------------------------
+
+
+def _is_semantic_model_dir(path: str) -> bool:
+    return (
+        os.path.isdir(path)
+        and path.rstrip("/\\").endswith(".SemanticModel")
+        and os.path.isdir(os.path.join(path, "definition"))
+    )
+
+
+def _model_name(sm_dir: str) -> str:
+    """Model name from `.platform` `metadata.displayName`, falling back to the
+    folder stem (`model.tmdl` only carries the generic `model Model`)."""
+    platform = os.path.join(sm_dir, ".platform")
+    if os.path.isfile(platform):
+        try:
+            with open(platform, encoding="utf-8") as f:
+                name = json.load(f).get("metadata", {}).get("displayName")
+            if name:
+                return name
+        except (OSError, ValueError):
+            logger.warning("Unreadable .platform in %s; using folder name", sm_dir)
+    return os.path.basename(sm_dir.rstrip("/\\"))[: -len(".SemanticModel")]
+
+
+def _discover_copilot(sm_dir: str):
+    """Find a `Copilot/` folder case-insensitively (CI is case-sensitive Linux;
+    Fabric writes `Copilot`, our reader docstring says `copilot`)."""
+    for entry in os.listdir(sm_dir):
+        full = os.path.join(sm_dir, entry)
+        if entry.lower() == "copilot" and os.path.isdir(full):
+            return CopilotReader.from_directory(full)
+    return None
+
+
+class PbipExtractor(BaseExtractor):
+    """Extract semantic models from local Power BI TMDL, no Fabric runtime.
+
+    Accepts either a single `*.SemanticModel` folder or a directory containing
+    several (the Git Integration repo layout). `.pbip`-file input is deferred to
+    v1.7. Auto-generated date tables (`LocalDateTable_*`, `DateTableTemplate_*`)
+    and their relationships are skipped: Power BI internals, not user metadata.
+    """
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self._dirs: dict[str, str] = {}  # model name -> *.SemanticModel dir
+
+        if _is_semantic_model_dir(path):
+            self._dirs[_model_name(path)] = path
+        elif os.path.isdir(path):
+            for entry in sorted(os.listdir(path)):
+                child = os.path.join(path, entry)
+                if _is_semantic_model_dir(child):
+                    self._dirs[_model_name(child)] = child
+
+        if not self._dirs:
+            raise ValueError(
+                f"{path!r} is not a *.SemanticModel folder nor a directory "
+                f"containing any. Point --pbip at one of those two shapes."
+            )
+
+    def list_models(self, workspace: str) -> list[str]:
+        return sorted(self._dirs)
+
+    def extract(
+        self, model_name: str, workspace: str, *, with_copilot: bool = False
+    ) -> SemanticModelMeta:
+        sm_dir = self._dirs.get(model_name)
+        if sm_dir is None:
+            raise ValueError(
+                f"No model {model_name!r} under {self.path!r}. "
+                f"Available: {self.list_models(workspace)}"
+            )
+
+        definition = os.path.join(sm_dir, "definition")
+        tables_dir = os.path.join(definition, "tables")
+        tables = []
+        if os.path.isdir(tables_dir):
+            for fname in sorted(os.listdir(tables_dir)):
+                if not fname.endswith(".tmdl"):
+                    continue
+                if _AUTO_DATE_TABLE.match(fname[: -len(".tmdl")]):
+                    continue
+                tables.append(_parse_table_file(os.path.join(tables_dir, fname)))
+
+        relationships = []
+        rel_file = os.path.join(definition, "relationships.tmdl")
+        if os.path.isfile(rel_file):
+            relationships = [
+                r
+                for r in _parse_relationships_file(rel_file)
+                if not _AUTO_DATE_TABLE.match(r.from_table)
+                and not _AUTO_DATE_TABLE.match(r.to_table)
+            ]
+
+        model = SemanticModelMeta(
+            name=model_name,
+            workspace=workspace or os.path.basename(os.path.dirname(sm_dir.rstrip("/\\"))),
+            description=None,
+            tables=tables,
+            relationships=relationships,
+            extraction_method="pbip",
+        )
+        if with_copilot:
+            model.copilot = _discover_copilot(sm_dir)
+        return model

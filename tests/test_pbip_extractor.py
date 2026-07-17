@@ -210,3 +210,90 @@ def test_unquote_collapses_doubled_quotes():
     assert _unquote("'Bob''s Data'") == "Bob's Data"
     assert _unquote("cards") == "cards"
     assert _unquote("'Sales Order'") == "Sales Order"
+
+
+# ---------------------------------------------------------------------------
+# Chunk 4: PbipExtractor (Tasks 14-18)
+# ---------------------------------------------------------------------------
+
+PHO_SM = os.path.join(FIXTURES, "stix-one-pho.SemanticModel")
+AMAZON_SM = os.path.join(FIXTURES, "stix-one-pho-amazon.SemanticModel")
+
+
+def test_pbip_list_models_single_semanticmodel_dir():
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+    assert PbipExtractor(PHO_SM).list_models("ignored") == ["stix-one-pho"]
+
+
+def test_pbip_list_models_dir_of_dirs_sorted():
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+    assert PbipExtractor(FIXTURES).list_models("ignored") == [
+        "stix-one-pho", "stix-one-pho-amazon"
+    ]
+
+
+def test_pbip_invalid_path_raises():
+    import pytest
+
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+    with pytest.raises(ValueError, match="SemanticModel"):
+        PbipExtractor(os.path.dirname(__file__))  # tests/ has no *.SemanticModel
+
+
+def test_pbip_extract_skips_auto_date_tables():
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+    m = PbipExtractor(FIXTURES).extract("stix-one-pho", "ws")
+    assert [t.name for t in m.tables] == ["Sales Order", "SalesOrderLarge", "cards"]
+    assert m.extraction_method == "pbip"
+    # date-table relationships dropped, only the two user relationships remain
+    assert len(m.relationships) == 2
+    assert all(
+        not r.to_table.startswith(("LocalDateTable", "DateTableTemplate"))
+        and not r.from_table.startswith(("LocalDateTable", "DateTableTemplate"))
+        for r in m.relationships
+    )
+
+
+def test_pbip_extract_amazon_single_table():
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+    m = PbipExtractor(FIXTURES).extract("stix-one-pho-amazon", "ws")
+    assert [t.name for t in m.tables] == ["All Items"]
+
+
+def test_pbip_copilot_present_absent_and_miscased(tmp_path):
+    import shutil
+
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+    # present (real fixture has a Copilot/ folder)
+    m = PbipExtractor(FIXTURES).extract("stix-one-pho", "ws", with_copilot=True)
+    assert m.copilot is not None
+    assert m.copilot.signals()["verified_answer_count"] == 2
+
+    # absent
+    m2 = PbipExtractor(FIXTURES).extract("stix-one-pho-amazon", "ws", with_copilot=True)
+    assert m2.copilot is None
+
+    # miscased: copy the model with a lowercase copilot/ dir; must still be found.
+    # (.platform is copied too, so the model keeps its displayName, not "Copy".)
+    dst = tmp_path / "Copy.SemanticModel"
+    shutil.copytree(PHO_SM, dst)
+    shutil.move(str(dst / "Copilot"), str(dst / "copilot"))
+    ext = PbipExtractor(str(dst))
+    m3 = ext.extract(ext.list_models("ws")[0], "ws", with_copilot=True)
+    assert m3.copilot is not None
+
+
+def test_pbip_roundtrip_preserves_copilot():
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+    from fabric_ai_meta.models.metadata import from_dict
+
+    m = PbipExtractor(FIXTURES).extract("stix-one-pho", "ws", with_copilot=True)
+    back = from_dict(m.to_dict())
+    assert back.copilot is not None
+    assert back.copilot.signals() == m.copilot.signals()
+    assert [t.name for t in back.tables] == [t.name for t in m.tables]
