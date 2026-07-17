@@ -17,6 +17,7 @@ from fabric_ai_meta.models.metadata import (
     ColumnRole,
     MeasureCategory,
     MeasureMeta,
+    RelationshipMeta,
     TableMeta,
     TableType,
 )
@@ -27,6 +28,19 @@ def _unquote(name: str) -> str:
     if len(name) >= 2 and name[0] == "'" and name[-1] == "'":
         return name[1:-1]
     return name
+
+
+def _split_ref(ref: str) -> tuple[str, str]:
+    """Split a `Table.Column` relationship endpoint into (table, column).
+
+    The table may be single-quoted with spaces (`'Sales Order'.date`); the split
+    is on the `.` that sits outside the quotes.
+    """
+    if ref.startswith("'"):
+        end = ref.index("'", 1)
+        return ref[1:end], ref[end + 1 :].lstrip(".")
+    table, _, column = ref.partition(".")
+    return table, column
 
 
 def _tokenize(text: str):
@@ -177,6 +191,9 @@ def _parse_table_file(path: str) -> TableMeta:
         _parse_measure(c) for c in node.children if c.header.startswith("measure ")
     ]
 
+    partition = _find(node, "partition ")
+    mode = partition.prop_value("mode", partition.depth + 1) if partition else None
+
     return TableMeta(
         name=name,
         description=node.description,
@@ -186,4 +203,46 @@ def _parse_table_file(path: str) -> TableMeta:
         columns=columns,
         measures=measures,
         is_hidden=is_hidden,
+        source_partition_type=mode.title() if mode else None,
     )
+
+
+def _parse_relationships_file(path: str) -> list[RelationshipMeta]:
+    """Parse the top-level `definition/relationships.tmdl` into RelationshipMeta.
+
+    TMDL defaults when a property is absent: active (`isActive` only ever states
+    `false`), single cross-filter, and many-to-one cardinality (`toCardinality`
+    only ever states `many`, i.e. many-to-many).
+    """
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+
+    rels: list[RelationshipMeta] = []
+    for node in _parse_tree(text).children:
+        if not node.header.startswith("relationship "):
+            continue
+        d = node.depth + 1
+        from_ref = node.prop_value("fromColumn", d)
+        to_ref = node.prop_value("toColumn", d)
+        if from_ref is None or to_ref is None:
+            continue
+        from_table, from_column = _split_ref(from_ref)
+        to_table, to_column = _split_ref(to_ref)
+        rels.append(RelationshipMeta(
+            from_table=from_table,
+            from_column=from_column,
+            to_table=to_table,
+            to_column=to_column,
+            cardinality=(
+                "many-to-many"
+                if node.prop_value("toCardinality", d) == "many"
+                else "many-to-one"
+            ),
+            cross_filter_direction=(
+                "both"
+                if node.prop_value("crossFilteringBehavior", d) == "bothDirections"
+                else "single"
+            ),
+            is_active=node.prop_value("isActive", d) != "false",
+        ))
+    return rels

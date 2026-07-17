@@ -127,3 +127,49 @@ def test_parse_measure_hidden_flag():
     t = _parse_table_file(os.path.join(PHO_TABLES, "Sales Order.tmdl"))
     assert _measure(t, "Revenue 7D Avg").is_hidden is True
     assert [m.name for m in t.measures] == ["Revenue MoM %", "Revenue 7D Avg", "Coffee YTD"]
+
+
+# ---------------------------------------------------------------------------
+# Task 13: relationships + partition mode
+# ---------------------------------------------------------------------------
+
+PHO_DEF = os.path.join(FIXTURES, "stix-one-pho.SemanticModel", "definition")
+
+
+def _rel(rels, from_col, to_col):
+    return next(
+        r for r in rels
+        if r.from_column == from_col and r.to_column == to_col
+    )
+
+
+def test_parse_relationships_inactive_bidirectional_manytomany():
+    from fabric_ai_meta.extractor.pbip import _parse_relationships_file
+
+    rels = _parse_relationships_file(os.path.join(PHO_DEF, "relationships.tmdl"))
+    r = _rel(rels, "cash_type", "cash_type")
+    assert r.from_table == "SalesOrderLarge"
+    assert r.to_table == "Sales Order"          # quoted table name unquoted
+    assert r.is_active is False                 # isActive: false
+    assert r.cross_filter_direction == "both"   # crossFilteringBehavior: bothDirections
+    assert r.cardinality == "many-to-many"      # toCardinality: many
+
+
+def test_parse_relationships_active_defaults():
+    from fabric_ai_meta.extractor.pbip import _parse_relationships_file
+
+    rels = _parse_relationships_file(os.path.join(PHO_DEF, "relationships.tmdl"))
+    r = _rel(rels, "card", "card")
+    assert r.from_table == "SalesOrderLarge"
+    assert r.to_table == "cards"
+    assert r.is_active is True                  # no isActive line -> active
+    assert r.cross_filter_direction == "single"
+    assert r.cardinality == "many-to-one"
+    assert len(rels) == 6                        # every relationship in the file
+
+
+def test_parse_partition_mode():
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    t = _parse_table_file(os.path.join(PHO_DEF, "tables", "Sales Order.tmdl"))
+    assert t.source_partition_type == "Import"   # partition `mode: import`
