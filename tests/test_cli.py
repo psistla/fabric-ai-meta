@@ -424,7 +424,10 @@ def test_export_single_passes_with_copilot_to_extractor(monkeypatch):
         "fabric_ai_meta.extractor.mock.MockExtractor",
         lambda fixture_path: StubExtractor()
     )
-    monkeypatch.setattr(cli, "_get_fixture_path", lambda name: "/tmp/whatever.json")
+    monkeypatch.setattr(
+        "fabric_ai_meta.extractor.factory._fixture_path_for",
+        lambda name: "/tmp/whatever.json",
+    )
 
     fake_exporter = MagicMock()
     fake_exporter.write.return_value = "/tmp/out/x"
@@ -565,3 +568,26 @@ def test_scan_with_copilot_flag_passes_to_extractor(monkeypatch, tmp_path):
     ])
     assert result.exit_code == 0, result.output
     assert all(c.get("with_copilot") is True for c in captured_calls)
+
+
+# ---------------------------------------------------------------------------
+# Shared-helper regressions (Task 5)
+# ---------------------------------------------------------------------------
+
+def test_score_all_mock_does_not_require_fabric():
+    """Regression: `score --all --mock` raised FabricEnvironmentError before v1.6.
+
+    cli.py score --all had no mock branch at all, contradicting the documented --mock parity.
+    """
+    result = CliRunner().invoke(main, ["score", "--all", "--mock", "--workspace", "ws"])
+    assert result.exit_code == 0, result.output
+
+
+def test_governance_mock_works_from_any_cwd(tmp_path, monkeypatch):
+    """Regression: governance --mock used a relative fixture_dir, so it broke off-root."""
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(
+        main,
+        ["governance", "--mock", "--workspace", "ws", "--output", str(tmp_path / "out")],
+    )
+    assert result.exit_code == 0, result.output

@@ -77,33 +77,10 @@ def _list_mock_models() -> list[str]:
     return models
 
 
-def _get_fixture_path(model_name: str) -> str:
-    """Return path to the best-matching fixture for mock mode."""
-    here = os.path.dirname(__file__)
-    fixtures_dir = os.path.normpath(os.path.join(here, "..", "..", "tests", "fixtures"))
-    slug = _slugify(model_name).replace("-", "_")
-    candidate = os.path.join(fixtures_dir, f"{slug}.json")
-    if os.path.exists(candidate):
-        return candidate
-    # Default to adventure_works
-    default = os.path.join(fixtures_dir, "adventure_works.json")
-    if os.path.exists(default):
-        return default
-    raise click.ClickException(
-        f"No fixture file found for model '{model_name}'. "
-        f"Expected: {candidate}"
-    )
-
-
 def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
                   include_sample_values: bool, llm_enrich: bool, mock: bool,
                   *, with_copilot: bool = False) -> None:
     """Core analysis flow shared by analyze and scan commands."""
-    from fabric_ai_meta.analyzer.classifier import (
-        classify_column_role,
-        classify_measure_heuristic,
-        classify_table_heuristic,
-    )
     from fabric_ai_meta.analyzer.dax_parser import build_dependency_graph
     from fabric_ai_meta.analyzer.scorer import score_model
     from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
@@ -119,28 +96,18 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         # Step 1: Extract
         task = progress.add_task(f"Extracting '{model_name}'...", total=None)
-        if mock:
-            from fabric_ai_meta.extractor.mock import MockExtractor
-            fixture_path = _get_fixture_path(model_name)
-            extractor = MockExtractor(fixture_path)
-        else:
-            from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-            if not detect_notebook_environment():
-                raise FabricEnvironmentError()
-            from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-            extractor = SemanticLinkExtractor(workspace=workspace)
+        from fabric_ai_meta.extractor.factory import _build_extractor
+        extractor = _build_extractor(
+            workspace=workspace, mock=mock, model_name=model_name
+        )
 
         model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
         progress.update(task, description=f"Extracted '{model_name}' ({len(model.tables)} tables)")
 
         # Step 2: Heuristic classification
         progress.update(task, description="Running heuristic classification...")
-        for table in model.tables:
-            table.table_type = classify_table_heuristic(table, model.relationships)
-            for col in table.columns:
-                col.role = classify_column_role(col, table, model.relationships)
-            for measure in table.measures:
-                measure.category = classify_measure_heuristic(measure)
+        from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+        classify_model_in_place(model)
 
         # Step 3: Score
         progress.update(task, description="Scoring AI readiness...")
@@ -363,19 +330,9 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot):
         title="fabric-ai-meta"
     ))
 
-    if mock:
-        from fabric_ai_meta.extractor.mock import MockExtractor
-        here = os.path.dirname(os.path.abspath(__file__))
-        fixtures_dir = os.path.normpath(os.path.join(here, "..", "..", "tests", "fixtures"))
-        extractor = MockExtractor(fixture_dir=fixtures_dir)
-        model_names = extractor.list_models(workspace)
-    else:
-        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-        if not detect_notebook_environment():
-            raise FabricEnvironmentError()
-        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-        extractor = SemanticLinkExtractor(workspace=workspace)
-        model_names = extractor.list_models(workspace)
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
+    model_names = extractor.list_models(workspace)
 
     console.print(f"Found [bold]{len(model_names)}[/bold] models in workspace.")
 
@@ -508,15 +465,8 @@ def _export_single(model_name: str, workspace: str, exporter, mock: bool = False
         title="fabric-ai-meta"
     ))
 
-    if mock:
-        from fabric_ai_meta.extractor.mock import MockExtractor
-        extractor = MockExtractor(fixture_path=_get_fixture_path(model_name))
-    else:
-        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-        if not detect_notebook_environment():
-            raise FabricEnvironmentError()
-        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-        extractor = SemanticLinkExtractor(workspace=workspace)
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
 
     model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
     path = exporter.write(model, output)
@@ -561,11 +511,6 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
     """Export Prep for AI configuration."""
     import dataclasses
 
-    from fabric_ai_meta.analyzer.classifier import (
-        classify_column_role,
-        classify_measure_heuristic,
-        classify_table_heuristic,
-    )
     from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
 
     cfg = load_config()
@@ -577,24 +522,13 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
         title="fabric-ai-meta"
     ))
 
-    if mock:
-        from fabric_ai_meta.extractor.mock import MockExtractor
-        extractor = MockExtractor(fixture_path=_get_fixture_path(model_name))
-    else:
-        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-        if not detect_notebook_environment():
-            raise FabricEnvironmentError()
-        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-        extractor = SemanticLinkExtractor(workspace=workspace)
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
 
     model = extractor.extract(model_name, workspace)
 
-    for table in model.tables:
-        table.table_type = classify_table_heuristic(table, model.relationships)
-        for col in table.columns:
-            col.role = classify_column_role(col, table, model.relationships)
-        for measure in table.measures:
-            measure.category = classify_measure_heuristic(measure)
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    classify_model_in_place(model)
 
     backfill = None
     llm = None
@@ -628,11 +562,6 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor for local dev.")
 def score(model_name, workspace, score_all, mock):
     """Show AI readiness score for one or all models."""
-    from fabric_ai_meta.analyzer.classifier import (
-        classify_column_role,
-        classify_measure_heuristic,
-        classify_table_heuristic,
-    )
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
 
     cfg = load_config()
@@ -644,32 +573,19 @@ def score(model_name, workspace, score_all, mock):
     ))
 
     def _score_one(name: str) -> tuple:
-        if mock:
-            from fabric_ai_meta.extractor.mock import MockExtractor
-            fixture_path = _get_fixture_path(name)
-            extractor = MockExtractor(fixture_path)
-        else:
-            from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-            if not detect_notebook_environment():
-                raise FabricEnvironmentError()
-            from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-            extractor = SemanticLinkExtractor(workspace=workspace)
+        from fabric_ai_meta.extractor.factory import _build_extractor
+        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=name)
         m = extractor.extract(name, workspace)
-        for t in m.tables:
-            t.table_type = classify_table_heuristic(t, m.relationships)
-            for c in t.columns:
-                c.role = classify_column_role(c, t, m.relationships)
-            for ms in t.measures:
-                ms.category = classify_measure_heuristic(ms)
+        from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+        classify_model_in_place(m)
         overall, breakdown = run_score(m)
         return overall, breakdown
 
     if score_all:
-        from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-        if not detect_notebook_environment():
-            raise FabricEnvironmentError()
-        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-        names = SemanticLinkExtractor(workspace=workspace).list_models(workspace)
+        from fabric_ai_meta.extractor.factory import _build_extractor
+        names = _build_extractor(
+            workspace=workspace, mock=mock, model_name=None
+        ).list_models(workspace)
     else:
         if not model_name:
             raise click.UsageError("Provide MODEL_NAME or use --all.")
@@ -719,23 +635,10 @@ def governance(workspace, report, output, mock, with_copilot):
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.analyzer.classifier import (
-        classify_column_role,
-        classify_measure_heuristic,
-        classify_table_heuristic,
-    )
     from fabric_ai_meta.analyzer.governance import generate_governance_report, write_governance_report
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
-    from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
-
-    if mock:
-        from fabric_ai_meta.extractor.mock import MockExtractor
-        extractor = MockExtractor(fixture_dir="tests/fixtures/")
-    elif detect_notebook_environment():
-        from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-        extractor = SemanticLinkExtractor(workspace=workspace)
-    else:
-        raise FabricEnvironmentError()
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
 
     model_names = extractor.list_models(workspace)
 
@@ -745,12 +648,8 @@ def governance(workspace, report, output, mock, with_copilot):
             t = progress.add_task(f"Extracting {name}...", total=None)
             try:
                 m = extractor.extract(name, workspace, with_copilot=with_copilot)
-                for tbl in m.tables:
-                    tbl.table_type = classify_table_heuristic(tbl, m.relationships)
-                    for c in tbl.columns:
-                        c.role = classify_column_role(c, tbl, m.relationships)
-                    for ms in tbl.measures:
-                        ms.category = classify_measure_heuristic(ms)
+                from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+                classify_model_in_place(m)
                 overall, breakdown = run_score(m)
                 m.ai_readiness_score = overall
                 m.scoring_breakdown = breakdown
