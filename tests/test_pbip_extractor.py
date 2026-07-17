@@ -173,3 +173,40 @@ def test_parse_partition_mode():
 
     t = _parse_table_file(os.path.join(PHO_DEF, "tables", "Sales Order.tmdl"))
     assert t.source_partition_type == "Import"   # partition `mode: import`
+
+
+# ---------------------------------------------------------------------------
+# Quote handling (review findings: quoted/escaped names in refs and splits)
+# ---------------------------------------------------------------------------
+
+AMAZON_REL = os.path.join(
+    FIXTURES, "stix-one-pho-amazon.SemanticModel", "definition", "relationships.tmdl"
+)
+
+
+def test_relationship_endpoint_unquotes_spaced_column():
+    """Real fixture: `fromColumn: 'All Items'.'Order Date'` must yield an
+    unquoted column that can match the parsed ColumnMeta.name."""
+    from fabric_ai_meta.extractor.pbip import _parse_relationships_file
+
+    rels = _parse_relationships_file(AMAZON_REL)
+    r = next(r for r in rels if r.to_table.startswith("LocalDateTable")
+             and r.from_table == "All Items" and r.from_column == "Order Date")
+    assert r.from_column == "Order Date"   # not "'Order Date'"
+
+
+def test_split_ref_quotes_and_escaping():
+    from fabric_ai_meta.extractor.pbip import _split_ref
+
+    assert _split_ref("SalesOrderLarge.card") == ("SalesOrderLarge", "card")
+    assert _split_ref("'All Items'.'Order Date'") == ("All Items", "Order Date")
+    assert _split_ref("'Bob''s Data'.card") == ("Bob's Data", "card")
+    assert _split_ref("Sales.'Total ='") == ("Sales", "Total =")
+
+
+def test_unquote_collapses_doubled_quotes():
+    from fabric_ai_meta.extractor.pbip import _unquote
+
+    assert _unquote("'Bob''s Data'") == "Bob's Data"
+    assert _unquote("cards") == "cards"
+    assert _unquote("'Sales Order'") == "Sales Order"

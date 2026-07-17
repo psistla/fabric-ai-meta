@@ -24,23 +24,40 @@ from fabric_ai_meta.models.metadata import (
 
 
 def _unquote(name: str) -> str:
-    """Strip TMDL single-quotes from a name (`'Sales Order'` -> `Sales Order`)."""
+    """Strip TMDL single-quotes from a name (`'Sales Order'` -> `Sales Order`).
+
+    A literal apostrophe inside a quoted identifier is escaped by doubling
+    (`'Bob''s Data'` -> `Bob's Data`), per TOM/TMDL serialization.
+    """
+    name = name.strip()
     if len(name) >= 2 and name[0] == "'" and name[-1] == "'":
-        return name[1:-1]
+        return name[1:-1].replace("''", "'")
     return name
+
+
+def _split_first_unquoted(s: str, sep: str) -> tuple[str, str | None]:
+    """Split `s` on the first `sep` that sits outside a single-quoted span.
+
+    Doubled quotes toggle in/out twice (net no state change), which is correct
+    for locating a separator that only ever appears at quote-depth zero.
+    """
+    in_quote = False
+    for i, ch in enumerate(s):
+        if ch == "'":
+            in_quote = not in_quote
+        elif ch == sep and not in_quote:
+            return s[:i], s[i + 1 :]
+    return s, None
 
 
 def _split_ref(ref: str) -> tuple[str, str]:
     """Split a `Table.Column` relationship endpoint into (table, column).
 
-    The table may be single-quoted with spaces (`'Sales Order'.date`); the split
-    is on the `.` that sits outside the quotes.
+    Either side may be single-quoted with spaces (`'All Items'.'Order Date'`);
+    the split is on the `.` outside the quotes, and both sides are unquoted.
     """
-    if ref.startswith("'"):
-        end = ref.index("'", 1)
-        return ref[1:end], ref[end + 1 :].lstrip(".")
-    table, _, column = ref.partition(".")
-    return table, column
+    table, column = _split_first_unquoted(ref, ".")
+    return _unquote(table), _unquote(column or "")
 
 
 def _tokenize(text: str):
@@ -146,14 +163,17 @@ def _parse_measure(node: _Node) -> MeasureMeta:
     `PBI_FormatHint` annotation this parser skips, so it stays None (parity).
     """
     decl = node.header[len("measure ") :]
-    name_part, _, inline_dax = decl.partition("=")
-    name = _unquote(name_part.strip())
-    inline_dax = inline_dax.strip()
+    name_part, inline_dax = _split_first_unquoted(decl, "=")
+    name = _unquote(name_part)
+    inline_dax = (inline_dax or "").strip()
     if inline_dax:
         dax = inline_dax
     else:
+        # Continuation DAX sits deeper than the measure's sub-properties
+        # (which are at depth+1). Collect everything below that level so a
+        # varying continuation indent cannot silently truncate the expression.
         dax = "\n".join(
-            c.header for c in node.children if c.depth == node.depth + 2
+            c.header for c in node.children if c.depth >= node.depth + 2
         )
 
     return MeasureMeta(
