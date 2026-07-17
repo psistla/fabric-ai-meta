@@ -74,3 +74,56 @@ def test_parse_columns_skips_variation_block():
     assert order_date.format_string == "Long Date"
     # The nested `variation Variation` block must not leak in as a column.
     assert not any(c.name.startswith("variation") for c in t.columns)
+
+
+# ---------------------------------------------------------------------------
+# Task 12: measure + DAX (single-line and indentation-continuation)
+# ---------------------------------------------------------------------------
+
+def _measure(table, name):
+    return next(m for m in table.measures if m.name == name)
+
+
+def test_parse_measure_single_line_keeps_literal():
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    t = _parse_table_file(os.path.join(PHO_TABLES, "Sales Order.tmdl"))
+    m = _measure(t, "Coffee YTD")
+    assert m.dax_expression == (
+        'TOTALYTD(CALCULATE(SUM(SalesOrderLarge[money]), '
+        'SalesOrderLarge[coffee_name] = "Hot Chocolate"), SalesOrderLarge[date])'
+    )
+    assert m.is_hidden is False
+
+
+def test_parse_measure_multiline_dax_golden():
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    t = _parse_table_file(os.path.join(PHO_TABLES, "Sales Order.tmdl"))
+    m = _measure(t, "Revenue MoM %")
+    expected = "\n".join([
+        "VAR CurrentRevenue =",
+        "    SUM ( 'Sales Order'[money] )",
+        "VAR PriorRevenue =",
+        "    CALCULATE (",
+        "        SUM ( 'Sales Order'[money] ),",
+        "        DATEADD ( 'Sales Order'[date], -1, MONTH )",
+        "    )",
+        "VAR HasBothPeriods =",
+        "    NOT ISBLANK ( CurrentRevenue ) && NOT ISBLANK ( PriorRevenue )",
+        "VAR Result =",
+        "    DIVIDE ( CurrentRevenue - PriorRevenue, PriorRevenue )",
+        "RETURN",
+        "    IF ( HasBothPeriods, Result )",
+    ])
+    assert m.dax_expression == expected
+    assert m.description == "This measure provides month over month revenue (pstest)."
+    assert m.is_hidden is False
+
+
+def test_parse_measure_hidden_flag():
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    t = _parse_table_file(os.path.join(PHO_TABLES, "Sales Order.tmdl"))
+    assert _measure(t, "Revenue 7D Avg").is_hidden is True
+    assert [m.name for m in t.measures] == ["Revenue MoM %", "Revenue 7D Avg", "Coffee YTD"]

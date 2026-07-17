@@ -15,6 +15,8 @@ from __future__ import annotations
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
     ColumnRole,
+    MeasureCategory,
+    MeasureMeta,
     TableMeta,
     TableType,
 )
@@ -118,6 +120,40 @@ def _parse_column(node: _Node) -> ColumnMeta:
     )
 
 
+def _parse_measure(node: _Node) -> MeasureMeta:
+    """A `measure <name> = ...` block into MeasureMeta.
+
+    Two DAX forms both occur in the fixtures: single-line (expression after
+    `= ` on the header) and indentation-continuation (nothing after `=`, DAX on
+    following lines one tab deeper than the measure's own sub-properties). The
+    tokenizer already stripped the leading tabs, so continuation lines join back
+    into faithful DAX with their relative (space) indentation intact.
+    `category` stays UNKNOWN for the classifier; `format_string` is carried by a
+    `PBI_FormatHint` annotation this parser skips, so it stays None (parity).
+    """
+    decl = node.header[len("measure ") :]
+    name_part, _, inline_dax = decl.partition("=")
+    name = _unquote(name_part.strip())
+    inline_dax = inline_dax.strip()
+    if inline_dax:
+        dax = inline_dax
+    else:
+        dax = "\n".join(
+            c.header for c in node.children if c.depth == node.depth + 2
+        )
+
+    return MeasureMeta(
+        name=name,
+        dax_expression=dax,
+        description=node.description,
+        ai_description=None,
+        category=MeasureCategory.UNKNOWN,
+        display_folder=None,
+        format_string=None,
+        is_hidden=node.has_flag("isHidden", node.depth + 1),
+    )
+
+
 def _parse_table_file(path: str) -> TableMeta:
     """Parse one `definition/tables/<name>.tmdl` into a TableMeta.
 
@@ -137,6 +173,9 @@ def _parse_table_file(path: str) -> TableMeta:
     columns = [
         _parse_column(c) for c in node.children if c.header.startswith("column ")
     ]
+    measures = [
+        _parse_measure(c) for c in node.children if c.header.startswith("measure ")
+    ]
 
     return TableMeta(
         name=name,
@@ -145,6 +184,6 @@ def _parse_table_file(path: str) -> TableMeta:
         table_type=TableType.UNKNOWN,
         grain=None,
         columns=columns,
-        measures=[],
+        measures=measures,
         is_hidden=is_hidden,
     )
