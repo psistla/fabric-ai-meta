@@ -417,3 +417,31 @@ def test_semantic_link_extractor_without_with_copilot_skips_tmdl_path():
 
     assert model.copilot is None
     gd.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Shared extractor factory (Task 3)
+# ---------------------------------------------------------------------------
+
+def test_build_extractor_mock_single_model():
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    from fabric_ai_meta.extractor.mock import MockExtractor
+
+    e = _build_extractor(workspace="ws", mock=True, model_name="Adventure Works")
+    assert isinstance(e, MockExtractor)
+
+
+def test_build_extractor_mock_multi_model_when_no_name():
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    from fabric_ai_meta.extractor.mock import MockExtractor
+
+    e = _build_extractor(workspace="ws", mock=True, model_name=None)
+    assert isinstance(e, MockExtractor)
+    assert "adventure_works" in [n.lower().replace(" ", "_") for n in e.list_models("ws")]
+
+
+def test_build_extractor_rejects_mock_and_pbip_together():
+    from fabric_ai_meta.extractor.factory import _build_extractor
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        _build_extractor(workspace=None, mock=True, pbip="some/path")

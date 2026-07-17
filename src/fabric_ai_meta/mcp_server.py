@@ -11,49 +11,13 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import os
 from typing import Any
 
-FIXTURES_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "tests", "fixtures")
-)
-
+from fabric_ai_meta.extractor.factory import _build_extractor
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-
-
-def _slugify(name: str) -> str:
-    import re
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
-
-
-def _fixture_path_for(model_name: str) -> str:
-    slug = _slugify(model_name).replace("-", "_")
-    candidate = os.path.join(FIXTURES_DIR, f"{slug}.json")
-    if os.path.exists(candidate):
-        return candidate
-    default = os.path.join(FIXTURES_DIR, "adventure_works.json")
-    if os.path.exists(default):
-        return default
-    raise FileNotFoundError(f"No fixture for model '{model_name}' (looked at {candidate})")
-
-
-def _build_extractor(workspace: str, mock: bool, model_name: str | None = None):
-    if mock:
-        from fabric_ai_meta.extractor.mock import MockExtractor
-        if model_name is None:
-            return MockExtractor(fixture_dir=FIXTURES_DIR)
-        return MockExtractor(fixture_path=_fixture_path_for(model_name))
-    from fabric_ai_meta.auth.entra import (
-        FabricEnvironmentError,
-        detect_notebook_environment,
-    )
-    if not detect_notebook_environment():
-        raise FabricEnvironmentError()
-    from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-    return SemanticLinkExtractor(workspace=workspace)
 
 
 def _classify_in_place(model) -> None:
@@ -91,7 +55,7 @@ def list_models(workspace: str, mock: bool = True) -> dict:
         ``{"workspace": str, "models": list[str]}`` or ``{"error": str}``.
     """
     try:
-        extractor = _build_extractor(workspace, mock, model_name=None)
+        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
         names = extractor.list_models(workspace)
         return {"workspace": workspace, "models": list(names)}
     except Exception as exc:
@@ -106,7 +70,7 @@ def analyze_model(model_name: str, workspace: str, mock: bool = True) -> dict:
     """
     try:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
-        extractor = _build_extractor(workspace, mock, model_name=model_name)
+        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
         model = extractor.extract(model_name, workspace)
         _classify_in_place(model)
         overall, breakdown = _score(model)
@@ -129,7 +93,7 @@ def score_model(model_name: str, workspace: str, mock: bool = True) -> dict:
     """
     try:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
-        extractor = _build_extractor(workspace, mock, model_name=model_name)
+        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
         model = extractor.extract(model_name, workspace)
         _classify_in_place(model)
         overall, breakdown = _score(model)
@@ -150,7 +114,7 @@ def generate_schema(model_name: str, workspace: str, mock: bool = True) -> dict:
     """
     try:
         from fabric_ai_meta.generator.schema import generate_ai_ready_schema
-        extractor = _build_extractor(workspace, mock, model_name=model_name)
+        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
         model = extractor.extract(model_name, workspace)
         _classify_in_place(model)
         return generate_ai_ready_schema(model)
@@ -168,7 +132,7 @@ def governance_report(workspace: str, mock: bool = True) -> dict:
         from fabric_ai_meta.analyzer.governance import generate_governance_report
         from fabric_ai_meta.analyzer.scorer import score_model as _score
 
-        extractor = _build_extractor(workspace, mock, model_name=None)
+        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
         names = extractor.list_models(workspace)
         models = []
         for name in names:
