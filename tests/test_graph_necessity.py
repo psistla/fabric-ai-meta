@@ -199,3 +199,40 @@ def test_supplied_questions_yield_strong_confidence():
     result = assess_graph_necessity(m, questions=["show FactSales amount by DimDate"])
     assert result["confidence"] == "strong"
     assert result["signals"]["workload_hop_pressure"]["source"] == "questions"
+
+
+def test_governance_report_includes_section_only_when_requested(contoso_model):
+    from fabric_ai_meta.analyzer.governance import generate_governance_report
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    classify_model_in_place(contoso_model)
+    off = generate_governance_report([contoso_model])
+    assert "graph_necessity" not in off
+    on = generate_governance_report([contoso_model], graph_necessity=True)
+    assert isinstance(on["graph_necessity"], list)
+    assert on["graph_necessity"][0]["name"] == contoso_model.name
+
+
+def test_graph_necessity_report_validates_against_schema(tmp_path, contoso_model):
+    import json
+    import os
+
+    import jsonschema
+
+    from fabric_ai_meta.analyzer.governance import (
+        generate_governance_report,
+        write_governance_report,
+    )
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+
+    classify_model_in_place(contoso_model)
+    report = generate_governance_report([contoso_model], graph_necessity=True)
+    path = str(tmp_path / "gov.json")
+    write_governance_report(report, "test", path)
+
+    with open(path, encoding="utf-8") as f:
+        payload = json.load(f)
+    schema_path = os.path.join(
+        os.path.dirname(__file__), "..", "schemas", "governance-report", "v1.json")
+    with open(schema_path, encoding="utf-8") as f:
+        schema = json.load(f)
+    jsonschema.validate(payload, schema)

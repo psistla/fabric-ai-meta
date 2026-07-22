@@ -5,6 +5,7 @@ import os
 import re
 from datetime import datetime, timezone
 
+from fabric_ai_meta.analyzer.graph_necessity import assess_graph_necessity
 from fabric_ai_meta.models.metadata import SemanticModelMeta
 
 
@@ -151,12 +152,23 @@ def find_copilot_completeness(models: list[SemanticModelMeta]) -> dict | None:
     return {**rollup, "per_model_signals": per_model}
 
 
-def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
+def generate_governance_report(
+    models: list[SemanticModelMeta],
+    *,
+    graph_necessity: bool = False,
+    questions: list[str] | None = None,
+) -> dict:
     """Generate a cross-model governance scorecard report.
+
+    Args:
+        models: Models to analyze.
+        graph_necessity: Add a per-model graph_necessity assessment.
+        questions: Optional real questions that sharpen that assessment.
 
     Returns:
         Dict with keys: summary, score_ranking, naming_inconsistencies,
-        duplicate_measures, recommendations, copilot_completeness (optional).
+        duplicate_measures, recommendations, copilot_completeness (optional),
+        graph_necessity (optional).
     """
     scored = [
         (m.name, m.ai_readiness_score)
@@ -217,6 +229,16 @@ def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
                 "to guide Copilot answer behavior"
             )
 
+    necessity = None
+    if graph_necessity:
+        necessity = [assess_graph_necessity(m, questions=questions) for m in models]
+        for entry in necessity:
+            if entry["tier"] == "GRAPH_WARRANTED":
+                recommendations.append(
+                    f"'{entry['name']}' shows genuine multi-hop workload "
+                    f"(pressure {entry['pressure']:.2f}): a graph/ontology is warranted"
+                )
+
     report = {
         "summary": {
             "model_count": len(models),
@@ -233,6 +255,8 @@ def generate_governance_report(models: list[SemanticModelMeta]) -> dict:
     }
     if copilot_completeness is not None:
         report["copilot_completeness"] = copilot_completeness
+    if necessity is not None:
+        report["graph_necessity"] = necessity
     return report
 
 

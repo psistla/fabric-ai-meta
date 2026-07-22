@@ -49,9 +49,32 @@
     },
     "copilot_completeness": {
       "$ref": "#/$defs/copilot_completeness"
+    },
+    "graph_necessity": {
+      "type": "array",
+      "description": "Per-model graph-necessity assessment. Present only when requested with --graph-necessity.",
+      "items": { "$ref": "#/$defs/graph_necessity_entry" }
     }
   },
   "$defs": {
+    "graph_necessity_entry": {
+      "type": "object",
+      "description": "Whether one model's workload justifies an ontology/graph.",
+      "required": ["name", "tier", "pressure", "confidence", "signals", "evidence", "recommendation"],
+      "properties": {
+        "name": { "type": "string" },
+        "tier": { "enum": ["GRAPH_UNNECESSARY", "GRAPH_OPTIONAL", "GRAPH_WARRANTED"] },
+        "pressure": { "type": "number", "minimum": 0, "maximum": 1 },
+        "confidence": { "enum": ["directional", "evidenced", "strong"] },
+        "signals": { "type": "object", "additionalProperties": true },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "recommendation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "summary": {
       "type": "object",
       "required": ["model_count", "average_readiness_score", "total_naming_issues", "total_duplicate_measures"],
