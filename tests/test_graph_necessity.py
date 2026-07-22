@@ -236,3 +236,9 @@ def test_graph_necessity_report_validates_against_schema(tmp_path, contoso_model
     with open(schema_path, encoding="utf-8") as f:
         schema = json.load(f)
     jsonschema.validate(payload, schema)
+
+
+def test_public_export():
+    import fabric_ai_meta
+    assert "assess_graph_necessity" in fabric_ai_meta.__all__
+    assert fabric_ai_meta.assess_graph_necessity is not None

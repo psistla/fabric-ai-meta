@@ -15,6 +15,7 @@ from fabric_ai_meta.analyzer.dax_parser import (
 )
 from fabric_ai_meta.analyzer.delta import compare_workspace_summaries
 from fabric_ai_meta.analyzer.governance import generate_governance_report
+from fabric_ai_meta.analyzer.graph_necessity import assess_graph_necessity
 from fabric_ai_meta.analyzer.scorer import score_model
 
 # Extractors
@@ -96,6 +97,7 @@ __all__ = [
     "parse_measure_dependencies",
     "compare_workspace_summaries",
     "generate_governance_report",
+    "assess_graph_necessity",
     "score_model",
     # Generators
     "generate_ai_ready_schema",

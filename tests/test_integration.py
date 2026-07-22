@@ -823,10 +823,11 @@ class TestPublicAPIExports:
     def test_all_count(self):
         import fabric_ai_meta
 
-        # 1 version + 10 data model + 5 copilot + 3 extractors + 8 analysis
+        # 1 version + 10 data model + 5 copilot + 3 extractors + 9 analysis
         # + 6 generators + 4 exporter plugin contract + 4 writeback descriptions
-        # + 5 writeback copilot (v1.5.0) = 46 (PbipExtractor added in v1.6.0)
-        assert len(fabric_ai_meta.__all__) == 46
+        # + 5 writeback copilot (v1.5.0) = 47 (PbipExtractor added in v1.6.0,
+        # assess_graph_necessity added in v1.7.0)
+        assert len(fabric_ai_meta.__all__) == 47
 
 
 # ---------------------------------------------------------------------------

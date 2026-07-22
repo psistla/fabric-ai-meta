@@ -3,7 +3,7 @@
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/fabric-ai-meta?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/fabric-ai-meta)
 ![Version](https://img.shields.io/badge/version-1.6.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-539%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-557%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -328,7 +328,7 @@ Reads the `generated_descriptions` section of a `prep-for-ai-config.json` and ap
 fabric-ai-meta governance --workspace "Production" --mock --report ./governance-report.json
 ```
 
-Detects naming inconsistencies, duplicate DAX expressions, and ranks models by AI readiness.
+Detects naming inconsistencies, duplicate DAX expressions, and ranks models by AI readiness. Add `--with-copilot` for the Copilot completeness section, or `--graph-necessity` for the [graph-necessity verdict](#do-you-even-need-an-ontology-graph-necessity).
 
 **Next step:** wire the report into CI/CD using [`scripts/ci-governance-check.py`](https://github.com/psistla/fabric-ai-meta/blob/master/scripts/ci-governance-check.py) and the [CI/CD guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/ci-cd-guide.md).
 </details>
@@ -414,7 +414,7 @@ fabric-ai-meta serve
 fabric-ai-meta serve --transport streamable-http --port 8000
 ```
 
-Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report`, `diff_summaries`. A ready-to-use [`.mcp.json`](https://github.com/psistla/fabric-ai-meta/blob/master/.mcp.json) lives at the project root, so any IDE that auto-discovers project-scoped MCP servers picks it up when the working directory is opened.
+Exposes six tools to AI agents: `list_models`, `analyze_model`, `score_model`, `generate_schema`, `governance_report` (accepts `graph_necessity` and an inline `questions` list), `diff_summaries`. A ready-to-use [`.mcp.json`](https://github.com/psistla/fabric-ai-meta/blob/master/.mcp.json) lives at the project root, so any IDE that auto-discovers project-scoped MCP servers picks it up when the working directory is opened.
 
 **Connect from a desktop MCP client:** add the contents of `.mcp.json` to your client's `mcpServers` configuration. Common locations include `%APPDATA%/<client>/<client>_config.json` on Windows and `~/Library/Application Support/<client>/<client>_config.json` on macOS.
 
@@ -462,6 +462,49 @@ Compares two `workspace-summary.json` files and reports: models added/removed, s
 |------|-------------|
 | `workspace-summary.json` | Score ranking, recommendations, model inventory across all models |
 | `governance-report.json` | Cross-model naming issues, duplicate measures, governance scorecard |
+
+---
+
+## Do you even need an ontology? (`graph-necessity`)
+
+Ontology and knowledge-graph projects are expensive, and most semantic models do not need one: a star schema with good descriptions already answers the questions people actually ask. `governance --graph-necessity` gives you an honest, no-capacity verdict before you commit.
+
+```bash
+fabric-ai-meta governance --workspace "Production" --mock \
+  --graph-necessity --report ./governance-report.json
+
+# Sharper verdict: feed it the questions your users really ask
+fabric-ai-meta governance --workspace "Production" --mock \
+  --graph-necessity --questions ./questions.txt --report ./governance-report.json
+```
+
+`--questions` takes a newline-delimited text file or a JSON list of strings. Without it, the check falls back to Copilot example prompts, then to measure dependencies.
+
+The report gains a `graph_necessity` array, one entry per model:
+
+```json
+{
+  "name": "Contoso Sales",
+  "tier": "GRAPH_UNNECESSARY",
+  "pressure": 0.0,
+  "confidence": "evidenced",
+  "evidence": [
+    "4 of 4 questions resolve within <=2 tables (flat aggregation)",
+    "no bridge or many-to-many relationships",
+    "relationship graph is a shallow star (diameter 2)",
+    "single fact table"
+  ],
+  "recommendation": "Described schema suffices; defer ontology/graph adoption."
+}
+```
+
+Tiers are `GRAPH_UNNECESSARY`, `GRAPH_OPTIONAL`, and `GRAPH_WARRANTED`, blended from four signals: how many real questions traverse three or more tables, bridge and many-to-many presence, relationship graph depth, and multi-fact complexity. It runs purely over already-extracted metadata: no Fabric capacity, no LLM calls.
+
+This pairs with in-platform Fabric Ontology rather than competing with it: use `graph-necessity` to decide whether to start, and the rest of the toolkit to get the model documented and consistent enough that whatever you build on top has something to work with.
+
+### Limitations
+
+Without `--questions` or Copilot example prompts, the workload signal is derived from measure dependencies, which is a conservative proxy: DAX typically names columns in one or two tables, while real multi-hop traversal happens through relationships at query time. In that fallback the verdict leans on the three structural signals and biases toward `GRAPH_UNNECESSARY`. Supply real questions when you want the verdict to carry weight. Report-visual mining and query-log analysis are the stronger signals, and are not built yet.
 
 ---
 
