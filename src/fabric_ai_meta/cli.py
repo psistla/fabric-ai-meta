@@ -658,6 +658,21 @@ def score(model_name, workspace, score_all, mock, pbip):
 # governance command
 # ---------------------------------------------------------------------------
 
+def _load_questions(path: str | None) -> list[str] | None:
+    """Read a questions file as a JSON list of strings or newline-delimited text."""
+    if not path:
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    try:
+        data = json.loads(text)
+        if isinstance(data, list) and all(isinstance(x, str) for x in data):
+            return data
+    except json.JSONDecodeError:
+        pass
+    return [line.strip() for line in text.splitlines() if line.strip()] or None
+
+
 @main.command("governance")
 @click.option("--workspace", "-w", default=None, help="Fabric workspace name.")
 @click.option("--report", default=None, help="Output file path for governance report JSON.")
@@ -667,7 +682,11 @@ def score(model_name, workspace, score_all, mock, pbip):
               help="Also extract each model's Copilot/ folder and include the copilot_completeness section.")
 @click.option("--pbip", default=None, type=click.Path(exists=True),
               help="Report over a local directory of *.SemanticModel folders (no Fabric, no workspace).")
-def governance(workspace, report, output, mock, with_copilot, pbip):
+@click.option("--graph-necessity", is_flag=True, default=False,
+              help="Assess whether each model's workload justifies an ontology/graph.")
+@click.option("--questions", "questions_path", type=click.Path(exists=True), default=None,
+              help="Optional file of real questions (newline-delimited or a JSON list) to sharpen the graph-necessity verdict.")
+def governance(workspace, report, output, mock, with_copilot, pbip, graph_necessity, questions_path):
     """Generate cross-model governance report for a workspace."""
     _resolve_source(mock, pbip, workspace, workspace_required=True)
     with_copilot = with_copilot or bool(pbip)
@@ -700,7 +719,9 @@ def governance(workspace, report, output, mock, with_copilot, pbip):
                 console.print(f"[yellow]Warning: could not process '{name}': {e}[/yellow]")
             progress.remove_task(t)
 
-    gov_report = generate_governance_report(models)
+    gov_report = generate_governance_report(
+        models, graph_necessity=graph_necessity, questions=_load_questions(questions_path)
+    )
 
     report_path = report or os.path.join(output, "governance-report.json")
     write_governance_report(gov_report, workspace or pbip, report_path)

@@ -292,6 +292,25 @@ class TestGovernanceCLI:
         ])
         assert result.exit_code == 0, result.output
 
+    def test_governance_cli_graph_necessity_flag(self, tmp_path):
+        from click.testing import CliRunner
+
+        from fabric_ai_meta.cli import main
+
+        runner = CliRunner()
+        report_path = str(tmp_path / "gov.json")
+        result = runner.invoke(main, [
+            "governance",
+            "--workspace", "test",
+            "--mock",
+            "--graph-necessity",
+            "--report", report_path,
+        ])
+        assert result.exit_code == 0, result.output
+        data = json.load(open(report_path, encoding="utf-8"))
+        assert "graph_necessity" in data
+        assert data["graph_necessity"][0]["tier"].startswith("GRAPH_")
+
     def test_governance_mock_produces_valid_json(self, tmp_path):
         from click.testing import CliRunner
 
