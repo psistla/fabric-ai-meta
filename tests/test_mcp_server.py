@@ -126,9 +126,11 @@ def test_governance_report_graph_necessity_param():
     assert "graph_necessity" not in off
     on = governance_report(workspace=WORKSPACE, mock=True, graph_necessity=True)
     assert "graph_necessity" in on
+    # questions must use real model vocabulary, otherwise coverage is too low to
+    # earn "strong" (see test_low_coverage_questions_downgrade_confidence)
     strong = governance_report(
         workspace=WORKSPACE, mock=True, graph_necessity=True,
-        questions=["sales by region and product and store"],
+        questions=["FactInternetSales by DimProduct and DimCustomer"],
     )
     assert strong["graph_necessity"][0]["confidence"] == "strong"
 

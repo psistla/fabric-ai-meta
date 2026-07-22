@@ -201,6 +201,20 @@ def test_supplied_questions_yield_strong_confidence():
     assert result["signals"]["workload_hop_pressure"]["source"] == "questions"
 
 
+def test_low_coverage_questions_downgrade_confidence():
+    # questions that match no table or column vocabulary must not report "strong"
+    m = _model([_table("FactSales", TableType.FACT, columns=["Amount"],
+                       measures=[_measure("Total", ["FactSales[Amount]"])]),
+                _table("DimDate", columns=["Date"])], [_rel("FactSales", "DimDate")])
+    result = assess_graph_necessity(m, questions=["how many widgets did marketing ship"])
+    assert result["confidence"] == "directional"
+    assert result["signals"]["workload_hop_pressure"]["source"] == "questions"
+    assert any("matched model" in e for e in result["evidence"])
+    # half or more matching still earns strong
+    ok = assess_graph_necessity(m, questions=["FactSales by DimDate", "unmatched question"])
+    assert ok["confidence"] == "strong"
+
+
 def test_governance_report_includes_section_only_when_requested(contoso_model):
     from fabric_ai_meta.analyzer.governance import generate_governance_report
     from fabric_ai_meta.analyzer.pipeline import classify_model_in_place

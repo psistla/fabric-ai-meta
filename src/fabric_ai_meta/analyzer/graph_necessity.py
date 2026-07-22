@@ -263,11 +263,18 @@ def assess_graph_necessity(
             entry["source"] = source
         signals[k] = entry
 
+    confidence = _CONFIDENCE[source]
+    # Supplied questions only earn "strong" if they actually resolved against the
+    # model's vocabulary. Fewer than half matching means the workload signal was
+    # computed from mostly-empty question sets, so say so instead of overclaiming.
+    if source == "questions" and matched < len(q_sets) / 2:
+        confidence = "directional"
+
     return {
         "name": model.name,
         "tier": tier,
         "pressure": pressure,
-        "confidence": _CONFIDENCE[source],
+        "confidence": confidence,
         "signals": signals,
         "evidence": _evidence(present, q_sets, source, matched, model),
         "recommendation": _RECOMMENDATION[tier],
