@@ -8,6 +8,7 @@ from fabric_ai_meta.analyzer.graph_necessity import (
     _relationship_graph_depth,
     _resolve_questions,
     _workload_hop_pressure,
+    assess_graph_necessity,
 )
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
@@ -142,3 +143,59 @@ def test_resolve_returns_none_when_no_usable_questions():
     sets, source, matched = _resolve_questions(m, None)
     assert source is None
     assert sets == []
+
+
+def test_flat_star_is_unnecessary_and_evidenced(contoso_model):
+    # contoso_model fixture from conftest.py; classify first if governance would.
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    classify_model_in_place(contoso_model)
+    result = assess_graph_necessity(contoso_model)
+    assert 0.0 <= result["pressure"] <= 1.0
+    assert result["tier"] == "GRAPH_UNNECESSARY"
+    assert result["confidence"] == "evidenced"
+    assert result["recommendation"].startswith("Described schema suffices")
+    assert isinstance(result["evidence"], list) and result["evidence"]
+
+
+def test_warranted_model_reports_high_band_evidence():
+    # multi-fact + m2m bridge + measures spanning >=3 tables.
+    # CAUTION: this fixture's tier depends on workload_hop_pressure staying 1.0.
+    # Adding any NON-multi-hop measure drops pressure below 0.66 and flips the
+    # tier to GRAPH_OPTIONAL. Both measures below are deliberately multi-hop.
+    m = _model(
+        [_table("F1", TableType.FACT, columns=["A"],
+                measures=[_measure("Wide", ["F1[A]", "D1[B]", "Br[C]"]),
+                          _measure("Wide2", ["F1[A]", "D1[B]", "Br[C]"])]),
+         _table("F2", TableType.FACT), _table("F3", TableType.FACT),
+         _table("D1", columns=["B"]),
+         _table("Br", TableType.BRIDGE, columns=["C"])],
+        [_rel("F1", "D1"), _rel("F1", "Br", cardinality="many-to-many"),
+         _rel("D1", "Br")],
+    )
+    result = assess_graph_necessity(m)
+    assert result["tier"] == "GRAPH_WARRANTED"
+    assert any("multi-hop" in e for e in result["evidence"])
+    assert any("bridge/many-to-many" in e for e in result["evidence"])
+
+
+def test_no_usable_questions_drops_signal_and_renormalizes():
+    m = _model([_table("F", TableType.FACT, measures=[_measure("Ratio", [])]),
+                _table("D")], [_rel("F", "D")])
+    result = assess_graph_necessity(m)
+    assert result["confidence"] == "directional"
+    assert "workload_hop_pressure" not in result["signals"]
+    assert set(result["signals"]) == {
+        "bridge_m2m_presence", "relationship_graph_depth", "multi_fact_complexity",
+    }
+    # survivors renormalized: 0.25/0.65=0.38, 0.20/0.65=0.31 each
+    assert result["signals"]["bridge_m2m_presence"]["weight"] == 0.38
+    assert 0.0 <= result["pressure"] <= 1.0
+
+
+def test_supplied_questions_yield_strong_confidence():
+    m = _model([_table("FactSales", TableType.FACT, columns=["Amount"],
+                       measures=[_measure("Total", ["FactSales[Amount]"])]),
+                _table("DimDate", columns=["Date"])], [_rel("FactSales", "DimDate")])
+    result = assess_graph_necessity(m, questions=["show FactSales amount by DimDate"])
+    assert result["confidence"] == "strong"
+    assert result["signals"]["workload_hop_pressure"]["source"] == "questions"

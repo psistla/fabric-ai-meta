@@ -175,3 +175,100 @@ def _workload_hop_pressure(sets: list[set[str]]) -> float | None:
         return None  # signal drops
     multi = sum(1 for s in sets if len(s) >= _MULTI_HOP_MIN_TABLES)
     return round(multi / len(sets), 2)
+
+
+_RECOMMENDATION = {
+    "GRAPH_UNNECESSARY": "Described schema suffices; defer ontology/graph adoption.",
+    "GRAPH_OPTIONAL": "Mixed signal; a graph would help specific relational slices. "
+                      "Revisit if multi-hop questions grow.",
+    "GRAPH_WARRANTED": "Genuine multi-hop workload; an ontology/graph is warranted.",
+}
+
+_CONFIDENCE = {"questions": "strong", "copilot": "evidenced",
+               "measures": "evidenced", None: "directional"}
+
+
+def _evidence(present, q_sets, source, matched, model):
+    # Invariant: only workload_hop_pressure can drop, so the three structural
+    # signals are always in `present`. Guard them if that ever changes.
+    lines = []
+    if "workload_hop_pressure" in present:
+        n = len(q_sets)
+        k = sum(1 for s in q_sets if len(s) >= _MULTI_HOP_MIN_TABLES)
+        if present["workload_hop_pressure"] >= 0.5:
+            lines.append(f"{k} of {n} questions traverse >=3 tables (multi-hop)")
+        else:
+            lines.append(f"{n - k} of {n} questions resolve within <=2 tables (flat aggregation)")
+    if present["bridge_m2m_presence"] >= 0.5:
+        lines.append(
+            f"{_bridge_count(model)} bridge/many-to-many relationship(s) "
+            "mediate relational analysis"
+        )
+    else:
+        lines.append("no bridge or many-to-many relationships")
+    diameter = _largest_component_diameter(model)
+    if present["relationship_graph_depth"] >= 0.5:
+        lines.append(f"relationship graph is deep (diameter {diameter})")
+    else:
+        lines.append(f"relationship graph is a shallow star (diameter {diameter})")
+    facts = sum(1 for t in model.tables if t.table_type == TableType.FACT)
+    if present["multi_fact_complexity"] >= 0.5:
+        lines.append(f"{facts} fact tables imply cross-fact / drill-across questions")
+    else:
+        lines.append("single fact table")
+    if source == "questions" and q_sets and matched < len(q_sets) / 2:
+        lines.append(
+            f"note: only {matched} of {len(q_sets)} supplied questions matched model "
+            "vocabulary; treat pressure as low-coverage"
+        )
+    return lines
+
+
+def assess_graph_necessity(
+    model: SemanticModelMeta, questions: list[str] | None = None
+) -> dict:
+    """Assess whether this model's workload justifies a graph/ontology.
+
+    Args:
+        model: The semantic model to assess (classification should have run).
+        questions: Optional real questions that sharpen the workload signal.
+
+    Returns:
+        Dict with keys: name, tier, pressure, confidence, signals, evidence,
+        recommendation.
+    """
+    q_sets, source, matched = _resolve_questions(model, questions)
+    raw = {
+        "workload_hop_pressure": _workload_hop_pressure(q_sets),
+        "bridge_m2m_presence": _bridge_m2m_presence(model),
+        "relationship_graph_depth": _relationship_graph_depth(model),
+        "multi_fact_complexity": _multi_fact_complexity(model),
+    }
+    present = {k: v for k, v in raw.items() if v is not None}
+    weight_sum = sum(PRESSURE_WEIGHTS[k] for k in present)
+    pressure = round(sum(present[k] * PRESSURE_WEIGHTS[k] for k in present) / weight_sum, 2)
+
+    tier = (
+        "GRAPH_WARRANTED" if pressure >= PRESSURE_THRESHOLDS["warranted_at"]
+        else "GRAPH_OPTIONAL" if pressure >= PRESSURE_THRESHOLDS["optional_at"]
+        else "GRAPH_UNNECESSARY"
+    )
+    signals = {}
+    for k in present:
+        entry = {
+            "score": round(present[k], 2),
+            "weight": round(PRESSURE_WEIGHTS[k] / weight_sum, 2),
+        }
+        if k == "workload_hop_pressure":
+            entry["source"] = source
+        signals[k] = entry
+
+    return {
+        "name": model.name,
+        "tier": tier,
+        "pressure": pressure,
+        "confidence": _CONFIDENCE[source],
+        "signals": signals,
+        "evidence": _evidence(present, q_sets, source, matched, model),
+        "recommendation": _RECOMMENDATION[tier],
+    }
