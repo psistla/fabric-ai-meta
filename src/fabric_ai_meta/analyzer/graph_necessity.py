@@ -114,3 +114,64 @@ def _relationship_graph_depth(model: SemanticModelMeta) -> float:
 def _multi_fact_complexity(model: SemanticModelMeta) -> float:
     facts = sum(1 for t in model.tables if t.table_type == TableType.FACT)
     return round(min(1.0, max(0, facts - 1) / _FACT_SPAN), 2)
+
+
+def _tables_from_columns(depends_on_columns: list[str], table_names: set[str]) -> set[str]:
+    out: set[str] = set()
+    for ref in depends_on_columns:
+        name = ref.split("[", 1)[0].strip().strip("'")
+        if name in table_names:
+            out.add(name)
+    return out
+
+
+def _measure_question_sets(model: SemanticModelMeta, table_names: set[str]) -> list[set[str]]:
+    sets: list[set[str]] = []
+    for t in model.tables:
+        for ms in t.measures:
+            tables = _tables_from_columns(ms.depends_on_columns, table_names)
+            if tables:  # exclude measure-of-measure (empty) -- not a question
+                sets.append(tables)
+    return sets
+
+
+def _question_sets(
+    questions: list[str], model: SemanticModelMeta, table_names: set[str]
+) -> list[set[str]]:
+    lowered = [(t.name, t.name.lower(), [c.name.lower() for c in t.columns]) for t in model.tables]
+    sets: list[set[str]] = []
+    for q in questions:
+        ql = q.lower()
+        matched: set[str] = set()
+        for name, name_l, cols in lowered:
+            if name_l in ql or any(col and col in ql for col in cols):
+                matched.add(name)
+        sets.append(matched & table_names)  # every question counted, even if empty
+    return sets
+
+
+def _resolve_questions(model: SemanticModelMeta, questions: list[str] | None):
+    """Return (table_sets, source, matched_count). source in
+    {'questions','copilot','measures', None} by precedence; only non-empty
+    sources are selected so 0/0 never occurs."""
+    table_names = _table_names(model)
+    if questions:  # non-empty list only
+        sets = _question_sets(questions, model, table_names)
+        return sets, "questions", sum(1 for s in sets if s)
+    prompts = None
+    if model.copilot is not None and model.copilot.example_prompts is not None:
+        prompts = model.copilot.example_prompts.prompts
+    if prompts:
+        sets = _question_sets(prompts, model, table_names)
+        return sets, "copilot", sum(1 for s in sets if s)
+    measure_sets = _measure_question_sets(model, table_names)
+    if measure_sets:
+        return measure_sets, "measures", len(measure_sets)
+    return [], None, 0
+
+
+def _workload_hop_pressure(sets: list[set[str]]) -> float | None:
+    if not sets:
+        return None  # signal drops
+    multi = sum(1 for s in sets if len(s) >= _MULTI_HOP_MIN_TABLES)
+    return round(multi / len(sets), 2)

@@ -6,6 +6,8 @@ from fabric_ai_meta.analyzer.graph_necessity import (
     _bridge_m2m_presence,
     _multi_fact_complexity,
     _relationship_graph_depth,
+    _resolve_questions,
+    _workload_hop_pressure,
 )
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
@@ -107,3 +109,36 @@ def test_multi_fact_complexity():
     three = _model([_table("F1", TableType.FACT), _table("F2", TableType.FACT),
                     _table("F3", TableType.FACT)])
     assert _multi_fact_complexity(three) == 1.0
+
+
+def test_workload_hop_pressure_fraction_and_drop():
+    assert _workload_hop_pressure([]) is None  # no questions -> drop
+    assert _workload_hop_pressure([{"A"}, {"A", "B"}]) == 0.0  # all <=2 tables
+    assert _workload_hop_pressure([{"A", "B", "C"}, {"A"}]) == 0.5
+
+
+def test_resolve_prefers_supplied_questions_then_measures():
+    m = _model(
+        [_table("FactSales", TableType.FACT, columns=["Amount"],
+                measures=[_measure("Total", ["FactSales[Amount]"])]),
+         _table("DimDate", columns=["Date"])],
+        [_rel("FactSales", "DimDate")],
+    )
+    # supplied questions -> source 'questions', strong
+    sets, source, matched = _resolve_questions(m, ["sales by date"])
+    assert source == "questions"
+    # measures fallback when no questions
+    sets, source, matched = _resolve_questions(m, None)
+    assert source == "measures"
+    assert sets == [{"FactSales"}]  # Total resolves to FactSales only
+    # empty list falls through (NOT 'questions')
+    sets, source, matched = _resolve_questions(m, [])
+    assert source == "measures"
+
+
+def test_resolve_returns_none_when_no_usable_questions():
+    # measure-of-measure only (empty depends_on_columns) -> no usable questions
+    m = _model([_table("F", TableType.FACT, measures=[_measure("Ratio", [])])])
+    sets, source, matched = _resolve_questions(m, None)
+    assert source is None
+    assert sets == []
