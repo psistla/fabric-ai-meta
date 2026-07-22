@@ -121,6 +121,18 @@ def test_governance_report_returns_expected_keys():
     assert isinstance(report["naming_inconsistencies"], list)
 
 
+def test_governance_report_graph_necessity_param():
+    off = governance_report(workspace=WORKSPACE, mock=True)
+    assert "graph_necessity" not in off
+    on = governance_report(workspace=WORKSPACE, mock=True, graph_necessity=True)
+    assert "graph_necessity" in on
+    strong = governance_report(
+        workspace=WORKSPACE, mock=True, graph_necessity=True,
+        questions=["sales by region and product and store"],
+    )
+    assert strong["graph_necessity"][0]["confidence"] == "strong"
+
+
 # ---------------------------------------------------------------------------
 # diff_summaries
 # ---------------------------------------------------------------------------

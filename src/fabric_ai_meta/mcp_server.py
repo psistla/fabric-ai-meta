@@ -109,11 +109,18 @@ def generate_schema(model_name: str, workspace: str, mock: bool = True) -> dict:
         return _error(str(exc))
 
 
-def governance_report(workspace: str, mock: bool = True) -> dict:
+def governance_report(
+    workspace: str,
+    mock: bool = True,
+    graph_necessity: bool = False,
+    questions: list[str] | None = None,
+) -> dict:
     """Run the cross-model governance analysis for an entire workspace.
 
     Returns naming inconsistencies, duplicate measure expressions, model score
-    ranking, and recommendations.
+    ranking, recommendations, and (when graph_necessity=True) a per-model
+    graph_necessity assessment. `questions` is an optional inline list of real
+    questions that sharpens that assessment (pass the list directly, not a path).
     """
     try:
         from fabric_ai_meta.analyzer.governance import generate_governance_report
@@ -129,7 +136,9 @@ def governance_report(workspace: str, mock: bool = True) -> dict:
             m.ai_readiness_score = overall
             m.scoring_breakdown = breakdown
             models.append(m)
-        return generate_governance_report(models)
+        return generate_governance_report(
+            models, graph_necessity=graph_necessity, questions=questions
+        )
     except Exception as exc:
         return _error(str(exc))
 
