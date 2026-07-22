@@ -232,6 +232,27 @@ A reasonable starting point for a mature data estate:
 
 Bake the thresholds into the workflow file so changes are reviewed and version-controlled like any other code change.
 
+### Re-baseline your thresholds when you upgrade
+
+Readiness scores are comparable across runs of the same fabric-ai-meta version, not across versions. A release that fixes a scoring bug moves scores on models that did not change, which is indistinguishable from real drift to a gate that only sees the number.
+
+**v1.6.0 is one such release.** It fixed `parse_measure_dependencies` results being computed and then discarded, which activated the `business_rules_documented` dimension (weight 0.15). Measured on the three bundled fixtures, upgrading moves the overall score in both directions:
+
+| Fixture | Before | After | Delta | `business_rules_documented` |
+|---------|--------|-------|-------|------------------------------|
+| `adventure_works` | 0.6965 | 0.6909 | -0.0056 | 0.00 to 0.00 |
+| `contoso_sales` | 0.6536 | 0.7036 | +0.0500 | 0.00 to 0.00 |
+| `enterprise_sales` | 0.7547 | 0.7047 | -0.0500 | 0.33 to 0.00 |
+
+A model can lose points here. `business_rules_documented` scores 1.0 when a model has no measures eligible for the check at all, so a model that gains an eligible measure trades a free 1.0 for a real fraction. Your own models can move further than these fixtures do.
+
+Two things follow:
+
+1. **Pin the version in CI.** Installing from PyPI, use `pip install 'fabric-ai-meta==1.6.0'` rather than unpinned. The workflows above install from the checked-out source (`pip install -e ".[dev]"`), where the pin is whatever ref the checkout step resolves, so pin that to a tag rather than a moving branch. Either way, a gate should never change meaning on a day nobody touched it.
+2. **Re-run the gate against the new version before tightening it.** Take the new report as the baseline, confirm the movement is explained by the release notes, then set `--min-score` from the new numbers. A gate inherited from an older version is calibrated to a scale that no longer exists.
+
+The same applies to the Pattern 2 delta workflow: an upgrade shows up as a fleet-wide score change with no corresponding model edits. Note the version bump in the run, or re-baseline, so nobody investigates drift that was a dependency upgrade.
+
 ---
 
 ## Operational notes
@@ -239,4 +260,5 @@ Bake the thresholds into the workflow file so changes are reviewed and version-c
 - **Mock mode is the right default for CI.** Live extraction requires a Fabric notebook environment, which most CI runners do not provide. The scan and governance commands produce identical output structure in both modes, so a mock-mode gate gives you regression detection on the parts of the pipeline you control: classification, scoring, governance heuristics, and the script that enforces thresholds.
 - **Artifact retention.** Keep at least 90 days of `workspace-summary.json` artifacts so the delta workflow has a useful history. Stored summaries are small (under 50 KB for typical workspaces).
 - **Failure semantics.** Treat governance gate failure as a soft signal during rollout: failing PRs without a clear migration path frustrates teams. Once the baseline is healthy, switch the gate from `continue-on-error: true` to a hard failure.
+- **Version pinning beats threshold tuning.** Pin fabric-ai-meta to an exact version in CI. Scoring dimensions can be fixed or added in a minor release, and an unpinned gate silently re-scales when that happens. See [Re-baseline your thresholds when you upgrade](#re-baseline-your-thresholds-when-you-upgrade).
 - **Cost.** Both patterns avoid LLM calls (`--llm-enrich` is omitted), so CI cost is bounded by GitHub or Azure DevOps minutes alone.

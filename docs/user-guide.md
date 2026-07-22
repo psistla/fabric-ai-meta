@@ -2,7 +2,7 @@
 
 A plain-language walk-through of every fabric-ai-meta capability, in the order a typical user adopts them. Start at step 1 if you are new; jump to a numbered step if you know what you need.
 
-For per-command reference (every flag, every option), see the `Usage` section in the [README](../README.md). For CI/CD recipes see [`ci-cd-guide.md`](ci-cd-guide.md). For building your own exporter see [`plugin-development.md`](plugin-development.md).
+This guide is the per-command reference; the [README](../README.md) is the short version. For CI/CD recipes see [`ci-cd-guide.md`](ci-cd-guide.md). For building your own exporter see [`plugin-development.md`](plugin-development.md). Run any command with `--help` for its exact flags.
 
 The whole flow at a glance:
 
@@ -130,7 +130,7 @@ output_dir = "./fabric-output"
 
 Set the matching API key environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, etc.) and you are done. Subsequent commands pick up the workspace, output directory, and LLM settings automatically.
 
-Full provider matrix (10+ providers) is in the [README LLM Enrichment section](../README.md#llm-enrichment).
+Full provider matrix (10+ providers) is in [Choosing a provider](#choosing-a-provider) below.
 
 ---
 
@@ -193,6 +193,53 @@ The LLM does three things:
 
 Responses are cached by SHA-256 hash of the prompt, so re-runs are free. The `max_cost_per_run` setting in your TOML caps spend per command.
 
+### Choosing a provider
+
+`pip install 'fabric-ai-meta[llm]'` adds multi-provider support through LiteLLM. Set the provider in `.fabric-ai-meta.toml`:
+
+| Provider | `provider` | `model` example | API key env var |
+|----------|-----------|-----------------|-----------------|
+| Anthropic | `anthropic` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
+| OpenAI | `openai` | `gpt-4o` | `OPENAI_API_KEY` |
+| Google Gemini | `google` | `gemini-2.5-pro` | `GEMINI_API_KEY` |
+| xAI Grok | `xai` | `grok-4` | `XAI_API_KEY` |
+| Mistral | `mistral` | `mistral-large-latest` | `MISTRAL_API_KEY` |
+| Cohere | `cohere` | `command-r-plus` | `COHERE_API_KEY` |
+| AWS Bedrock | `bedrock` | `anthropic.claude-sonnet-4-v1:0` | `AWS_*` (SDK default chain) |
+| Azure OpenAI | `azure` | `<deployment-name>` | `AZURE_OPENAI_API_KEY` |
+| Google Vertex AI | `vertex` | `gemini-2.5-pro` | `GOOGLE_APPLICATION_CREDENTIALS` |
+| OpenAI-compatible | `openai-compatible` | `<any>` (set `base_url`) | `OPENAI_COMPATIBLE_API_KEY` |
+
+The `openai-compatible` provider routes through any OpenAI-API-compatible host: Groq, Together, Fireworks, Ollama, LM Studio, vLLM, or a custom endpoint.
+
+```toml
+# Azure OpenAI
+[llm]
+provider = "azure"
+model = "gpt-4o-deployment"
+api_key_env = "AZURE_OPENAI_API_KEY"
+azure_endpoint = "https://my-resource.openai.azure.com"
+azure_api_version = "2024-02-15-preview"
+```
+
+```toml
+# Local Ollama, nothing leaves your machine
+[llm]
+provider = "openai-compatible"
+model = "llama3.1"
+base_url = "http://localhost:11434"
+api_key_env = "OPENAI_COMPATIBLE_API_KEY"  # any non-empty value works
+```
+
+```toml
+# Cost controls, applied to every provider
+[llm]
+max_cost_per_run = 0.20   # raises CostLimitExceededError if exceeded
+cache_enabled = true      # SHA-256 keyed file cache, no TTL
+```
+
+One more environment variable matters outside the LLM path: `FABRIC_NOTEBOOK_ID` is set automatically inside Fabric and is what signals the notebook runtime.
+
 ---
 
 ## 8. Automate Prep for AI
@@ -247,6 +294,71 @@ Produces a JSON report covering:
 - Description coverage percentage per model
 - AI readiness score rankings across the workspace
 
+Two optional sections extend the report:
+
+```bash
+# Copilot completeness: which models have AI Instructions, Verified Answers, an AI Data Schema
+fabric-ai-meta governance --workspace "Production" --with-copilot --report ./gov.json
+
+# Graph-necessity: does each model's workload actually justify an ontology?
+fabric-ai-meta governance --workspace "Production" --graph-necessity --report ./gov.json
+```
+
+### Do you even need an ontology? (`--graph-necessity`)
+
+Knowledge graph projects are expensive and most semantic models do not need one: a star schema with good descriptions already answers the questions people ask. This check gives you a verdict per model before you fund the project. It runs over metadata you have already extracted, with no Fabric capacity and no LLM calls.
+
+```bash
+fabric-ai-meta governance --pbip ./models --graph-necessity --report ./gov.json
+```
+
+The report gains a `graph_necessity` array:
+
+```json
+{
+  "name": "Contoso Sales",
+  "tier": "GRAPH_UNNECESSARY",
+  "pressure": 0.0,
+  "confidence": "evidenced",
+  "evidence": [
+    "4 of 4 questions resolve within <=2 tables (flat aggregation)",
+    "no bridge or many-to-many relationships",
+    "relationship graph is a shallow star (diameter 2)",
+    "single fact table"
+  ],
+  "recommendation": "Described schema suffices; defer ontology/graph adoption."
+}
+```
+
+`tier` is one of `GRAPH_UNNECESSARY`, `GRAPH_OPTIONAL`, `GRAPH_WARRANTED`. `pressure` is a 0.0 to 1.0 blend of four weighted signals:
+
+| Signal | Weight | What it measures |
+|--------|--------|------------------|
+| `workload_hop_pressure` | 0.35 | Fraction of real questions that traverse 3 or more tables |
+| `bridge_m2m_presence` | 0.25 | Bridge tables and many-to-many relationships mediating the model |
+| `relationship_graph_depth` | 0.20 | Diameter of the largest connected component, above a plain star |
+| `multi_fact_complexity` | 0.20 | Extra fact tables implying cross-fact or drill-across questions |
+
+**Feed it real questions.** `confidence` tells you how much to trust the verdict, and it depends entirely on where the questions came from:
+
+```bash
+fabric-ai-meta governance --pbip ./models --graph-necessity \
+  --questions ./questions.txt --report ./gov.json
+```
+
+`--questions` takes one question per line, or a JSON list of strings. Precedence is: your file (`confidence: strong`), then Copilot example prompts (`evidenced`), then measure dependencies (`evidenced`), then nothing usable, in which case the workload signal drops out entirely, the remaining three weights renormalize, and `confidence` reads `directional`.
+
+Questions are matched against table and column names. If fewer than half of yours resolve against the model's vocabulary, `confidence` drops to `directional` and an evidence line reports the coverage, because a workload score computed from mostly-empty question sets should not read as strong. Phrase questions using the names that exist in the model.
+
+The measure-dependency fallback is a conservative proxy: DAX names columns in one or two tables, while real multi-hop traversal happens through relationships at query time. That biases the fallback verdict toward `GRAPH_UNNECESSARY`, so supply real questions when the answer matters. Report-visual mining and query-log analysis would be stronger signals and are not built yet.
+
+Also available from Python and over MCP:
+
+```python
+from fabric_ai_meta import assess_graph_necessity
+verdict = assess_graph_necessity(model, questions=["revenue by region and product and store"])
+```
+
 ---
 
 ## 11. Wire into CI/CD
@@ -280,7 +392,7 @@ Six tools are exposed to agents:
 - `analyze_model`: full per-model analysis
 - `score_model`: AI readiness score
 - `generate_schema`: produce the AI-ready schema
-- `governance_report`: cross-model report
+- `governance_report`: cross-model report; accepts `graph_necessity=True` and an inline `questions` list
 - `diff_summaries`: compare two scans
 
 Now you can ask your agent: "Analyze our Sales Model and tell me which tables are missing descriptions." The agent calls the MCP tools and returns the answer.
@@ -307,7 +419,7 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-35 symbols are exposed at the top level (see `fabric_ai_meta.__all__`). Embed in data platforms, notebooks, governance pipelines, or backend services.
+47 symbols are exposed at the top level (see `fabric_ai_meta.__all__`). Embed in data platforms, notebooks, governance pipelines, or backend services.
 
 ---
 
@@ -340,6 +452,20 @@ fabric-ai-meta export dbt "Sales Model" --workspace "Production"
 ```
 
 The CLI auto-discovers the plugin. Full contract, worked example, conflict resolution rules: [`plugin-development.md`](plugin-development.md).
+
+---
+
+## 15. Track drift between two scans (`diff`)
+
+`scan --baseline` reports a delta inline. `diff` does the same comparison standalone, over two `workspace-summary.json` files you already have:
+
+```bash
+fabric-ai-meta diff baseline.json current.json                      # JSON
+fabric-ai-meta diff baseline.json current.json --format text        # human-readable
+fabric-ai-meta diff baseline.json current.json --output delta.json  # write to file
+```
+
+Reports models added and removed, score changes per model, table and measure count changes, Copilot regressions when both scans used `--with-copilot`, and an improved / degraded / unchanged status per model. Removing AI Instructions from an otherwise unchanged model downgrades it to `degraded`.
 
 ---
 
@@ -435,7 +561,7 @@ Microsoft Fabric stores Prep for AI primitives - AI Instructions, Verified Answe
 - Models with no Copilot configuration produce an empty bundle and the exporter prints a notice (no `copilot/` directory written).
 - Outside a Fabric notebook, `--with-copilot` without `--mock` raises `FabricEnvironmentError`.
 
-## Applying Copilot artifacts back to a model (`apply-copilot`, v1.5.0)
+## Applying Copilot artifacts back to a model (`apply-copilot`)
 
 The inverse of `export copilot`. Reads a local `Copilot/` folder and writes it to a live semantic model through the Fabric REST `updateDefinition` long-running operation. Closes the read-edit-write loop for Prep for AI.
 

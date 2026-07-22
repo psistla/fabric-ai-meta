@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-07-22
+
+Graph-necessity advisor. Answers whether a semantic model's workload actually justifies an ontology or knowledge graph, before anyone funds the project.
+
+### Added
+- `assess_graph_necessity(model, questions=None) -> dict` under `fabric_ai_meta.analyzer.graph_necessity`. Returns `tier` (`GRAPH_UNNECESSARY` / `GRAPH_OPTIONAL` / `GRAPH_WARRANTED`), `pressure` (0.0 to 1.0), `confidence`, per-signal scores and weights, evidence lines, and a recommendation. Pure function over an already-extracted `SemanticModelMeta`: no extraction, no Fabric calls, no LLM calls. New top-level export; `__all__` grows from 46 to 47.
+- Four weighted signals, asserted to sum to 1.0 at import time like `SCORING_WEIGHTS`: `workload_hop_pressure` (0.35), `bridge_m2m_presence` (0.25), `relationship_graph_depth` (0.20), `multi_fact_complexity` (0.20). When no usable questions exist the workload signal drops out and the remaining three weights renormalize, so the score is never diluted by a missing input.
+- `--graph-necessity` and `--questions PATH` on the `governance` command. `--questions` accepts a newline-delimited file or a JSON list of strings. Question source precedence is supplied questions (`confidence: strong`), then Copilot example prompts, then measure dependencies (both `evidenced`), then none (`directional`). Supplied questions are downgraded to `directional` when fewer than half of them resolve against the model's vocabulary, so a verdict never claims strong confidence off question sets that mostly matched nothing.
+- `graph_necessity` and `questions` keyword arguments on `generate_governance_report`, and matching parameters on the `governance_report` MCP tool. A `GRAPH_WARRANTED` verdict also appends a recommendation to the report's existing `recommendations` list.
+- Additive `graph_necessity` array property and `graph_necessity_entry` `$def` in `schemas/governance-report/v1.json`. Reports generated without the flag are unchanged and still validate.
+
+### Fixed
+- `docs/plugin-development.md` referred to the plugin system as shipping in v1.2; it shipped in v1.3.0. The out-of-scope list also omitted `apply-copilot` from the commands plugins cannot extend.
+- `docs/user-guide.md` claimed 35 top-level exports (accurate at v1.3.0, now 47) and pointed per-command reference at a README section that no longer exists.
+
 ## [1.6.0] - 2026-07-17
 
 Local extraction. The tool now reads real semantic models from disk with no Fabric notebook, no tenant, and no auth.

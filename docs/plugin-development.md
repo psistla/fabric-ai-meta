@@ -56,7 +56,7 @@ When a user runs `pip install my-fabric-plugin`, the entry point is registered i
 
 ## Worked example: a dbt source exporter
 
-The example below is illustrative; no real dbt plugin ships in v1.2. It emits a `sources:` block compatible with [dbt's source schema](https://docs.getdbt.com/reference/source-properties) so a downstream dbt project can reference Fabric tables.
+The example below is illustrative; no real dbt plugin ships with fabric-ai-meta. It emits a `sources:` block compatible with [dbt's source schema](https://docs.getdbt.com/reference/source-properties) so a downstream dbt project can reference Fabric tables.
 
 **Project layout:**
 
@@ -211,9 +211,9 @@ A broken plugin (raises at import time, fails to load, returns a non-class objec
 
 ---
 
-## What is out of scope for v1.2
+## What is out of scope
 
 - **No plugin marketplace.** Discoverability is just `pip search` and the entry-point group name.
 - **No plugin verification or signing.** Use trusted plugins from sources you control. fabric-ai-meta loads any entry point under `fabric_ai_meta.exporters` in the current environment.
-- **No CLI hooks beyond `export`.** Plugins extend the export surface only; `analyze`, `scan`, `score`, `governance`, `apply-descriptions`, and `serve` are not pluggable.
+- **No CLI hooks beyond `export`.** Plugins extend the export surface only; `analyze`, `scan`, `score`, `governance`, `apply-descriptions`, `apply-copilot`, and `serve` are not pluggable.
 - **No `export prep-for-ai` plugin slot.** The Prep for AI command has a custom signature (`--llm-enrich`, no positional model variants) and stays a hand-written CLI command, not a `BaseExporter` subclass.

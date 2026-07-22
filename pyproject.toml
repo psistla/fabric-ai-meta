@@ -1,7 +1,7 @@
 [project]
 name = "fabric-ai-meta"
-version = "1.6.0"
-description = "Extract Microsoft Fabric semantic model metadata. AI-ready exports for LangChain, OpenAI, Semantic Kernel, AutoGen, and custom plugins. Multi-provider LLM enrichment, MCP server, and cross-model governance."
+version = "1.7.0"
+description = "Turn Microsoft Fabric and Power BI semantic models into AI-ready metadata from your laptop. Reads local .pbip/TMDL folders with no tenant or sign-in. Exports to LangChain, OpenAI, Semantic Kernel, and AutoGen, with cross-model governance, an MCP server, and a graph-necessity advisor."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -21,6 +21,11 @@ keywords = [
     "autogen",
     "prep-for-ai",
     "mcp",
+    "pbip",
+    "tmdl",
+    "ontology",
+    "knowledge-graph",
+    "data-governance",
     "model-context-protocol",
     "llm",
     "litellm",
