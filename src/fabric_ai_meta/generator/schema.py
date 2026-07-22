@@ -1,6 +1,7 @@
 """AI-ready JSON schema generator (SPEC.md Sections 5.2 and 6.3.1)."""
 
 import json
+import os
 
 from fabric_ai_meta.analyzer.scorer import score_model
 from fabric_ai_meta.models.metadata import (
@@ -39,6 +40,7 @@ def write_schema_to_file(model: SemanticModelMeta, output_path: str) -> str:
     Returns the output file path.
     """
     schema = generate_ai_ready_schema(model)
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(schema, f, indent=2, ensure_ascii=False)
     return output_path

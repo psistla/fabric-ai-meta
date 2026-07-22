@@ -1,6 +1,7 @@
 """Tests for the AI-ready JSON schema generator, framework exports, and Prep for AI config."""
 
 import json
+import os
 from unittest.mock import MagicMock
 
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
@@ -128,6 +129,16 @@ def test_recommended_aggregations_exist(adventure_works_model):
     assert len(aggs) > 0
     for val in aggs.values():
         assert "SUMMARIZECOLUMNS" in val
+
+
+def test_write_schema_to_file_creates_missing_parent_dir(adventure_works_model, tmp_path):
+    """Writing into a not-yet-existing directory must not raise FileNotFoundError."""
+    out = tmp_path / "adventure-works" / "ai-ready-schema.json"
+    assert not out.parent.exists()
+    result_path = write_schema_to_file(adventure_works_model, str(out))
+    assert os.path.exists(result_path)
+    with open(result_path, encoding="utf-8") as f:
+        assert json.load(f)["tables"]
 
 
 def test_write_schema_to_file(adventure_works_model, tmp_path):

@@ -3,7 +3,7 @@
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/fabric-ai-meta?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/fabric-ai-meta)
 ![Version](https://img.shields.io/badge/version-1.7.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-558%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-559%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -144,7 +144,7 @@ Issues and pull requests welcome. Before opening one:
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/ -x -q     # 558 tests, no Fabric runtime or network needed
+pytest tests/ -x -q     # 559 tests, no Fabric runtime or network needed
 ruff check .
 ```
 

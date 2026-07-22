@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `write_schema_to_file` now creates the output file's parent directory, matching `write_governance_report` and every other writer in the package. It was the only one that did not, so a library call such as `write_schema_to_file(model, "my-model/ai-ready-schema.json")` raised `FileNotFoundError` unless the directory already existed. The CLI was never affected because it creates the output directory separately; this only ever hit library users and the quickstart notebook.
+
+### Changed
+- `notebooks/quickstart.ipynb` now calls `classify_model_in_place` instead of hand-rolling the classification loop. The hand-rolled version assigned table types, column roles, and measure categories but never populated measure dependencies, so the notebook's generated `ai-ready-schema.json` was missing the `depends_on` block on every measure. Added sections for the graph-necessity advisor and for running the tool locally against a `.pbip` folder, and corrected the LLM enrichment note, which still described Anthropic as the only provider.
+- `notebooks/tmdl-spike.ipynb` removed from the published tree. It was a v1.1.0 research spike for locating Prep for AI settings in the `getDefinition` payload; `CopilotReader` and `export copilot` have covered that ground since v1.4.0.
+
 ## [1.7.0] - 2026-07-22
 
 Graph-necessity advisor. Answers whether a semantic model's workload actually justifies an ontology or knowledge graph, before anyone funds the project.
