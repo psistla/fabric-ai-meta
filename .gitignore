@@ -17,3 +17,4 @@ CLAUDE.md
 # Tooling state
 .claude/
 .superpowers/
+.coverage

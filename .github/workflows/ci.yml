@@ -5,6 +5,9 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -27,4 +30,41 @@ jobs:
         run: ruff check .
 
       - name: Run tests
-        run: pytest tests/ -x -q
+        run: pytest tests/ -q --cov=fabric_ai_meta --cov-report=term-missing --cov-fail-under=85
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - name: Install the wheel with no extras
+        run: |
+          python -m venv /tmp/v
+          /tmp/v/bin/pip install dist/*.whl
+      - name: Assert the fabric dependencies are absent
+        run: |
+          /tmp/v/bin/python - <<'PY'
+          import importlib.util as u
+          for m in ("sempy", "sempy_labs", "anthropic", "azure.identity", "pyspark"):
+              assert u.find_spec(m) is None, f"{m} should not be installed"
+          print("base install is clean")
+          PY
+      - name: Exercise the base install
+        run: |
+          /tmp/v/bin/fabric-ai-meta analyze "Contoso Sales" --mock --output /tmp/o
+          /tmp/v/bin/fabric-ai-meta analyze "Nonexistent" --mock --output /tmp/o && exit 1 || true
+          du -sm /tmp/v/lib/python3.12/site-packages
+      - name: Resolve every extra
+        run: |
+          for e in fabric llm mcp; do
+            /tmp/v/bin/pip install --dry-run --report - "$(echo dist/*.whl)[$e]" >/dev/null
+          done
+      - name: Check the sdist contents
+        run: |
+          tar -tzf dist/*.tar.gz | grep -q tests/conftest.py
+          tar -tzf dist/*.tar.gz | grep -q scripts/ci-governance-check.py

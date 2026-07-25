@@ -1,0 +1,5 @@
+recursive-include tests *
+recursive-include scripts *
+recursive-include schemas *.json
+include CHANGELOG.md
+global-exclude __pycache__/* *.py[cod]

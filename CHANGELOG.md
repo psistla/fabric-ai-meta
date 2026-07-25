@@ -5,14 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.8.0] - 2026-07-24
+
+Dependency restructure and honesty pass. What the package ships now matches what it claims: a `pip install fabric-ai-meta` drops from ~730 MB to ~55 MB, `--mock` works from that install and never fabricates data, and the docs no longer describe an extraction path that was never built.
 
 ### Fixed
+- `--mock` with an unrecognised model name now raises an error listing the available samples, instead of silently substituting Adventure Works' data and labelling it with the requested name. This affected the CLI and every MCP tool.
+- `--mock` now works from a `pip install`. The sample models ship as package data under `fabric_ai_meta/fixtures/`; previously the fixture path resolved to a `tests/` directory that only exists in a source checkout.
 - `write_schema_to_file` now creates the output file's parent directory, matching `write_governance_report` and every other writer in the package. It was the only one that did not, so a library call such as `write_schema_to_file(model, "my-model/ai-ready-schema.json")` raised `FileNotFoundError` unless the directory already existed. The CLI was never affected because it creates the output directory separately; this only ever hit library users and the quickstart notebook.
 
 ### Changed
+- **Breaking (install-time).** Fabric dependencies moved behind a `[fabric]` extra. The base install is now `click`, `rich`, `networkx`, `pydantic`. To use live Fabric extraction, `auth login`, or writeback, install `pip install 'fabric-ai-meta[fabric]'`. Inside a Fabric notebook the runtime already provides `sempy`; the extra ensures `semantic-link-sempy` and `sempy_labs` are present and may upgrade them. A guarded import that fails now raises `MissingFabricDependencyError` naming the extra.
+- `anthropic` is no longer a dependency. The package has routed LLM calls through `litellm` (the `[llm]` extra) since v1.2.0 and never imported `anthropic`.
+- The MCP server tools take an optional `pbip` argument and read the bundled sample models by default; the `mock` parameter is gone. Point a tool at a `*.SemanticModel` folder to analyze a real local model.
 - `notebooks/quickstart.ipynb` now calls `classify_model_in_place` instead of hand-rolling the classification loop. The hand-rolled version assigned table types, column roles, and measure categories but never populated measure dependencies, so the notebook's generated `ai-ready-schema.json` was missing the `depends_on` block on every measure. Added sections for the graph-necessity advisor and for running the tool locally against a `.pbip` folder, and corrected the LLM enrichment note, which still described Anthropic as the only provider.
 - `notebooks/tmdl-spike.ipynb` removed from the published tree. It was a v1.1.0 research spike for locating Prep for AI settings in the `getDefinition` payload; `CopilotReader` and `export copilot` have covered that ground since v1.4.0.
+
+### Removed
+- The empty `extractor/xmla.py` stub and the `[xmla]` / `pyadomd` extra. The XMLA fallback they implied was never built; the local extraction path is `--pbip` (since v1.6.0). Documentation that described the XMLA fallback has been corrected.
+
+### Added
+- `SECURITY.md` with a private vulnerability-reporting path and the tool's sensitive surfaces.
+- CI now builds the package on every run and asserts the base install is free of Fabric dependencies, runs from a wheel, and ships a complete test tree in the sdist. `twine check` gates both CI and publish.
+
+### Assumptions
+- `[fabric]` inherits `semantic-link-labs`' `Requires-Python: <3.14`, so Python 3.14 is not yet supported. If you hit a missing-dependency error inside a Fabric notebook, the remedy is `pip install 'fabric-ai-meta[fabric]'`.
 
 ## [1.7.0] - 2026-07-22
 
