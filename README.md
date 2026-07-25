@@ -11,6 +11,8 @@
 
 Point it at a `.pbip` folder and you get a classified schema, an AI readiness score, and framework-native exports for LangChain, OpenAI, Semantic Kernel, and AutoGen. No Fabric tenant, no notebook, no sign-in.
 
+![Extract, classify, score, and export a semantic model](https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/developer-flow.svg)
+
 ## Try it
 
 In Power BI Desktop: **File > Save As > .pbip**. Then:
@@ -53,7 +55,7 @@ Live workspace extraction is the one thing that needs Fabric, because `sempy.fab
 
 | Mode | Where it runs | Extractor | Auth |
 |------|--------------|-----------|------|
-| Fabric | Fabric notebook | `SemanticLinkExtractor` | Ambient, automatic |
+| Fabric | Fabric notebook | `SemanticLinkExtractor` (needs `[fabric]`) | Ambient, automatic |
 | Local `.pbip` | Any machine | `PbipExtractor` over local TMDL | None |
 | Local / CI mock | Any machine | `MockExtractor` over fixture JSON | None |
 
@@ -68,6 +70,7 @@ Every command takes `--pbip <folder>`, `--mock`, or `--workspace <name>`. Worked
 | `score` | AI readiness score: description coverage, naming consistency, relationship completeness |
 | `governance` | Cross-model naming inconsistencies, duplicate DAX under different names, readiness ranking |
 | `export` | `langchain`, `openai`, `semantic-kernel`, `autogen`, `prep-for-ai`, `copilot`, or [your own plugin](https://github.com/psistla/fabric-ai-meta#custom-exporters) |
+| `auth` | `login`, `status`, `logout` for local Entra sign-in (requires `[fabric]`) |
 | `apply-descriptions` | Push generated descriptions to a live model through XMLA / TOM |
 | `apply-copilot` | Push an edited `Copilot/` folder back through the Fabric REST API |
 | `diff` | Compare two workspace scans: score changes, models added or removed, regressions |

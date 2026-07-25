@@ -21,7 +21,7 @@ class ExtractionConfig:
     default_workspace: str = "Production Analytics"
     include_sample_values: bool = True
     sample_value_count: int = 10
-    extraction_method: str = "semantic_link"   # "semantic_link" or "xmla"
+    extraction_method: str = "semantic_link"   # "semantic_link" or "pbip"
 
 
 @dataclass

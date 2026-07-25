@@ -29,10 +29,10 @@ flowchart TB
 pip install fabric-ai-meta             # core
 pip install 'fabric-ai-meta[llm]'      # add multi-provider LLM enrichment
 pip install 'fabric-ai-meta[mcp]'      # add the MCP server
-pip install 'fabric-ai-meta[xmla]'     # add description writeback (Windows)
+pip install 'fabric-ai-meta[fabric]'   # add live Fabric extraction and writeback (notebook runtime)
 ```
 
-Install everything at once: `pip install 'fabric-ai-meta[llm,mcp,xmla,dev]'`.
+Install everything at once: `pip install 'fabric-ai-meta[llm,mcp,dev]'`.
 
 For development against the source tree:
 
@@ -76,7 +76,7 @@ You get 7 files in `./output/your-model/`:
 
 **What score to expect from a local model.** Sample values are never read from disk, so a `.pbip` extraction cannot reach a perfect score. A well-modeled model with at least one attribute or measure column tops out around **0.90**; if its rule-eligible measures carry no hardcoded literal (for example a plain `TOTALYTD` with no filter), the achievable maximum drops to about **0.75**. Treat the number as a documentation-and-structure readiness signal, not a grade out of 1.0.
 
-**No model handy?** Two fixture models ship with the package (Adventure Works, Contoso Sales). Swap `--pbip <folder>` for `--mock` to run the exact same flow on them:
+**No model handy?** Three sample models ship with the package (Adventure Works, Contoso Sales, Enterprise Sales). Swap `--pbip <folder>` for `--mock` to run the exact same flow on them:
 
 ```bash
 fabric-ai-meta analyze "Adventure Works" --mock --output ./output
@@ -91,20 +91,17 @@ Two ways:
 **Inside a Fabric notebook (recommended).** Open a notebook in your Fabric workspace and run:
 
 ```python
-%pip install fabric-ai-meta
+%pip install 'fabric-ai-meta[fabric]'
 !fabric-ai-meta analyze "Sales Model" --workspace "Production"
 ```
 
-Ambient Entra credentials are picked up automatically. The CLI detects the notebook environment via the `FABRIC_NOTEBOOK_ID` environment variable.
+Ambient Entra credentials are picked up automatically. The CLI detects the notebook environment via the `FABRIC_NOTEBOOK_ID` environment variable. The runtime usually already provides `sempy`; the `[fabric]` extra may upgrade it.
 
-**Locally with Entra auth.**
+**On your laptop.** Live `--workspace` extraction and `auth login` require the Fabric notebook runtime and the `[fabric]` extra; `sempy.fabric` cannot reach a workspace from a local machine regardless of credentials. To read a real model locally, point `--pbip` at a Power BI project folder instead:
 
 ```bash
-fabric-ai-meta auth login
-fabric-ai-meta analyze "Sales Model" --workspace "Production"
+fabric-ai-meta analyze "Sales Model" --pbip path/to/Sales.SemanticModel
 ```
-
-Note: `sempy.fabric` requires the Fabric notebook runtime, so the local path falls back to XMLA through `pyadomd` on Windows (install with the `[xmla]` extra).
 
 ---
 
@@ -505,7 +502,7 @@ Different personas need different command sequences. Pick the one that matches y
 ### Fabric architect cleaning a model
 
 ```
-1. Install + LLM + XMLA              pip install 'fabric-ai-meta[llm,xmla]'
+1. Install + LLM extra               pip install 'fabric-ai-meta[llm]'
 2. Enrich descriptions               fabric-ai-meta analyze "Sales Model" --workspace ... --llm-enrich
 3. Generate Prep for AI config       fabric-ai-meta export prep-for-ai "Sales Model" --workspace ... --llm-enrich
 4. Preview writeback                 fabric-ai-meta apply-descriptions ./...config.json --mock

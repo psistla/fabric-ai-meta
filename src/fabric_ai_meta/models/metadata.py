@@ -149,7 +149,7 @@ class SemanticModelMeta:
     ai_readiness_score: Optional[float] = None  # 0.0 to 1.0
     scoring_breakdown: dict = field(default_factory=dict)
     extraction_timestamp: Optional[str] = None
-    extraction_method: Optional[str] = None  # "semantic_link" or "xmla"
+    extraction_method: Optional[str] = None  # "semantic_link" or "pbip"
     copilot: Optional[CopilotBundle] = None
 
     def to_dict(self) -> dict:

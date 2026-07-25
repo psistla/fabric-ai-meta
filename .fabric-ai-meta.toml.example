@@ -9,7 +9,7 @@ client_id = "your-client-id"  # Required for service_principal
 default_workspace = "Production Analytics"
 include_sample_values = true
 sample_value_count = 10
-extraction_method = "semantic_link"  # "semantic_link" or "xmla"
+extraction_method = "semantic_link"  # "semantic_link" or "pbip"
 
 [llm]
 provider = "anthropic"
