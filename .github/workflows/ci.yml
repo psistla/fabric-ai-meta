@@ -50,7 +50,9 @@ jobs:
         run: |
           /tmp/v/bin/python - <<'PY'
           import importlib.util as u
-          for m in ("sempy", "sempy_labs", "anthropic", "azure.identity", "pyspark"):
+          # Top-level names only: find_spec("azure.identity") imports the parent
+          # "azure" package and raises if it is absent, instead of returning None.
+          for m in ("sempy", "sempy_labs", "anthropic", "azure", "pyspark"):
               assert u.find_spec(m) is None, f"{m} should not be installed"
           print("base install is clean")
           PY
