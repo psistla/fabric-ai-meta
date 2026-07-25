@@ -30,34 +30,36 @@ def _error(message: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def list_models(workspace: str, mock: bool = True) -> dict:
-    """List semantic models available in the given workspace.
+def list_models(workspace: str = "", pbip: str | None = None) -> dict:
+    """List semantic models available to this server.
 
-    Args:
-        workspace: Workspace name.
-        mock: When True, list models from local fixture files. When False,
-            requires the Microsoft Fabric notebook runtime.
-
-    Returns:
-        ``{"workspace": str, "models": list[str]}`` or ``{"error": str}``.
+    Omit `pbip` to read the bundled sample models (Adventure Works, Contoso
+    Sales, Enterprise Sales); pass a *.SemanticModel folder to read a real one.
+    An unrecognised model name is an error, not a substitution.
     """
     try:
-        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=None
+        )
         names = extractor.list_models(workspace)
         return {"workspace": workspace, "models": list(names)}
     except Exception as exc:
         return _error(str(exc))
 
 
-def analyze_model(model_name: str, workspace: str, mock: bool = True) -> dict:
+def analyze_model(model_name: str, workspace: str = "", pbip: str | None = None) -> dict:
     """Extract, classify, and score a single semantic model.
 
-    Returns score, breakdown, and high-level counts. Use ``generate_schema``
-    when you also need the full table / column / measure detail.
+    Omit `pbip` to read a bundled sample model (Adventure Works, Contoso Sales,
+    Enterprise Sales); pass a *.SemanticModel folder to read a real one. An
+    unrecognised model name is an error, not a substitution. Returns score,
+    breakdown, and high-level counts; use ``generate_schema`` for full detail.
     """
     try:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
-        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
+        )
         model = extractor.extract(model_name, workspace)
         classify_model_in_place(model)
         overall, breakdown = _score(model)
@@ -73,14 +75,19 @@ def analyze_model(model_name: str, workspace: str, mock: bool = True) -> dict:
         return _error(str(exc))
 
 
-def score_model(model_name: str, workspace: str, mock: bool = True) -> dict:
+def score_model(model_name: str, workspace: str = "", pbip: str | None = None) -> dict:
     """Compute the AI readiness score for a single model.
 
-    Returns ``{"score": float in [0, 1], "breakdown": dict[str, float]}``.
+    Omit `pbip` to read a bundled sample model (Adventure Works, Contoso Sales,
+    Enterprise Sales); pass a *.SemanticModel folder to read a real one. An
+    unrecognised model name is an error, not a substitution. Returns
+    ``{"score": float in [0, 1], "breakdown": dict[str, float]}``.
     """
     try:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
-        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
+        )
         model = extractor.extract(model_name, workspace)
         classify_model_in_place(model)
         overall, breakdown = _score(model)
@@ -93,15 +100,19 @@ def score_model(model_name: str, workspace: str, mock: bool = True) -> dict:
         return _error(str(exc))
 
 
-def generate_schema(model_name: str, workspace: str, mock: bool = True) -> dict:
+def generate_schema(model_name: str, workspace: str = "", pbip: str | None = None) -> dict:
     """Generate the AI-ready schema dict for a model.
 
-    The schema is the same structure produced by
-    ``fabric-ai-meta analyze`` and written to ``ai-ready-schema.json``.
+    Omit `pbip` to read a bundled sample model (Adventure Works, Contoso Sales,
+    Enterprise Sales); pass a *.SemanticModel folder to read a real one. An
+    unrecognised model name is an error, not a substitution. The schema is the
+    same structure ``fabric-ai-meta analyze`` writes to ``ai-ready-schema.json``.
     """
     try:
         from fabric_ai_meta.generator.schema import generate_ai_ready_schema
-        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
+        )
         model = extractor.extract(model_name, workspace)
         classify_model_in_place(model)
         return generate_ai_ready_schema(model)
@@ -110,13 +121,15 @@ def generate_schema(model_name: str, workspace: str, mock: bool = True) -> dict:
 
 
 def governance_report(
-    workspace: str,
-    mock: bool = True,
+    workspace: str = "",
+    pbip: str | None = None,
     graph_necessity: bool = False,
     questions: list[str] | None = None,
 ) -> dict:
     """Run the cross-model governance analysis for an entire workspace.
 
+    Omit `pbip` to read the bundled sample models (Adventure Works, Contoso
+    Sales, Enterprise Sales); pass a *.SemanticModel folder to read a real one.
     Returns naming inconsistencies, duplicate measure expressions, model score
     ranking, recommendations, and (when graph_necessity=True) a per-model
     graph_necessity assessment. `questions` is an optional inline list of real
@@ -126,7 +139,9 @@ def governance_report(
         from fabric_ai_meta.analyzer.governance import generate_governance_report
         from fabric_ai_meta.analyzer.scorer import score_model as _score
 
-        extractor = _build_extractor(workspace=workspace, mock=mock, model_name=None)
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=None
+        )
         names = extractor.list_models(workspace)
         models = []
         for name in names:

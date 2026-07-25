@@ -654,8 +654,8 @@ def test_cli_analyze_agrees_with_mcp(runner, tmp_path):
     with open(out_dir / "ai-ready-schema.json", encoding="utf-8") as f:
         cli_schema = json.load(f)
 
-    mcp_score = mcp_server.score_model(name, ws, mock=True)["score"]
-    mcp_schema = mcp_server.generate_schema(name, ws, mock=True)
+    mcp_score = mcp_server.score_model(name, ws)["score"]
+    mcp_schema = mcp_server.generate_schema(name, ws)
 
     assert cli_score == mcp_score
     assert set(cli_schema.keys()) == set(mcp_schema.keys())

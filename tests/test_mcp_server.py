@@ -5,6 +5,7 @@ directly. They do not require the optional ``mcp`` dependency to be installed.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -50,7 +51,7 @@ def test_tools_have_docstrings():
 # ---------------------------------------------------------------------------
 
 def test_list_models_returns_fixture_set():
-    result = list_models(workspace=WORKSPACE, mock=True)
+    result = list_models(workspace=WORKSPACE)
     assert "models" in result
     assert isinstance(result["models"], list)
     assert len(result["models"]) >= 3
@@ -62,7 +63,7 @@ def test_list_models_returns_fixture_set():
 # ---------------------------------------------------------------------------
 
 def test_analyze_model_returns_expected_structure():
-    result = analyze_model(model_name="Adventure Works", workspace=WORKSPACE, mock=True)
+    result = analyze_model(model_name="Adventure Works", workspace=WORKSPACE)
     assert "score" in result
     assert "breakdown" in result
     assert "table_count" in result
@@ -77,14 +78,14 @@ def test_analyze_model_returns_expected_structure():
 # ---------------------------------------------------------------------------
 
 def test_score_model_returns_score_in_unit_interval():
-    result = score_model(model_name="Adventure Works", workspace=WORKSPACE, mock=True)
+    result = score_model(model_name="Adventure Works", workspace=WORKSPACE)
     assert "score" in result
     assert 0.0 <= result["score"] <= 1.0
     assert isinstance(result["breakdown"], dict)
 
 
 def test_score_model_breakdown_weights_present():
-    result = score_model(model_name="Adventure Works", workspace=WORKSPACE, mock=True)
+    result = score_model(model_name="Adventure Works", workspace=WORKSPACE)
     expected_keys = {
         "description_coverage",
         "measure_documentation",
@@ -101,7 +102,7 @@ def test_score_model_breakdown_weights_present():
 # ---------------------------------------------------------------------------
 
 def test_generate_schema_returns_ai_ready_dict():
-    schema = generate_schema(model_name="Adventure Works", workspace=WORKSPACE, mock=True)
+    schema = generate_schema(model_name="Adventure Works", workspace=WORKSPACE)
     assert "tables" in schema
     assert "measures" in schema
     assert "scoring" in schema
@@ -113,7 +114,7 @@ def test_generate_schema_returns_ai_ready_dict():
 # ---------------------------------------------------------------------------
 
 def test_governance_report_returns_expected_keys():
-    report = governance_report(workspace=WORKSPACE, mock=True)
+    report = governance_report(workspace=WORKSPACE)
     assert "summary" in report
     assert "naming_inconsistencies" in report
     assert "duplicate_measures" in report
@@ -122,14 +123,14 @@ def test_governance_report_returns_expected_keys():
 
 
 def test_governance_report_graph_necessity_param():
-    off = governance_report(workspace=WORKSPACE, mock=True)
+    off = governance_report(workspace=WORKSPACE)
     assert "graph_necessity" not in off
-    on = governance_report(workspace=WORKSPACE, mock=True, graph_necessity=True)
+    on = governance_report(workspace=WORKSPACE, graph_necessity=True)
     assert "graph_necessity" in on
     # questions must use real model vocabulary, otherwise coverage is too low to
     # earn "strong" (see test_low_coverage_questions_downgrade_confidence)
     strong = governance_report(
-        workspace=WORKSPACE, mock=True, graph_necessity=True,
+        workspace=WORKSPACE, graph_necessity=True,
         questions=["FactInternetSales by DimProduct and DimCustomer"],
     )
     assert strong["graph_necessity"][0]["confidence"] == "strong"
@@ -191,14 +192,9 @@ def test_diff_summaries_returns_error_for_invalid_json():
 # Error handling: tools never raise, they return {"error": ...}
 # ---------------------------------------------------------------------------
 
-def test_analyze_model_returns_error_for_unknown_model_outside_fabric():
-    """Without --mock and outside Fabric, the call returns an error dict."""
-    result = analyze_model(model_name="Nonexistent", workspace=WORKSPACE, mock=False)
-    assert "error" in result
-
-
-def test_governance_report_returns_error_outside_fabric():
-    result = governance_report(workspace=WORKSPACE, mock=False)
+def test_unknown_pbip_model_returns_error_not_substitution():
+    """An unrecognised model name errors instead of falling back to a sample."""
+    result = analyze_model(model_name="Nonexistent", workspace=WORKSPACE)
     assert "error" in result
 
 
@@ -242,3 +238,31 @@ def test_cli_serve_without_mcp_exits_nonzero():
     result = runner.invoke(main, ["serve"])
     assert result.exit_code != 0
     assert "fabric-ai-meta[mcp]" in result.output
+
+
+PBIP_DIR = str(Path(__file__).resolve().parent / "fixtures" / "pbip")
+
+
+def test_mcp_tools_read_a_real_pbip_model():
+    from fabric_ai_meta.mcp_server import (
+        analyze_model,
+        generate_schema,
+        governance_report,
+        list_models,
+        score_model,
+    )
+    names = list_models(workspace="", pbip=PBIP_DIR)
+    assert "error" not in names
+    assert "stix-one-pho" in names["models"]
+
+    for fn in (analyze_model, score_model, generate_schema):
+        result = fn(model_name="stix-one-pho", workspace="", pbip=PBIP_DIR)
+        assert "error" not in result, result
+
+    assert "error" not in governance_report(workspace="", pbip=PBIP_DIR)
+
+
+def test_mcp_defaults_to_bundled_samples():
+    from fabric_ai_meta.mcp_server import list_models
+    result = list_models(workspace="Production Analytics")
+    assert "Adventure Works" in result["models"]
