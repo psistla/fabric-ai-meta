@@ -59,24 +59,6 @@ def _aggregate_copilot_signals(model_summaries: list[dict]) -> dict:
     return aggregate_copilot_signals(pairs)
 
 
-def _list_mock_models() -> list[str]:
-    """List model names available from fixture files in the tests/fixtures directory."""
-    here = os.path.dirname(os.path.abspath(__file__))
-    fixtures_dir = os.path.normpath(os.path.join(here, "..", "..", "tests", "fixtures"))
-    models = []
-    if os.path.isdir(fixtures_dir):
-        for fname in sorted(os.listdir(fixtures_dir)):
-            if fname.endswith(".json"):
-                fpath = os.path.join(fixtures_dir, fname)
-                try:
-                    with open(fpath, encoding="utf-8") as f:
-                        data = json.load(f)
-                    models.append(data.get("name", fname[:-5]))
-                except Exception:
-                    pass
-    return models
-
-
 def _resolve_source(mock: bool, pbip: str | None, workspace: str | None,
                     *, workspace_required: bool = False) -> None:
     """Validate the --mock / --pbip / --workspace combination.
@@ -96,7 +78,7 @@ def _resolve_source(mock: bool, pbip: str | None, workspace: str | None,
 
 def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
                   include_sample_values: bool, llm_enrich: bool, mock: bool,
-                  *, with_copilot: bool = False, pbip: str | None = None) -> None:
+                  *, with_copilot: bool = False, pbip: str | None = None) -> tuple:
     """Core analysis flow shared by analyze and scan commands."""
     from fabric_ai_meta.analyzer.dax_parser import build_dependency_graph
     from fabric_ai_meta.analyzer.scorer import score_model

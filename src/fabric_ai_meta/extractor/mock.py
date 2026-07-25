@@ -19,7 +19,7 @@ class MockExtractor(BaseExtractor):
     Two modes (backward compatible):
     - fixture_path: single JSON file → loads one model
     - fixture_dir:  directory of *.json files → supports list_models() + extract() by name
-    If neither is provided, defaults to fixture_dir = "tests/fixtures/".
+    If neither is provided, defaults to the bundled sample models.
     """
 
     def __init__(
@@ -34,12 +34,9 @@ class MockExtractor(BaseExtractor):
             self.fixture_path = None
             self.fixture_dir = fixture_dir
         else:
-            # Default: look relative to the package root for tests/fixtures/
-            here = os.path.dirname(os.path.abspath(__file__))
+            from fabric_ai_meta.extractor.factory import FIXTURES_DIR
             self.fixture_path = None
-            self.fixture_dir = os.path.normpath(
-                os.path.join(here, "..", "..", "tests", "fixtures")
-            )
+            self.fixture_dir = FIXTURES_DIR
 
     # ------------------------------------------------------------------
     # Public interface

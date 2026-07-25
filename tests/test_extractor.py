@@ -445,3 +445,21 @@ def test_build_extractor_rejects_mock_and_pbip_together():
 
     with pytest.raises(ValueError, match="mutually exclusive"):
         _build_extractor(workspace=None, mock=True, pbip="some/path")
+
+
+def test_unmatched_mock_model_raises_and_does_not_substitute():
+    """An unrecognised --mock name must error, never fall back to Adventure Works."""
+    from fabric_ai_meta.extractor.factory import _fixture_path_for
+    with pytest.raises(FileNotFoundError) as exc:
+        _fixture_path_for("Northwind Finance P and L")
+    msg = str(exc.value)
+    assert "Northwind Finance P and L" in msg
+    assert "No bundled sample model" in msg
+    assert "--pbip" in msg
+
+
+def test_sample_model_listing_excludes_copilot_sidecars():
+    from fabric_ai_meta.extractor.factory import _available_sample_models
+    names = _available_sample_models()
+    assert "Adventure Works" in names
+    assert not any(n.endswith(".copilot") for n in names)

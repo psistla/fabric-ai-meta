@@ -18,15 +18,36 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+def _available_sample_models() -> list[str]:
+    """Display names of the bundled sample models, for error messages.
+
+    Display names, not slugs: every other surface (`scan`, the MCP tools)
+    shows "Contoso Sales", so an error listing "contoso_sales" would answer
+    in a vocabulary the user never typed. MockExtractor.list_models already
+    skips ``*.copilot.json`` sidecars.
+    """
+    if not os.path.isdir(FIXTURES_DIR):
+        return []
+    from fabric_ai_meta.extractor.mock import MockExtractor
+    return MockExtractor(fixture_dir=FIXTURES_DIR).list_models("")
+
+
 def _fixture_path_for(model_name: str) -> str:
+    """Resolve a bundled sample model by name. Exact match only.
+
+    Never substitutes a different model: a wrong answer labelled with the
+    requested name is worse than no answer.
+    """
     slug = _slugify(model_name).replace("-", "_")
     candidate = os.path.join(FIXTURES_DIR, f"{slug}.json")
     if os.path.exists(candidate):
         return candidate
-    default = os.path.join(FIXTURES_DIR, "adventure_works.json")
-    if os.path.exists(default):
-        return default
-    raise FileNotFoundError(f"No fixture for model '{model_name}' (looked at {candidate})")
+    available = ", ".join(_available_sample_models()) or "none found"
+    raise FileNotFoundError(
+        f"No bundled sample model named '{model_name}'.\n"
+        f"Available samples: {available}\n"
+        f"To read one of your own models, use --pbip instead of --mock."
+    )
 
 
 def _build_extractor(
