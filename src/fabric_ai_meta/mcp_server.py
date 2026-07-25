@@ -9,7 +9,6 @@ when ``mcp`` is not installed.
 
 from __future__ import annotations
 
-import dataclasses
 import json
 from typing import Any
 
@@ -217,14 +216,6 @@ def run(transport: str = "stdio", port: int = 8000) -> None:
         server.run(transport="streamable-http")
     else:
         server.run(transport="stdio")
-
-
-# Convenience: ensure dataclasses (e.g. WritebackResult) can be JSON-encoded
-# when an agent passes one in via diff_summaries-like flows in the future.
-def _to_jsonable(obj: Any) -> Any:
-    if dataclasses.is_dataclass(obj):
-        return dataclasses.asdict(obj)
-    return obj
 
 
 if __name__ == "__main__":

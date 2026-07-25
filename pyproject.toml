@@ -51,8 +51,6 @@ classifiers = [
 dependencies = [
     "click>=8.1,<9.0",                 # CLI framework; 9.0 will remove deprecated APIs
     "rich>=13.0",                      # CLI output formatting (includes progress bars)
-    "networkx>=3.0",                   # DAX dependency graph analysis
-    "pydantic>=2.0",                   # Data validation
     "tomli>=2.0; python_version<'3.11'",  # TOML parsing backport for Python 3.10
 ]
 

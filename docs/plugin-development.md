@@ -213,7 +213,7 @@ A broken plugin (raises at import time, fails to load, returns a non-class objec
 
 ## What is out of scope
 
-- **Plugins declare their own dependencies.** The base `fabric-ai-meta` install is only `click`, `rich`, `networkx`, and `pydantic`; anything else your exporter needs (an SDK, a serializer) belongs in your plugin's own `dependencies`, not assumed present.
+- **Plugins declare their own dependencies.** The base `fabric-ai-meta` install is only `click` and `rich`; anything else your exporter needs (an SDK, a serializer) belongs in your plugin's own `dependencies`, not assumed present.
 - **No plugin marketplace.** Discoverability is just `pip search` and the entry-point group name.
 - **No plugin verification or signing.** Use trusted plugins from sources you control. fabric-ai-meta loads any entry point under `fabric_ai_meta.exporters` in the current environment.
 - **No CLI hooks beyond `export`.** Plugins extend the export surface only; `analyze`, `scan`, `score`, `governance`, `apply-descriptions`, `apply-copilot`, and `serve` are not pluggable.
