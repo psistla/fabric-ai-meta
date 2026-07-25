@@ -51,7 +51,7 @@ Table names, measure logic, and business rules describe how your company works. 
 - **LLM enrichment is opt-in and capped.** Nothing is sent anywhere without `--llm-enrich`. You pick the provider (10+, including local Ollama), you supply the key, and `max_cost_per_run` stops an overspending run.
 - **Writeback is dry-run by default.** `apply-descriptions` and `apply-copilot` show the diff and change nothing until you pass `--no-dry-run`.
 
-Live workspace extraction is the one thing that needs Fabric, because `sempy.fabric` only exists in the notebook runtime. Everything else runs anywhere Python does.
+Reaching a live workspace, to read it or to write back, is the only thing that needs Fabric, because the Fabric SDKs only exist in the notebook runtime. Everything else, analysis, scoring, and every export, runs anywhere Python does.
 
 | Mode | Where it runs | Extractor | Auth |
 |------|--------------|-----------|------|
