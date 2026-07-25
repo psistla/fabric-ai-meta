@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 
 from fabric_ai_meta.auth.entra import (
     FabricEnvironmentError,
+    MissingFabricDependencyError,
     detect_notebook_environment,
 )
 
@@ -134,7 +135,10 @@ class SemanticLinkWriter(DescriptionWriter):
         if not detect_notebook_environment():
             raise FabricEnvironmentError()
 
-        import sempy_labs as labs  # type: ignore[import-not-found]
+        try:
+            import sempy_labs as labs  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise MissingFabricDependencyError("semantic-link-labs") from exc
 
         changes: list[dict] = []
         tables_updated = 0

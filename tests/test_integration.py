@@ -1018,3 +1018,19 @@ def test_pbip_full_pipeline(tmp_path, monkeypatch):
     assert categories, "no measures in exported schema"
     assert categories.get("Coffee YTD") == "time_intelligence"
     assert "unknown" not in categories.values()
+
+
+def test_missing_fabric_dependency_error_names_the_extra():
+    from fabric_ai_meta.auth.entra import MissingFabricDependencyError
+    msg = str(MissingFabricDependencyError("azure-identity"))
+    assert "azure-identity" in msg
+    assert "fabric-ai-meta[fabric]" in msg
+
+
+def test_fabric_environment_error_mentions_pbip():
+    """The laptop user's only route to their own data must be in the message."""
+    from fabric_ai_meta.auth.entra import FabricEnvironmentError
+    msg = str(FabricEnvironmentError())
+    assert "--pbip" in msg
+    assert "--mock" in msg
+    assert "Fabric" in msg

@@ -52,7 +52,11 @@ class SemanticLinkExtractor(BaseExtractor):
         self.workspace = workspace
         self.credential = credential
         # Deferred import, avoids ImportError at module load time in local envs.
-        import sempy.fabric as fabric  # noqa: PLC0415
+        try:
+            import sempy.fabric as fabric  # noqa: PLC0415
+        except ImportError as exc:
+            from fabric_ai_meta.auth.entra import MissingFabricDependencyError
+            raise MissingFabricDependencyError("semantic-link-sempy") from exc
 
         self._fabric = fabric
 

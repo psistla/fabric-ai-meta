@@ -32,16 +32,32 @@ class FabricEnvironmentError(Exception):
     """
 
     DEFAULT_MESSAGE = (
-        "This command requires the Microsoft Fabric notebook runtime.\n"
-        "sempy.fabric is not available in local Python environments.\n\n"
-        "Options:\n"
-        "  1. Run this command inside a Fabric notebook\n"
-        "  2. Use --mock flag for local development with fixture data:\n"
-        '     fabric-ai-meta analyze "Model Name" --workspace "ws" --mock\n'
+        "Live workspace extraction requires the Microsoft Fabric notebook runtime.\n"
+        "sempy.fabric only works inside Fabric; installing extras will not change this.\n\n"
+        "To read a real model on this machine, point at a local Power BI project:\n"
+        '  fabric-ai-meta analyze "Model Name" --pbip path/to/MyReport.SemanticModel\n\n'
+        "Other options:\n"
+        "  - Run this command inside a Fabric notebook\n"
+        "  - Use bundled sample data with --mock\n"
     )
 
     def __init__(self, message: str | None = None):
         super().__init__(message or self.DEFAULT_MESSAGE)
+
+
+class MissingFabricDependencyError(ImportError):
+    """Raised inside a Fabric runtime when an optional dependency is absent.
+
+    Distinct from FabricEnvironmentError: that one means the wrong environment,
+    where installing extras cannot help. This one means the right environment
+    with a missing package, where it is the entire fix.
+    """
+
+    def __init__(self, distribution: str):
+        super().__init__(
+            f"{distribution} is required for this command but is not installed.\n"
+            f"Install the Fabric extra:  pip install 'fabric-ai-meta[fabric]'"
+        )
 
 
 def get_credential(
@@ -67,7 +83,10 @@ def get_credential(
         # no explicit credential object is needed.
         return None
     elif method == "service_principal":
-        from azure.identity import ClientSecretCredential
+        try:
+            from azure.identity import ClientSecretCredential
+        except ImportError as exc:
+            raise MissingFabricDependencyError("azure-identity") from exc
 
         return ClientSecretCredential(
             tenant_id=tenant_id,
@@ -75,6 +94,9 @@ def get_credential(
             client_secret=client_secret,
         )
     else:  # "interactive"
-        from azure.identity import InteractiveBrowserCredential
+        try:
+            from azure.identity import InteractiveBrowserCredential
+        except ImportError as exc:
+            raise MissingFabricDependencyError("azure-identity") from exc
 
         return InteractiveBrowserCredential()

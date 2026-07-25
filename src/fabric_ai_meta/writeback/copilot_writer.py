@@ -272,7 +272,11 @@ class MockCopilotWriter(CopilotWriter):
 
 def _load_sempy_fabric():
     """Lazy import sempy.fabric (only available in Fabric notebook runtime)."""
-    import sempy.fabric as fabric  # noqa: PLC0415
+    try:
+        import sempy.fabric as fabric  # noqa: PLC0415
+    except ImportError as exc:
+        from fabric_ai_meta.auth.entra import MissingFabricDependencyError
+        raise MissingFabricDependencyError("semantic-link-sempy") from exc
     return fabric
 
 
