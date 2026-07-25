@@ -9,6 +9,7 @@ from fabric_ai_meta.analyzer.classifier import (
     classify_measure_heuristic,
     classify_table_heuristic,
 )
+from fabric_ai_meta.extractor.factory import FIXTURES_DIR
 from fabric_ai_meta.extractor.mock import MockExtractor
 from fabric_ai_meta.generator.description_backfill import (
     DescriptionBackfill,
@@ -16,8 +17,6 @@ from fabric_ai_meta.generator.description_backfill import (
     backfill_descriptions,
 )
 from fabric_ai_meta.generator.prep_for_ai import generate_prep_for_ai
-
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 def _load_and_classify(fixture_file: str, model_name: str):

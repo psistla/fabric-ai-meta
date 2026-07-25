@@ -4,10 +4,9 @@ import os
 
 import pytest
 
+from fabric_ai_meta.extractor.factory import FIXTURES_DIR
 from fabric_ai_meta.extractor.mock import MockExtractor
 from fabric_ai_meta.models.metadata import SemanticModelMeta
-
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 @pytest.fixture

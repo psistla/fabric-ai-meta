@@ -37,9 +37,6 @@ from fabric_ai_meta.models.metadata import (
     TableType,
 )
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
-
-
 # ---------------------------------------------------------------------------
 # Full end-to-end pipeline
 # ---------------------------------------------------------------------------
@@ -983,7 +980,7 @@ def test_export_single_classifies_before_writing(monkeypatch):
 # --pbip local extraction full pipeline (Chunk 5)
 # ---------------------------------------------------------------------------
 
-PBIP_DIR = os.path.join(FIXTURES_DIR, "pbip")
+PBIP_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "pbip")
 
 
 def test_pbip_full_pipeline(tmp_path, monkeypatch):

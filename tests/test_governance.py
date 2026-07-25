@@ -17,9 +17,8 @@ from fabric_ai_meta.analyzer.governance import (
     write_governance_report,
 )
 from fabric_ai_meta.analyzer.scorer import score_model
+from fabric_ai_meta.extractor.factory import FIXTURES_DIR as FIXTURE_DIR
 from fabric_ai_meta.extractor.mock import MockExtractor
-
-FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 def _load_and_score(fixture_path):

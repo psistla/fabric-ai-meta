@@ -7,8 +7,8 @@ import pytest
 from click.testing import CliRunner
 
 from fabric_ai_meta.cli import main
+from fabric_ai_meta.extractor.factory import FIXTURES_DIR
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 ADVENTURE_WORKS_FIXTURE = os.path.join(FIXTURES_DIR, "adventure_works.json")
 
 
@@ -597,7 +597,7 @@ def test_governance_mock_works_from_any_cwd(tmp_path, monkeypatch):
 # --pbip local extraction (Chunk 5)
 # ---------------------------------------------------------------------------
 
-PBIP_DIR = os.path.join(FIXTURES_DIR, "pbip")
+PBIP_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "pbip")
 
 
 def test_analyze_pbip_and_mock_mutually_exclusive(runner):

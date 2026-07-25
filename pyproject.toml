@@ -98,7 +98,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-fabric_ai_meta = ["py.typed"]
+fabric_ai_meta = ["py.typed", "fixtures/*.json"]
 
 [tool.ruff]
 target-version = "py310"

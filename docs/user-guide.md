@@ -411,7 +411,7 @@ from fabric_ai_meta import (
     to_openai_function,
 )
 
-extractor = MockExtractor(fixture_path="tests/fixtures/adventure_works.json")
+extractor = MockExtractor()
 model = extractor.extract("Adventure Works")
 
 score, breakdown = score_model(model)

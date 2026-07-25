@@ -116,7 +116,7 @@ This is not a replacement for those tools. It is an automation layer on top of t
 ```python
 from fabric_ai_meta import MockExtractor, score_model, generate_ai_ready_schema, to_openai_function
 
-model = MockExtractor(fixture_path="tests/fixtures/adventure_works.json").extract("Adventure Works")
+model = MockExtractor().extract("Adventure Works", "Production Analytics")
 score, breakdown = score_model(model)
 schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
@@ -148,7 +148,7 @@ pytest tests/ -x -q     # 559 tests, no Fabric runtime or network needed
 ruff check .
 ```
 
-New exporters ship as [plugins](https://github.com/psistla/fabric-ai-meta#custom-exporters) rather than PRs here. Fixture models under `tests/fixtures/` and doc fixes are the easiest first contributions.
+New exporters ship as [plugins](https://github.com/psistla/fabric-ai-meta#custom-exporters) rather than PRs here. Sample models under `src/fabric_ai_meta/fixtures/` and doc fixes are the easiest first contributions.
 
 If this saved you time, star the repository. That is the signal I use to decide what to build next.
 

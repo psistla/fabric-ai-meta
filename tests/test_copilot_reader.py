@@ -7,6 +7,8 @@ fixture-driven tests land in Chunk 4 of the v1.4.0 plan.
 import base64
 import json
 
+from fabric_ai_meta.extractor.factory import FIXTURES_DIR
+
 
 def _b64(payload) -> str:
     """Encode dict/str/bytes -> base64 string in the shape getDefinition returns."""
@@ -259,7 +261,7 @@ def test_adventure_works_sidecar_fixture_parses_cleanly():
 
     from fabric_ai_meta.generator.copilot_reader import CopilotReader
 
-    fixture = Path("tests/fixtures/adventure_works.copilot.json")
+    fixture = Path(FIXTURES_DIR) / "adventure_works.copilot.json"
     envelope = json.loads(fixture.read_text(encoding="utf-8"))
     bundle = CopilotReader.from_definition(envelope)
 
@@ -283,7 +285,7 @@ def test_enterprise_sales_sidecar_fixture_parses_cleanly():
 
     from fabric_ai_meta.generator.copilot_reader import CopilotReader
 
-    fixture = Path("tests/fixtures/enterprise_sales.copilot.json")
+    fixture = Path(FIXTURES_DIR) / "enterprise_sales.copilot.json"
     envelope = json.loads(fixture.read_text(encoding="utf-8"))
     bundle = CopilotReader.from_definition(envelope)
 

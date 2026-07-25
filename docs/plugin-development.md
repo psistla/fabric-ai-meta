@@ -166,7 +166,7 @@ assert "dbt" in registry
 
 # Or look up by name
 DbtExporter = get_exporter("dbt")
-model = MockExtractor(fixture_path="tests/fixtures/adventure_works.json").extract("Adventure Works")
+model = MockExtractor().extract("Adventure Works", "Production Analytics")
 payload = DbtExporter().generate(model)
 ```
 

@@ -5,10 +5,9 @@ import os
 
 import pytest
 
+from fabric_ai_meta.extractor.factory import FIXTURES_DIR
 from fabric_ai_meta.extractor.mock import MockExtractor
 from fabric_ai_meta.models.metadata import SemanticModelMeta, from_dict
-
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 def test_mock_extractor_returns_semantic_model_meta(adventure_works_model):
@@ -285,7 +284,7 @@ def test_baseextractor_extract_accepts_with_copilot_kwarg():
 def test_mockextractor_fixture_path_loads_copilot_sidecar_when_flag_set():
     from fabric_ai_meta.extractor.mock import MockExtractor
 
-    ex = MockExtractor(fixture_path="tests/fixtures/adventure_works.json")
+    ex = MockExtractor(fixture_path=os.path.join(FIXTURES_DIR, "adventure_works.json"))
     model_no = ex.extract("Adventure Works", "ws")
     assert model_no.copilot is None
     model_yes = ex.extract("Adventure Works", "ws", with_copilot=True)
@@ -319,7 +318,7 @@ def test_mockextractor_fixture_path_no_sidecar_leaves_copilot_none(tmp_path):
 def test_mockextractor_fixture_dir_loads_copilot_sidecar():
     from fabric_ai_meta.extractor.mock import MockExtractor
 
-    ex = MockExtractor(fixture_dir="tests/fixtures")
+    ex = MockExtractor(fixture_dir=FIXTURES_DIR)
     model = ex.extract("Adventure Works", "ws", with_copilot=True)
     assert model.copilot is not None
     assert model.copilot.ai_instructions is not None
@@ -328,7 +327,7 @@ def test_mockextractor_fixture_dir_loads_copilot_sidecar():
 def test_mockextractor_fixture_dir_list_models_skips_copilot_sidecars():
     from fabric_ai_meta.extractor.mock import MockExtractor
 
-    ex = MockExtractor(fixture_dir="tests/fixtures")
+    ex = MockExtractor(fixture_dir=FIXTURES_DIR)
     models = ex.list_models("ws")
     assert not any(m.lower().endswith(".copilot") for m in models)
     assert not any(".copilot.json" in m for m in models)
@@ -463,3 +462,12 @@ def test_sample_model_listing_excludes_copilot_sidecars():
     names = _available_sample_models()
     assert "Adventure Works" in names
     assert not any(n.endswith(".copilot") for n in names)
+
+
+def test_bundled_fixtures_resolve_inside_the_package():
+    """FIXTURES_DIR must live under the installed package, not a sibling tests/ dir."""
+    import fabric_ai_meta
+    from fabric_ai_meta.extractor.factory import FIXTURES_DIR
+    pkg_root = os.path.dirname(os.path.abspath(fabric_ai_meta.__file__))
+    assert os.path.isdir(FIXTURES_DIR)
+    assert os.path.commonpath([pkg_root, FIXTURES_DIR]) == pkg_root

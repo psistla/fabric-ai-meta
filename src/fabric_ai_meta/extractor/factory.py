@@ -5,12 +5,13 @@ could return different results for the same model. One construction path now.
 """
 
 import os
+from importlib.resources import files
 
 from fabric_ai_meta.extractor.base import BaseExtractor
 
-FIXTURES_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "tests", "fixtures")
-)
+# Bundled sample models, shipped as package data. Product data, not test data:
+# `--mock` and the MCP server's default path both read from here.
+FIXTURES_DIR = str(files("fabric_ai_meta") / "fixtures")
 
 
 def _slugify(name: str) -> str:
