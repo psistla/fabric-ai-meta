@@ -385,12 +385,14 @@ The project ships a `.mcp.json` at the repository root so any MCP-aware IDE auto
 
 Six tools are exposed to agents:
 
-- `list_models`: enumerate models in a workspace
+- `list_models`: enumerate the available models
 - `analyze_model`: full per-model analysis
 - `score_model`: AI readiness score
 - `generate_schema`: produce the AI-ready schema
 - `governance_report`: cross-model report; accepts `graph_necessity=True` and an inline `questions` list
 - `diff_summaries`: compare two scans
+
+Every model-reading tool takes an optional `pbip="path/to/Model.SemanticModel"` argument to read a real local model off disk. Omit it and the tool reads the bundled sample models (Adventure Works, Contoso Sales, Enterprise Sales), so an agent can be tried out with no Fabric tenant. An unrecognised model name is returned as an error, never silently swapped for a sample.
 
 Now you can ask your agent: "Analyze our Sales Model and tell me which tables are missing descriptions." The agent calls the MCP tools and returns the answer.
 
