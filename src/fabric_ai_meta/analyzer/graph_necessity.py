@@ -4,7 +4,7 @@ Answers "does this model's workload justify a graph/ontology, or does a
 described schema already suffice?" from already-extracted metadata. Pure:
 no extraction, no Fabric calls, no required LLM calls.
 
-Spec: planning/superpowers/specs/2026-07-22-graph-necessity-advisor-design.md
+Spec: planning/archive/specs/2026-07-22-graph-necessity-advisor.md
 """
 from __future__ import annotations
 
