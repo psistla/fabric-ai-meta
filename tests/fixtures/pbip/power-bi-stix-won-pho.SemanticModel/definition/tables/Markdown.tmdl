@@ -1,0 +1,29 @@
+/// Measure table for measures returning Markdown strings used in text-rendering visuals.
+table Markdown
+	isHidden
+	lineageTag: 2750e897-cc74-41a5-baef-0c8e07fc158d
+
+	/// Custom Markdown string measure used to render rich text in supported visuals.
+	measure Custom =
+			
+			"This page demonstrates how Power BI users can extend their reporting capabilities by importing **custom visuals** from AppSource or creating their own, enabling more specialized data visualizations beyond the built-in options.
+			
+			This is displayed using a custom visual too -- HTML Content, available in the AppSource"
+		isHidden
+		lineageTag: 6a00d5f1-190b-4edf-bbd8-8fb634d61d15
+
+	column 'Z hide'
+		isHidden
+		lineageTag: a8b7bfb4-5b78-4f8f-bbef-0ae544e3fe26
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Z hide]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Markdown = calculated
+		mode: import
+		source = SELECTCOLUMNS({"Markdown"},"Z hide", [Value])
+
+	annotation PBI_Id = 6a0399bd8b224163b94836dc4a340762
+

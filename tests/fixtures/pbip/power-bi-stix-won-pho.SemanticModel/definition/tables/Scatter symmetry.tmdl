@@ -1,0 +1,60 @@
+/// Hidden sample dataset of 10 products with X/Y values used to demo scatter chart symmetry features.
+table 'Scatter symmetry'
+	isHidden
+	lineageTag: 6432d02c-76e8-458f-a6e7-4de4fb84fc41
+
+	column Category
+		isHidden
+		lineageTag: 0375543f-c269-48bb-a878-18787dee5790
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'X Value'
+		isHidden
+		lineageTag: 743051be-bde4-4498-ac35-ce7ae9a017af
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [X Value]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Y Value'
+		isHidden
+		lineageTag: 524594da-fe63-4b9b-b731-2737e472d937
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Y Value]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Scatter symmetry' = calculated
+		mode: import
+		source =
+				
+				DATATABLE(
+				    "Category", STRING,
+				    "X Value", DOUBLE,
+				    "Y Value", DOUBLE,
+				    {
+				        {"Product A", 10, 15},
+				        {"Product B", 20, 18},
+				        {"Product C", 30, 30},
+				        {"Product D", 40, 35},
+				        {"Product E", 50, 60},
+				        {"Product F", 25, 25},
+				        {"Product G", 35, 45},
+				        {"Product H", 45, 40},
+				        {"Product I", 15, 10},
+				        {"Product J", 55, 55}
+				    }
+				)
+
+	annotation PBI_Id = 882efbe1d4244f02a30603a59e4faac5
+

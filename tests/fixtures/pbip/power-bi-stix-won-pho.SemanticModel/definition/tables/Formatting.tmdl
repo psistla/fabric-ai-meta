@@ -1,0 +1,289 @@
+/// Measure table for measures used in conditional formatting, titles, colors, and icons.
+table Formatting
+	lineageTag: d66db350-8ec9-47df-85d5-4e0cf7dfda08
+
+	/// Constant value 1, used as the upper bound for percentage-style data bars and gauges.
+	measure 100% = 1
+		formatString: 0
+		displayFolder: Values
+		lineageTag: 5fbf58fa-f941-4920-b854-4a84320ee699
+
+	/// Constant value 0.75, used as a target/threshold for conditional formatting.
+	measure 75% = 0.75
+		displayFolder: Values
+		lineageTag: 2c420bdb-b90a-4973-b6b5-96df1146e530
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Dynamic title showing the segment with the highest total sales in the current filter context.
+	measure 'Title Total Sales Top Segment' =
+			VAR _Summary =
+			            SUMMARIZECOLUMNS(
+			                'Financials'[Segment],
+			                "Total Sales", [Sales]
+			            )
+			        VAR _TopSegment =
+			            TOPN(
+			                1,
+			                _Summary,
+			                [Total Sales],
+			                DESC
+			            )
+			        VAR _SegmentName =
+			            MAXX(
+			                _TopSegment,
+			                'Financials'[Segment]
+			            )
+			        VAR _TopSales =
+			            MAXX(
+			                _TopSegment,
+			                [Total Sales]
+			            )
+			        // Total sales in the current filter context (all segments combined)
+			        VAR _TotalSales =
+			            [Sales]
+			        RETURN
+			            IF(
+			                ISBLANK(_SegmentName),
+			                // Fallback when no segment is available
+			                "Total sales is "
+			                    & FORMAT(_TotalSales, "$#,0"),
+			                // Main pattern: "[segment] ($#) is the top segment and total sales is $#"
+			                _SegmentName
+			                    & " ("
+			                    & FORMAT(_TopSales, "$#,0")
+			                    & ") is the top segment and total sales is "
+			                    & FORMAT(_TotalSales, "$#,0")
+			            )
+		displayFolder: Titles
+		lineageTag: 504123ea-9cd3-4d3d-8b77-88d06cfae4fa
+
+	/// Variant of the top-segment title used directly as a DAX measure title.
+	measure 'Title Total Sales Top Segment (DAX measure)' =
+			"VAR _Summary ="
+			        & UNICHAR(10) & "    SUMMARIZECOLUMNS("
+			        & UNICHAR(10) & "        'Financials'[Segment],"
+			        & UNICHAR(10) & "        ""Total Sales"", [Total Sales]"
+			        & UNICHAR(10) & "    )"
+			        & UNICHAR(10) & "VAR _TopSegment ="
+			        & UNICHAR(10) & "    TOPN("
+			        & UNICHAR(10) & "        1,"
+			        & UNICHAR(10) & "        _Summary,"
+			        & UNICHAR(10) & "        [Total Sales],"
+			        & UNICHAR(10) & "        DESC"
+			        & UNICHAR(10) & "    )"
+			        & UNICHAR(10) & "VAR _SegmentName ="
+			        & UNICHAR(10) & "    MAXX("
+			        & UNICHAR(10) & "        _TopSegment,"
+			        & UNICHAR(10) & "        'Financials'[Segment]"
+			        & UNICHAR(10) & "    )"
+			        & UNICHAR(10) & "VAR _TopSales ="
+			        & UNICHAR(10) & "    MAXX("
+			        & UNICHAR(10) & "        _TopSegment,"
+			        & UNICHAR(10) & "        [Total Sales]"
+			        & UNICHAR(10) & "    )"
+			        & UNICHAR(10) & "VAR _TotalSales ="
+			        & UNICHAR(10) & "    [Total Sales]"
+			        & UNICHAR(10) & "RETURN"
+			        & UNICHAR(10) & "    IF("
+			        & UNICHAR(10) & "        ISBLANK(_SegmentName),"
+			        & UNICHAR(10) & "        ""Total sales is """
+			        & UNICHAR(10) & "            & FORMAT(_TotalSales, ""$#,0""),"
+			        & UNICHAR(10) & "        _SegmentName"
+			        & UNICHAR(10) & "            & "" ("""
+			        & UNICHAR(10) & "            & FORMAT(_TopSales, ""$#,0"")"
+			        & UNICHAR(10) & "            & "") is the top segment and total sales is """
+			        & UNICHAR(10) & "            & FORMAT(_TotalSales, ""$#,0"")"
+			        & UNICHAR(10) & "    )"
+		displayFolder: Titles
+		lineageTag: a355fcfc-7c5d-4d3b-8a8f-2f97a712ba43
+
+	/// Helper text/link measure pointing users to docs on table conditional formatting.
+	measure 'Learn more about table conditional formatting' = "https://learn.microsoft.com/power-bi/create-reports/desktop-conditional-table-formatting"
+		displayFolder: Titles
+		lineageTag: 447fb25e-7904-4c29-8570-013733dd0864
+		dataCategory: WebUrl
+
+	/// Hex color code returned per Discount Band, used to color visuals consistently.
+	measure 'Discount Band Color' =
+			VAR _Band = SELECTEDVALUE('Financials'[Discount Band])
+			        RETURN
+			            SWITCH(
+			                TRUE(),
+			                _Band = "High",   "#F8696B", // red
+			                _Band = "Medium", "#FFEB84", // yellow
+			                _Band = "Low",    "#63BE7B", // green
+			                _Band = "None",   "#D9D9D9", // grey
+			                BLANK()
+			            )
+		displayFolder: Colors
+		lineageTag: c32ca556-6d89-4eda-bd0b-6f87c6cf8d07
+
+	/// DAX-measure variant of Discount Band Color used in conditional formatting rules.
+	measure 'Discount Band Color (DAX measure)' =
+			"VAR _Band = SELECTEDVALUE('Financials'[Discount Band])"
+			        & UNICHAR(10) & "RETURN"
+			        & UNICHAR(10) & "    SWITCH("
+			        & UNICHAR(10) & "        TRUE(),"
+			        & UNICHAR(10) & "        _Band = ""High"",   ""#F8696B"",    // red"
+			        & UNICHAR(10) & "        _Band = ""Medium"", ""#FFEB84"",    // yellow"
+			        & UNICHAR(10) & "        _Band = ""Low"",    ""#63BE7B"",    // green"
+			        & UNICHAR(10) & "        _Band = ""None"",   ""#D9D9D9"",    // grey"
+			        & UNICHAR(10) & "        BLANK()"
+			        & UNICHAR(10) & "    )"
+		displayFolder: Colors
+		lineageTag: 4e09a0ae-c66e-4cfa-94e4-0442f86dfa9d
+
+	/// Dynamic title displaying total sales for the current filter context.
+	measure 'Title total sales' = "Total sales: " & FORMAT([Sales], "$#,##0")
+		displayFolder: Titles
+		lineageTag: 36ffce8b-caf0-4798-8b50-f88627ae80a8
+
+	/// Icon from https://remixicon.com/
+	measure 'COGS icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M10.9042 2.10025L20.8037 3.51446L22.2179 13.414L13.0255 22.6063C12.635 22.9969 12.0019 22.9969 11.6113 22.6063L1.71184 12.7069C1.32131 12.3163 1.32131 11.6832 1.71184 11.2926L10.9042 2.10025ZM11.6113 4.22157L3.83316 11.9997L12.3184 20.485L20.0966 12.7069L19.036 5.28223L11.6113 4.22157ZM13.7327 10.5855C12.9516 9.80448 12.9516 8.53815 13.7327 7.7571C14.5137 6.97606 15.78 6.97606 16.5611 7.7571C17.3421 8.53815 17.3421 9.80448 16.5611 10.5855C15.78 11.3666 14.5137 11.3666 13.7327 10.5855Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: fb222c20-eaaa-46f5-bc9c-e9cdb9b1f9c6
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Discount icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M10.0544 2.0941C11.1756 1.13856 12.8248 1.13855 13.9461 2.09411L15.2941 3.24286C15.4542 3.37935 15.6533 3.46182 15.8631 3.47856L17.6286 3.61945C19.0971 3.73663 20.2633 4.9028 20.3805 6.37131L20.5214 8.13679C20.5381 8.34654 20.6205 8.54568 20.757 8.70585L21.9058 10.0539C22.8614 11.1751 22.8614 12.8243 21.9058 13.9456L20.757 15.2935C20.6206 15.4537 20.538 15.6529 20.5213 15.8627L20.3805 17.6281C20.2633 19.0967 19.0971 20.2628 17.6286 20.3799L15.8631 20.5208C15.6533 20.5376 15.4542 20.6201 15.2941 20.7566L13.9461 21.9053C12.8248 22.8609 11.1756 22.8608 10.0543 21.9053L8.70631 20.7566C8.54615 20.6201 8.34705 20.5376 8.1373 20.5209L6.37184 20.3799C4.9033 20.2627 3.73716 19.0966 3.61997 17.6281L3.47906 15.8627C3.46232 15.6529 3.37983 15.4538 3.24336 15.2936L2.0946 13.9455C1.13905 12.8243 1.13904 11.1752 2.09458 10.0539L3.24334 8.70589C3.37983 8.54573 3.46234 8.34654 3.47907 8.13678L3.61996 6.3713C3.73714 4.90278 4.90327 3.73665 6.3718 3.61946L8.13729 3.47857C8.34705 3.46183 8.54619 3.37935 8.70636 3.24286L10.0544 2.0941ZM12.6488 3.61632C12.2751 3.29782 11.7253 3.29781 11.3516 3.61632L10.0036 4.76509C9.5231 5.17456 8.92568 5.42201 8.29637 5.47223L6.5309 5.61312C6.04139 5.65219 5.65268 6.04089 5.61362 6.53041L5.47272 8.29593C5.4225 8.92521 5.17505 9.52259 4.76559 10.0031L3.61683 11.3511C3.29832 11.7248 3.29831 12.2746 3.61683 12.6483L4.76559 13.9963C5.17506 14.4768 5.4225 15.0743 5.47275 15.7035L5.61363 17.469C5.65268 17.9585 6.04139 18.3473 6.53092 18.3863L8.29636 18.5272C8.92563 18.5774 9.5231 18.8249 10.0036 19.2344L11.3516 20.3831C11.7254 20.7016 12.2751 20.7016 12.6488 20.3831L13.9969 19.2343C14.4773 18.8249 15.0747 18.5774 15.704 18.5272L17.4695 18.3863C17.959 18.3472 18.3478 17.9585 18.3868 17.469L18.5277 15.7035C18.5779 15.0742 18.8253 14.4768 19.2349 13.9964L20.3836 12.6483C20.7022 12.2746 20.7021 11.7249 20.3836 11.3511L19.2348 10.0031C18.8253 9.52259 18.5779 8.92519 18.5277 8.2959L18.3868 6.53041C18.3478 6.0409 17.959 5.65219 17.4695 5.61312L15.704 5.47224C15.0748 5.42203 14.4773 5.17455 13.9968 4.76508L12.6488 3.61632ZM14.8284 7.75718L16.2426 9.1714L9.17154 16.2425L7.75733 14.8282L14.8284 7.75718ZM10.2322 10.232C9.64641 10.8178 8.69667 10.8178 8.11088 10.232C7.52509 9.6463 7.52509 8.69652 8.11088 8.11073C8.69667 7.52494 9.64641 7.52494 10.2322 8.11073C10.818 8.69652 10.818 9.6463 10.2322 10.232ZM13.7677 15.8889C14.3535 16.4747 15.3032 16.4747 15.889 15.8889C16.4748 15.3031 16.4748 14.3534 15.889 13.7676C15.3032 13.1818 14.3535 13.1818 13.7677 13.7676C13.1819 14.3534 13.1819 15.3031 13.7677 15.8889Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: d9fb359e-3e75-4e0a-b9df-3f51a2c3a624
+		dataCategory: ImageUrl
+
+	/// Icon (URL/SVG) representing the Month dimension, used in card and table visuals.
+	measure 'Month icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 1V3H15V1H17V3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H7V1H9ZM20 11H4V19H20V11ZM7 5H4V9H20V5H17V7H15V5H9V7H7V5Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: 8893af94-37b9-42dd-9e15-e78e1e898112
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Profit icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M5 3V19H21V21H3V3H5ZM20.2929 6.29289L21.7071 7.70711L16 13.4142L13 10.415L8.70711 14.7071L7.29289 13.2929L13 7.58579L16 10.585L20.2929 6.29289Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: 1d1e9fe8-6c51-42c5-bc17-ca8137d876de
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Sales icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M4.00488 16V4H2.00488V2H5.00488C5.55717 2 6.00488 2.44772 6.00488 3V15H18.4433L20.4433 7H8.00488V5H21.7241C22.2764 5 22.7241 5.44772 22.7241 6C22.7241 6.08176 22.7141 6.16322 22.6942 6.24254L20.1942 16.2425C20.083 16.6877 19.683 17 19.2241 17H5.00488C4.4526 17 4.00488 16.5523 4.00488 16ZM6.00488 23C4.90031 23 4.00488 22.1046 4.00488 21C4.00488 19.8954 4.90031 19 6.00488 19C7.10945 19 8.00488 19.8954 8.00488 21C8.00488 22.1046 7.10945 23 6.00488 23ZM18.0049 23C16.9003 23 16.0049 22.1046 16.0049 21C16.0049 19.8954 16.9003 19 18.0049 19C19.1095 19 20.0049 19.8954 20.0049 21C20.0049 22.1046 19.1095 23 18.0049 23Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: 79f31f5f-e8af-4ff7-8fa1-98a983323ec8
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment icon' =
+			VAR _selectedSegment =
+			      SELECTEDVALUE('Financials'[Segment])
+			    RETURN
+			      SWITCH(
+			        _selectedSegment,
+			        // Midmarket
+			        "Midmarket",
+			        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 19H23V21H1V19H3V4C3 3.44772 3.44772 3 4 3H14C14.5523 3 15 3.44772 15 4V19H19V11H17V9H20C20.5523 9 21 9.44772 21 10V19ZM5 5V19H13V5H5ZM7 11H11V13H7V11ZM7 7H11V9H7V7Z'%3E%3C/path%3E%3C/svg%3E",
+			
+			        // Government
+			        "Government",
+			        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 6H23V8H22V19H23V21H1V19H2V8H1V6H4V4C4 3.44772 4.44772 3 5 3H19C19.5523 3 20 3.44772 20 4V6ZM20 8H4V19H7V12H9V19H11V12H13V19H15V12H17V19H20V8ZM6 5V6H18V5H6Z'%3E%3C/path%3E%3C/svg%3E",
+			
+			        // Small Business
+			        "Small Business",
+			        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 13.2422V20H22V22H2V20H3V13.2422C1.79401 12.435 1 11.0602 1 9.5C1 8.67286 1.22443 7.87621 1.63322 7.19746L4.3453 2.5C4.52393 2.1906 4.85406 2 5.21132 2H18.7887C19.1459 2 19.4761 2.1906 19.6547 2.5L22.3575 7.18172C22.7756 7.87621 23 8.67286 23 9.5C23 11.0602 22.206 12.435 21 13.2422ZM19 13.9725C18.8358 13.9907 18.669 14 18.5 14C17.2409 14 16.0789 13.478 15.25 12.6132C14.4211 13.478 13.2591 14 12 14C10.7409 14 9.5789 13.478 8.75 12.6132C7.9211 13.478 6.75911 14 5.5 14C5.331 14 5.16417 13.9907 5 13.9725V20H19V13.9725ZM5.78865 4L3.35598 8.21321C3.12409 8.59843 3 9.0389 3 9.5C3 10.8807 4.11929 12 5.5 12C6.53096 12 7.44467 11.3703 7.82179 10.4295C8.1574 9.59223 9.3426 9.59223 9.67821 10.4295C10.0553 11.3703 10.969 12 12 12C13.031 12 13.9447 11.3703 14.3218 10.4295C14.6574 9.59223 15.8426 9.59223 16.1782 10.4295C16.5553 11.3703 17.469 12 18.5 12C19.8807 12 21 10.8807 21 9.5C21 9.0389 20.8759 8.59843 20.6347 8.19746L18.2113 4H5.78865Z'%3E%3C/path%3E%3C/svg%3E",
+			
+			        // Channel Partners
+			        "Channel Partners",
+			        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 13V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V13H2V11L3 6H21L22 11V13H21ZM5 13V19H19V13H5ZM4.03961 11H19.9604L19.3604 8H4.63961L4.03961 11ZM6 14H14V17H6V14ZM3 3H21V5H3V3Z'%3E%3C/path%3E%3C/svg%3E",
+			
+			        // Enterprise
+			        "Enterprise",
+			        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 20H23V22H1V20H3V3C3 2.44772 3.44772 2 4 2H20C20.5523 2 21 2.44772 21 3V20ZM19 20V4H5V20H19ZM8 11H11V13H8V11ZM8 7H11V9H8V7ZM8 15H11V17H8V15ZM13 15H16V17H13V15ZM13 11H16V13H13V11ZM13 7H16V9H13V7Z'%3E%3C/path%3E%3C/svg%3E",
+			
+			        // Default (no segment or unrecognized)
+			        BLANK()
+			      )
+		displayFolder: Icons
+		lineageTag: fbfe7a72-1877-4e94-9199-57aca5332666
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment icon (white)' =
+			VAR _selectedSegment = SELECTEDVALUE( 'Financials'[Segment] )
+			RETURN
+			SWITCH(
+			    _selectedSegment,
+			    "Midmarket", "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21 19H23V21H1V19H3V4C3 3.44772 3.44772 3 4 3H14C14.5523 3 15 3.44772 15 4V19H19V11H17V9H20C20.5523 9 21 9.44772 21 10V19ZM5 5V19H13V5H5ZM7 11H11V13H7V11ZM7 7H11V9H7V7Z'%3E%3C/path%3E%3C/svg%3E",
+			    "Government", "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20 6H23V8H22V19H23V21H1V19H2V8H1V6H4V4C4 3.44772 4.44772 3 5 3H19C19.5523 3 20 3.44772 20 4V6ZM20 8H4V19H7V12H9V19H11V12H13V19H15V12H17V19H20V8ZM6 5V6H18V5H6Z'%3E%3C/path%3E%3C/svg%3E",
+			    "Small Business", "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21 13.2422V20H22V22H2V20H3V13.2422C1.79401 12.435 1 11.0602 1 9.5C1 8.67286 1.22443 7.87621 1.63322 7.19746L4.3453 2.5C4.52393 2.1906 4.85406 2 5.21132 2H18.7887C19.1459 2 19.4761 2.1906 19.6547 2.5L22.3575 7.18172C22.7756 7.87621 23 8.67286 23 9.5C23 11.0602 22.206 12.435 21 13.2422ZM19 13.9725C18.8358 13.9907 18.669 14 18.5 14C17.2409 14 16.0789 13.478 15.25 12.6132C14.4211 13.478 13.2591 14 12 14C10.7409 14 9.5789 13.478 8.75 12.6132C7.9211 13.478 6.75911 14 5.5 14C5.331 14 5.16417 13.9907 5 13.9725V20H19V13.9725ZM5.78865 4L3.35598 8.21321C3.12409 8.59843 3 9.0389 3 9.5C3 10.8807 4.11929 12 5.5 12C6.53096 12 7.44467 11.3703 7.82179 10.4295C8.1574 9.59223 9.3426 9.59223 9.67821 10.4295C10.0553 11.3703 10.969 12 12 12C13.031 12 13.9447 11.3703 14.3218 10.4295C14.6574 9.59223 15.8426 9.59223 16.1782 10.4295C16.5553 11.3703 17.469 12 18.5 12C19.8807 12 21 10.8807 21 9.5C21 9.0389 20.8759 8.59843 20.6347 8.19746L18.2113 4H5.78865Z'%3E%3C/path%3E%3C/svg%3E",
+			    "Channel Partners", "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21 13V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V13H2V11L3 6H21L22 11V13H21ZM5 13V19H19V13H5ZM4.03961 11H19.9604L19.3604 8H4.63961L4.03961 11ZM6 14H14V17H6V14ZM3 3H21V5H3V3Z'%3E%3C/path%3E%3C/svg%3E",
+			    "Enterprise", "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21 20H23V22H1V20H3V3C3 2.44772 3.44772 2 4 2H20C20.5523 2 21 2.44772 21 3V20ZM19 20V4H5V20H19ZM8 11H11V13H8V11ZM8 7H11V9H8V7ZM8 15H11V17H8V15ZM13 15H16V17H13V15ZM13 11H16V13H13V11ZM13 7H16V9H13V7Z'%3E%3C/path%3E%3C/svg%3E",
+			    BLANK()
+			)
+		displayFolder: Icons
+		lineageTag: 8845b45b-cbed-4402-a731-7213d148c146
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment: Channel partners' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 13V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V13H2V11L3 6H21L22 11V13H21ZM5 13V19H19V13H5ZM4.03961 11H19.9604L19.3604 8H4.63961L4.03961 11ZM6 14H14V17H6V14ZM3 3H21V5H3V3Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: cc55af7b-7226-48d8-8fc0-eaa3e8ad55cb
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment: Enterprise icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 20H23V22H1V20H3V3C3 2.44772 3.44772 2 4 2H20C20.5523 2 21 2.44772 21 3V20ZM19 20V4H5V20H19ZM8 11H11V13H8V11ZM8 7H11V9H8V7ZM8 15H11V17H8V15ZM13 15H16V17H13V15ZM13 11H16V13H13V11ZM13 7H16V9H13V7Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: 88d7f0a8-928c-479b-baa5-25fdcd22a01e
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment: Government icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 6H23V8H22V19H23V21H1V19H2V8H1V6H4V4C4 3.44772 4.44772 3 5 3H19C19.5523 3 20 3.44772 20 4V6ZM20 8H4V19H7V12H9V19H11V12H13V19H15V12H17V19H20V8ZM6 5V6H18V5H6Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: b999349e-eda2-47e0-a65f-ba8d4eac8dac
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment: Midmarket icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 19H23V21H1V19H3V4C3 3.44772 3.44772 3 4 3H14C14.5523 3 15 3.44772 15 4V19H19V11H17V9H20C20.5523 9 21 9.44772 21 10V19ZM5 5V19H13V5H5ZM7 11H11V13H7V11ZM7 7H11V9H7V7Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: df346341-1ad8-4d99-b83a-301d2b906c5e
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Segment: Small business icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 13.2422V20H22V22H2V20H3V13.2422C1.79401 12.435 1 11.0602 1 9.5C1 8.67286 1.22443 7.87621 1.63322 7.19746L4.3453 2.5C4.52393 2.1906 4.85406 2 5.21132 2H18.7887C19.1459 2 19.4761 2.1906 19.6547 2.5L22.3575 7.18172C22.7756 7.87621 23 8.67286 23 9.5C23 11.0602 22.206 12.435 21 13.2422ZM19 13.9725C18.8358 13.9907 18.669 14 18.5 14C17.2409 14 16.0789 13.478 15.25 12.6132C14.4211 13.478 13.2591 14 12 14C10.7409 14 9.5789 13.478 8.75 12.6132C7.9211 13.478 6.75911 14 5.5 14C5.331 14 5.16417 13.9907 5 13.9725V20H19V13.9725ZM5.78865 4L3.35598 8.21321C3.12409 8.59843 3 9.0389 3 9.5C3 10.8807 4.11929 12 5.5 12C6.53096 12 7.44467 11.3703 7.82179 10.4295C8.1574 9.59223 9.3426 9.59223 9.67821 10.4295C10.0553 11.3703 10.969 12 12 12C13.031 12 13.9447 11.3703 14.3218 10.4295C14.6574 9.59223 15.8426 9.59223 16.1782 10.4295C16.5553 11.3703 17.469 12 18.5 12C19.8807 12 21 10.8807 21 9.5C21 9.0389 20.8759 8.59843 20.6347 8.19746L18.2113 4H5.78865Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: cc45cca0-06f3-4b12-82e8-d54f9b1ca8d0
+		dataCategory: ImageUrl
+
+	/// Icon from https://remixicon.com/
+	measure 'Units icon' = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M4 5V19H20V5H4ZM3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM6 7H9V17H6V7ZM10 7H12V17H10V7ZM13 7H14V17H13V7ZM15 7H18V17H15V7Z'%3E%3C/path%3E%3C/svg%3E"
+		displayFolder: Icons
+		lineageTag: 46edeccc-0f83-491e-b672-e42b76605949
+		dataCategory: ImageUrl
+
+	measure 'Segment or Product Drill' = ```
+			
+			SWITCH ( TRUE(),
+			    ISINSCOPE(Financials[Segment]) && ISINSCOPE(Financials[Product]),
+			        SELECTEDVALUE(Financials[Segment]) & " (Segment) " & SELECTEDVALUE(Financials[Product]) & " (Product)",
+			    ISINSCOPE(Financials[Segment]), SELECTEDVALUE(Financials[Segment]),
+			    ISINSCOPE(Financials[Product]), SELECTEDVALUE(Financials[Product]),
+			    BLANK()
+			)
+			
+			```
+		displayFolder: Tooltips
+		lineageTag: 9874f2f3-4c1c-48b5-88bf-e1ce3af292f5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Z hide'
+		isHidden
+		lineageTag: bd7b6955-e63b-45a1-a9ed-43581f535a22
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Z hide]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Formatting = calculated
+		mode: import
+		source = SELECTCOLUMNS({"Measure group"},"Z hide", [Value])
+
+	annotation PBI_Id = e70f6a2aa6024a3c99a29603287e6dfd
+

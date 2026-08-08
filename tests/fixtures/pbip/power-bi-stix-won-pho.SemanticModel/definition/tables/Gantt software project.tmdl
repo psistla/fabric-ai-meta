@@ -1,0 +1,113 @@
+/// Hidden sample dataset of software-project tasks (start, end, progress, dependencies) for Gantt visual demos.
+table 'Gantt software project'
+	isHidden
+	lineageTag: 50f1c844-a369-4e7e-a408-28a79f5009d9
+
+	/// Marker measure used for the Gantt chart demo.
+	measure FabCon = date(2025,3,15)
+		formatString: General Date
+		isHidden
+		lineageTag: 3a89afd2-6bda-4050-9121-b4d1f0faa116
+
+	column 'Task ID'
+		isHidden
+		formatString: 0
+		lineageTag: ac26e8a5-1758-48c1-9a62-3b6c2d84c5f1
+		summarizeBy: count
+		isNameInferred
+		sourceColumn: [Task ID]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Task
+		isHidden
+		lineageTag: 69da837b-dcc4-4013-8782-b1a9e961afcd
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Task]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		isHidden
+		lineageTag: ad5ce376-583f-4a13-987c-c0bb92fabaca
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Start
+		isHidden
+		formatString: General Date
+		lineageTag: 17345aab-d1fe-4e4e-bf8a-3390e1fc6443
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Start]
+
+		annotation SummarizationSetBy = Automatic
+
+	column End
+		isHidden
+		formatString: General Date
+		lineageTag: aae24bb1-f83b-49a5-963a-6836236f830f
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [End]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Progress
+		isHidden
+		formatString: 0
+		lineageTag: 56099a85-b300-44ca-89f8-fd167107157f
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Progress]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dependencies
+		isHidden
+		lineageTag: 830bd62e-575c-4057-9217-8a798615a05a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Dependencies]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Gantt software project' = calculated
+		mode: import
+		source = ```
+				
+				VAR TaskTable = 
+				    {
+				        ( 1, "Project Kickoff", "Planning", DATE(2025,1,6), DATE(2025,1,6), 100, "" ),
+				        ( 2, "Requirements Gathering", "Planning", DATE(2025,1,7), DATE(2025,1,17), 100, "1" ),
+				        ( 3, "Technical Specification", "Planning", DATE(2025,1,13), DATE(2025,1,24), 75, "2" ),
+				        ( 4, "Architecture Review", "Planning", DATE(2025,1,27), DATE(2025,1,27), 0, "3" ),
+				        ( 5, "Database Design", "Development", DATE(2025,1,28), DATE(2025,2,7), 50, "4" ),
+				        ( 6, "API Development", "Development", DATE(2025,2,3), DATE(2025,2,21), 25, "5" ),
+				        ( 7, "Frontend Development", "Development", DATE(2025,2,10), DATE(2025,2,28), 10, "5" ),
+				        ( 8, "Integration", "Development", DATE(2025,2,24), DATE(2025,3,7), 0, "6,7" ),
+				        ( 9, "Unit Testing", "Testing", DATE(2025,2,17), DATE(2025,3,7), 0, "6" ),
+				        ( 10, "Integration Testing", "Testing", DATE(2025,3,10), DATE(2025,3,21), 0, "8,9" ),
+				        ( 11, "User Acceptance Testing", "Testing", DATE(2025,3,24), DATE(2025,4,4), 0, "10" ),
+				        ( 12, "Production Deployment", "Deployment", DATE(2025,4,7), DATE(2025,4,11), 0, "11" ),
+				        ( 13, "Go Live", "Deployment", DATE(2025,4,14), DATE(2025,4,14), 0, "12" )
+				    }
+				RETURN
+				    SELECTCOLUMNS(
+				        TaskTable,
+				        "Task ID", [Value1],
+				        "Task", [Value2],
+				        "Category", [Value3],
+				        "Start", [Value4],
+				        "End", [Value5],
+				        "Progress", [Value6],
+				        "Dependencies", [Value7]
+				    )
+				```
+
+	annotation PBI_Id = 657a62e9dd4d4163b3e3542df33e4502
+

@@ -1,0 +1,121 @@
+/// Hidden helper table listing US states and Australian territories with random values, used for map visual demos.
+table Map
+	isHidden
+	lineageTag: 9e8f248f-04a5-4f9a-bc73-d5479656519f
+
+	column RandomValue
+		isHidden
+		formatString: 0
+		lineageTag: e49b58e9-e654-40f0-a07f-638bc765505e
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [RandomValue]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Country or Region'
+		isHidden
+		lineageTag: e29848ea-686d-44f4-acef-67797cd7f1b5
+		dataCategory: Country
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Country or Region]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'State or Territory'
+		isHidden
+		lineageTag: a5350be8-b541-442c-a403-83451bee431f
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [State or Territory]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Map = calculated
+		mode: import
+		source = ```
+				
+				VAR USAStates = 
+				    DATATABLE(
+				        "Country or Region", STRING,
+				        "State or Territory", STRING,
+				        {
+				            {"USA", "Alabama"},
+				            {"USA", "Alaska"},
+				            {"USA", "Arizona"},
+				            {"USA", "Arkansas"},
+				            {"USA", "California"},
+				            {"USA", "Colorado"},
+				            {"USA", "Connecticut"},
+				            {"USA", "Delaware"},
+				            {"USA", "Florida"},
+				            {"USA", "Georgia"},
+				            {"USA", "Hawaii"},
+				            {"USA", "Idaho"},
+				            {"USA", "Illinois"},
+				            {"USA", "Indiana"},
+				            {"USA", "Iowa"},
+				            {"USA", "Kansas"},
+				            {"USA", "Kentucky"},
+				            {"USA", "Louisiana"},
+				            {"USA", "Maine"},
+				            {"USA", "Maryland"},
+				            {"USA", "Massachusetts"},
+				            {"USA", "Michigan"},
+				            {"USA", "Minnesota"},
+				            {"USA", "Mississippi"},
+				            {"USA", "Missouri"},
+				            {"USA", "Montana"},
+				            {"USA", "Nebraska"},
+				            {"USA", "Nevada"},
+				            {"USA", "New Hampshire"},
+				            {"USA", "New Jersey"},
+				            {"USA", "New Mexico"},
+				            {"USA", "New York"},
+				            {"USA", "North Carolina"},
+				            {"USA", "North Dakota"},
+				            {"USA", "Ohio"},
+				            {"USA", "Oklahoma"},
+				            {"USA", "Oregon"},
+				            {"USA", "Pennsylvania"},
+				            {"USA", "Rhode Island"},
+				            {"USA", "South Carolina"},
+				            {"USA", "South Dakota"},
+				            {"USA", "Tennessee"},
+				            {"USA", "Texas"},
+				            {"USA", "Utah"},
+				            {"USA", "Vermont"},
+				            {"USA", "Virginia"},
+				            {"USA", "Washington"},
+				            {"USA", "West Virginia"},
+				            {"USA", "Wisconsin"},
+				            {"USA", "Wyoming"}
+				        }
+				    )
+				VAR AustraliaStates = 
+				    DATATABLE(
+				        "Country", STRING,
+				        "State", STRING,
+				        {
+				            {"Australia", "New South Wales"},
+				            {"Australia", "Victoria"},
+				            {"Australia", "Queensland"},
+				            {"Australia", "Western Australia"},
+				            {"Australia", "South Australia"},
+				            {"Australia", "Tasmania"},
+				            {"Australia", "Northern Territory"},
+				            {"Australia", "Australian Capital Territory"}
+				        }
+				    )
+				VAR AllStates = UNION(USAStates, AustraliaStates)
+				RETURN
+				    ADDCOLUMNS(
+				        AllStates,
+				        "RandomValue", RANDBETWEEN(1000, 1000000)
+				    )
+				```
+
+	annotation PBI_Id = f0925e5753884a3cb795aad60df9fc6d
+

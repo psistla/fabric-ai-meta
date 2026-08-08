@@ -233,7 +233,10 @@ def test_pbip_list_models_dir_of_dirs_sorted():
     from fabric_ai_meta.extractor.pbip import PbipExtractor
 
     assert PbipExtractor(FIXTURES).list_models("ignored") == [
-        "footwear-sustainability", "stix-one-pho", "stix-one-pho-amazon"
+        "footwear-sustainability",
+        "power-bi-stix-won-pho",
+        "stix-one-pho",
+        "stix-one-pho-amazon",
     ]
 
 
@@ -367,6 +370,89 @@ def test_pbip_datetime_columns_classify_as_date():
         assert all(c.role is ColumnRole.DATE for c in dates), [
             (c.name, c.role) for c in dates if c.role is not ColumnRole.DATE
         ]
+
+
+# ---------------------------------------------------------------------------
+# Characterization tests: the DAX-authored model (power-bi-stix-won-pho).
+#
+# These assert what the extractor does TODAY, not what it should do. Each one
+# pins a known gap so it stays visible and cannot regress silently. When a gap is
+# fixed the test here fails, which is the point: it reports the improvement.
+# ---------------------------------------------------------------------------
+
+def _won_pho():
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+    m = PbipExtractor(FIXTURES).extract("power-bi-stix-won-pho", "ws")
+    classify_model_in_place(m)
+    return m
+
+
+def test_gap_calculated_table_columns_have_no_data_type():
+    """GAP: 58 of 60 columns extract with an empty data_type.
+
+    Power BI does not serialize `dataType` for the columns of a DAX-defined
+    calculated table; the type comes from the expression. This whole model is
+    built that way (`SELECTCOLUMNS` over inline values), so almost nothing has a
+    type. TMDL does carry `summarizeBy`, which states whether a column is
+    aggregatable, and the parser does not read it.
+    """
+    m = _won_pho()
+    cols = [c for t in m.tables for c in t.columns]
+    untyped = [c for c in cols if c.data_type == ""]
+    assert len(untyped) == 58
+    assert len(cols) == 60
+
+
+def test_gap_numeric_columns_misread_as_attributes():
+    """GAP: consequence of the above. Sales/Profit/COGS are not MEASURE_COLUMN.
+
+    `_NUMERIC_TYPES` cannot match an empty type, so every figure in the fact
+    table falls through to ATTRIBUTE. TMDL marks each of these `summarizeBy: sum`.
+    """
+    from fabric_ai_meta.models.metadata import ColumnRole
+
+    m = _won_pho()
+    fin = next(t for t in m.tables if t.name == "Financials")
+    roles = {c.name: c.role for c in fin.columns}
+    for name in ("Sales", "Profit", "COGS", "Units Sold"):
+        assert roles[name] is ColumnRole.ATTRIBUTE, name
+
+
+def test_gap_obvious_fact_table_classifies_unknown():
+    """GAP: `Financials` is a fact table and its own /// comment says so.
+
+    classify_table_heuristic needs either a fact keyword in the name or
+    (multiple outbound rels AND numeric columns). The name is `Financials`, and
+    the numeric test cannot fire without data types, so it lands UNKNOWN.
+    """
+    m = _won_pho()
+    fin = next(t for t in m.tables if t.name == "Financials")
+    assert fin.description is not None and "fact" in fin.description.lower()
+    assert fin.table_type is TableType.UNKNOWN
+
+
+def test_gap_calculation_group_yields_no_measures():
+    """GAP: calculation groups are out of scope (see CLAUDE.md constraint 5).
+
+    `Time Calculation` is a real calculationGroup. It parses to a table with no
+    measures and no marker, so a consumer cannot tell an unsupported construct
+    from an empty table. The limitation is documented; the output is silent.
+    """
+    m = _won_pho()
+    tc = next(t for t in m.tables if t.name == "Time Calculation")
+    assert tc.measures == []
+    assert tc.table_type is TableType.UNKNOWN
+
+
+def test_won_pho_shape_is_stable():
+    """Baseline for the whole model, so any parser change shows up here."""
+    m = _won_pho()
+    assert len(m.tables) == 14
+    assert len(m.relationships) == 1
+    assert sum(len(t.measures) for t in m.tables) == 65
+    assert sum(1 for t in m.tables if t.grain) == 0
 
 
 def test_pbip_copilot_present_absent_and_miscased(tmp_path):

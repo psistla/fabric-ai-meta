@@ -1,0 +1,14 @@
+expression Year1 = 2025 meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
+	lineageTag: 09d4b139-dd80-4789-8031-1f4a4e8b3075
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Number
+
+expression Year2 = 2026 meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
+	lineageTag: 16a38a54-5036-4cf5-8186-adaba71b5fc2
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Number
+

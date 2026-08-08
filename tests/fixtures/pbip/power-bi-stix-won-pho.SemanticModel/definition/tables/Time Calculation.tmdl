@@ -1,0 +1,214 @@
+/// Calculation group providing reusable time intelligence variants (e.g., MoM, YoY, YTD) applied to base measures.
+table 'Time Calculation'
+	lineageTag: 855d4a7d-79ae-4753-ab07-d45b0d8f889a
+
+	calculationGroup
+		precedence: 1
+
+		noSelectionExpression = SELECTEDMEASURE()
+
+		calculationItem Actual = SELECTEDMEASURE()
+
+		calculationItem MoM =
+				// MoM: Compare the latest month in context to the month before it.
+				// At any level (month row, year total, grand total), finds the most recent
+				// month and returns Current - Prior. Returns BLANK if no prior month exists.
+				
+				// Step 1: Find the latest month in whatever date context we're in
+				VAR _LastYear = MAX('Date'[Year])
+				VAR _LastMonth = MAXX(FILTER('Date', 'Date'[Year] = _LastYear), 'Date'[Month Number])
+				
+				// Step 2: Calculate the prior month (wrap Jan back to Dec of prior year)
+				VAR _PrevYear = IF(_LastMonth = 1, _LastYear - 1, _LastYear)
+				VAR _PrevMonth = IF(_LastMonth = 1, 12, _LastMonth - 1)
+				
+				// Step 3: Check if the prior month has ANY data at all.
+				// REMOVEFILTERS() clears ALL filters (including Segment, Product, etc.)
+				// so we're checking globally, not just for this slice.
+				// Without this, Sep 2025 would compare to a nonexistent Aug 2025.
+				VAR _PriorMonthExists =
+				    CALCULATE(
+				        SELECTEDMEASURE(),
+				        REMOVEFILTERS(),
+				        'Date'[Year] = _PrevYear,
+				        'Date'[Month Number] = _PrevMonth
+				    )
+				
+				// Step 4: Get current and prior values for this specific context.
+				// REMOVEFILTERS('Date') clears only date filters, preserving Segment/Product/etc.
+				// The + 0 converts BLANK to 0 so products that didn't sell last month
+				// still contribute to the subtotal (BLANK wouldn't participate in SUM).
+				VAR _CurrValue =
+				    CALCULATE(
+				        SELECTEDMEASURE(),
+				        REMOVEFILTERS('Date'),
+				        'Date'[Year] = _LastYear,
+				        'Date'[Month Number] = _LastMonth
+				    ) + 0
+				VAR _PrevValue =
+				    CALCULATE(
+				        SELECTEDMEASURE(),
+				        REMOVEFILTERS('Date'),
+				        'Date'[Year] = _PrevYear,
+				        'Date'[Month Number] = _PrevMonth
+				    ) + 0
+				
+				// Step 5: Return difference, or BLANK if prior month doesn't exist
+				RETURN
+				    IF(
+				        ISBLANK(_PriorMonthExists),
+				        BLANK(),
+				        _CurrValue - _PrevValue
+				    )
+
+		calculationItem 'MoM %' =
+				// MoM %: Same logic as MoM, but returns the percentage change.
+				// DIVIDE handles division by zero safely (returns BLANK).
+				
+				VAR _LastYear = MAX('Date'[Year])
+				VAR _LastMonth = MAXX(FILTER('Date', 'Date'[Year] = _LastYear), 'Date'[Month Number])
+				VAR _PrevYear = IF(_LastMonth = 1, _LastYear - 1, _LastYear)
+				VAR _PrevMonth = IF(_LastMonth = 1, 12, _LastMonth - 1)
+				
+				// Check globally if prior month has data (ignoring all dimension filters)
+				VAR _PriorMonthExists =
+				    CALCULATE(
+				        SELECTEDMEASURE(),
+				        REMOVEFILTERS(),
+				        'Date'[Year] = _PrevYear,
+				        'Date'[Month Number] = _PrevMonth
+				    )
+				
+				// Get values with + 0 to convert BLANK to 0 for proper subtotal rollup
+				VAR _CurrValue =
+				    CALCULATE(
+				        SELECTEDMEASURE(),
+				        REMOVEFILTERS('Date'),
+				        'Date'[Year] = _LastYear,
+				        'Date'[Month Number] = _LastMonth
+				    ) + 0
+				VAR _PrevValue =
+				    CALCULATE(
+				        SELECTEDMEASURE(),
+				        REMOVEFILTERS('Date'),
+				        'Date'[Year] = _PrevYear,
+				        'Date'[Month Number] = _PrevMonth
+				    ) + 0
+				
+				// Return percentage change instead of raw difference
+				RETURN
+				    IF(
+				        ISBLANK(_PriorMonthExists),
+				        BLANK(),
+				        DIVIDE(_CurrValue - _PrevValue, _PrevValue)
+				    )
+
+			formatStringDefinition = "#,0%;-#,0%;#,0%"
+
+		calculationItem YoY =
+				// YoY: Compare current period to the same period last year.
+				// Handles partial years by only including months that have data in BOTH years.
+				// Works at any level: single month, year total, or grand total.
+				
+				VAR _CurrentValue = SELECTEDMEASURE()
+				
+				// Get every distinct Year + Month in the current filter context.
+				// At a month row this is one row; at a year total it's all months in that year.
+				VAR _MonthsInContext =
+				    SUMMARIZE('Date', 'Date'[Year], 'Date'[Month Number])
+				
+				// Iterate each month: get current and prior year values.
+				// Only include the difference when BOTH exist — this is how partial years work.
+				// Months with no prior year data (e.g., Jan-Aug when data starts in Sep) are skipped.
+				VAR _Result =
+				    SUMX(
+				        _MonthsInContext,
+				        VAR _Year = 'Date'[Year]
+				        VAR _Month = 'Date'[Month Number]
+				        // Current year value for this specific month
+				        VAR _CurrValue =
+				            CALCULATE(
+				                SELECTEDMEASURE(),
+				                REMOVEFILTERS('Date'),
+				                'Date'[Year] = _Year,
+				                'Date'[Month Number] = _Month
+				            )
+				        // Same month, one year earlier
+				        VAR _PriorValue =
+				            CALCULATE(
+				                SELECTEDMEASURE(),
+				                REMOVEFILTERS('Date'),
+				                'Date'[Year] = _Year - 1,
+				                'Date'[Month Number] = _Month
+				            )
+				        RETURN
+				            IF(
+				                NOT ISBLANK(_CurrValue) && NOT ISBLANK(_PriorValue),
+				                _CurrValue - _PriorValue,
+				                BLANK()  // Skip months without data in both years
+				            )
+				    )
+				
+				// Guard: if there's no data at all in the current context, return BLANK
+				RETURN
+				    IF(ISBLANK(_CurrentValue), BLANK(), _Result)
+
+		calculationItem 'YoY %' =
+				// YoY %: Percentage change vs same period last year.
+				// Can't just divide YoY by prior total — need filtered totals
+				// that only include months with data in both years.
+				
+				VAR _CurrentValue = SELECTEDMEASURE()
+				
+				// All Year + Month combinations in the current filter context
+				VAR _MonthsInContext =
+				    SUMMARIZE('Date', 'Date'[Year], 'Date'[Month Number])
+				
+				// Filtered CURRENT total: only sum months where both years have data
+				VAR _CurrFiltered =
+				    SUMX(
+				        _MonthsInContext,
+				        VAR _Year = 'Date'[Year]
+				        VAR _Month = 'Date'[Month Number]
+				        VAR _CurrValue =
+				            CALCULATE(SELECTEDMEASURE(), REMOVEFILTERS('Date'),
+				                'Date'[Year] = _Year, 'Date'[Month Number] = _Month)
+				        VAR _PriorValue =
+				            CALCULATE(SELECTEDMEASURE(), REMOVEFILTERS('Date'),
+				                'Date'[Year] = _Year - 1, 'Date'[Month Number] = _Month)
+				        RETURN
+				            // Only include current value when prior year also has data
+				            IF(NOT ISBLANK(_CurrValue) && NOT ISBLANK(_PriorValue), _CurrValue, BLANK())
+				    )
+				
+				// Filtered PRIOR total: same filter, but return the prior year value
+				VAR _PriorFiltered =
+				    SUMX(
+				        _MonthsInContext,
+				        VAR _Year = 'Date'[Year]
+				        VAR _Month = 'Date'[Month Number]
+				        VAR _CurrValue =
+				            CALCULATE(SELECTEDMEASURE(), REMOVEFILTERS('Date'),
+				                'Date'[Year] = _Year, 'Date'[Month Number] = _Month)
+				        VAR _PriorValue =
+				            CALCULATE(SELECTEDMEASURE(), REMOVEFILTERS('Date'),
+				                'Date'[Year] = _Year - 1, 'Date'[Month Number] = _Month)
+				        RETURN
+				            // Only include prior value when current year also has data
+				            IF(NOT ISBLANK(_CurrValue) && NOT ISBLANK(_PriorValue), _PriorValue, BLANK())
+				    )
+				
+				// Divide the filtered totals for an honest percentage
+				RETURN
+				    IF(ISBLANK(_CurrentValue), BLANK(),
+				        DIVIDE(_CurrFiltered - _PriorFiltered, _PriorFiltered))
+
+			formatStringDefinition = "#,0%;-#,0%;#,0%"
+
+	/// Calculation item selector (e.g., Current, MoM, YoY, YTD) applied to the base measure in context.
+	column 'Time Calculation'
+		dataType: string
+		lineageTag: 79c3211b-451a-4006-808c-5324dda82647
+
+	partition 'Partition_Time Calculation' = calculationGroup
+

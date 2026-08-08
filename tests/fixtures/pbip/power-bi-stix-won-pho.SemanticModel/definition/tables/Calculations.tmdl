@@ -1,0 +1,347 @@
+/// Measure table grouping all reusable DAX measures (sales, COGS, profit, MoM, YoY, YTD).
+table Calculations
+	lineageTag: df461a75-e5fe-4877-a07a-2432e148b444
+
+	/// Average revenue per unit sold (Sales divided by Units).
+	measure 'Avg Selling Price' =
+			// Revenue per unit: how much each unit sells for on average
+			DIVIDE([Sales], [Units])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 254580fe-f33a-4021-8a29-7a65a3db112b
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Average cost per unit sold (COGS divided by Units).
+	measure 'COGS per Unit' =
+			// Cost per unit: how much each unit costs to produce/acquire
+			DIVIDE([COGS], [Units])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 2d2f7bc7-7d5d-41d0-9b0e-96786236fc4e
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Change in profit compared to the prior month.
+	measure 'Profit MoM' =
+			// Apply MoM calculation group item to Profit
+			CALCULATE([Profit], 'Time Calculation'[Time Calculation] = "MoM")
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 1851a6c7-1ac6-41cb-af39-9b36d3ee9776
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Percentage change in profit compared to the prior month.
+	measure 'Profit MoM %' =
+			// Apply MoM % calculation group item to Profit
+			CALCULATE([Profit], 'Time Calculation'[Time Calculation] = "MoM %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 24b42765-a06e-40cd-b48a-3d1e96bb2958
+
+	/// Change in sales revenue compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Sales YoY' =
+			// Apply YoY calculation group item to Sales
+			CALCULATE([Sales], 'Time Calculation'[Time Calculation] = "YoY")
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: b4f269fe-56a8-470c-913e-40828d1a52e9
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Percentage change in sales revenue compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Sales YoY %' =
+			// Apply YoY % calculation group item to Sales
+			CALCULATE([Sales], 'Time Calculation'[Time Calculation] = "YoY %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 5c613fb8-1842-4965-9ba3-60651d96d218
+
+	/// Year-to-date sales from January through the latest month with data in the current year.
+	measure 'Sales YTD' =
+			// Year-to-date sales: running total from Jan 1 through the current date context
+			TOTALYTD([Sales], 'Date'[Date])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 489e1aaa-3711-430f-a130-be1313a81d98
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Total cost of goods sold.
+	measure COGS =
+			// Total cost of goods sold
+			SUM('Financials'[COGS])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: c633e45a-0db5-41c0-b2b2-f5aa154cb690
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Total discount amount applied to sales.
+	measure Discounts =
+			// Total discount amount given to customers
+			SUM('Financials'[Discounts])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 0ff52b66-c0f9-4b4d-9f2b-e303b8e23d2c
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+		annotation __PBI_SemanticLinks = [{"LinkTarget":{"TableName":"Financials","TableItemName":"Month Name (clusters)","ObjectType":4},"LinkType":"UsedInGroup"}]
+
+	/// Total sales revenue before discounts are applied.
+	measure 'Gross Sales' =
+			// Total revenue before any discounts are applied
+			SUM('Financials'[Gross Sales])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 4736df94-7fee-45fd-a58f-9f9faff06dbe
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Net profit calculated as Sales minus COGS.
+	measure Profit =
+			// Net profit: what's left after subtracting cost of goods
+			SUM('Financials'[Profit])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 531c4cfc-f6a0-4450-8822-a9cf92039efa
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Total net sales revenue after discounts.
+	measure Sales =
+			// Total net sales revenue (after discounts)
+			SUM('Financials'[Sales])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 256c2d69-3fb3-46b7-82d6-374023463a24
+
+		annotation __PBI_SemanticLinks = [{"LinkTarget":{"TableName":"Financials","TableItemName":"Month Name (clusters)","ObjectType":4},"LinkType":"UsedInGroup"}]
+
+	/// Total number of units sold.
+	measure Units =
+			// Total units sold across all transactions
+			SUM('Financials'[Units Sold])
+		formatString: #,0
+		lineageTag: 82ad2da1-5e2e-4600-8c6d-7cf159fc4673
+
+	/// Change in units sold compared to the prior month.
+	measure 'Units MoM' =
+			// Apply MoM calculation group item to Units
+			// The calc group finds the latest month and subtracts the prior month value
+			CALCULATE([Units], 'Time Calculation'[Time Calculation] = "MoM")
+		formatString: #,0
+		lineageTag: 1376fd1e-1413-43f5-8067-d6e621e9862d
+
+	/// Percentage change in units sold compared to the prior month.
+	measure 'Units MoM %' =
+			// Apply MoM % calculation group item to Units
+			// Returns the percentage change from the prior month
+			CALCULATE([Units], 'Time Calculation'[Time Calculation] = "MoM %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 27f49a06-0d4f-492f-b9b1-e072d20d4739
+
+	/// Change in units sold compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Units YoY' =
+			// Apply YoY calculation group item to Units
+			// Compares to same period last year; at totals only includes overlapping months
+			CALCULATE([Units], 'Time Calculation'[Time Calculation] = "YoY")
+		lineageTag: 64367b98-b9a5-46c3-91c4-282efe0622c2
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in units sold compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Units YoY %' =
+			// Apply YoY % calculation group item to Units
+			// Percentage change vs same period last year with partial-year handling
+			CALCULATE([Units], 'Time Calculation'[Time Calculation] = "YoY %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 5f9aebd1-8528-4f9b-ac4a-42886fe4df84
+
+	/// Profit as a percentage of Sales. Indicates how much of each sales dollar is retained as profit.
+	measure 'Gross Margin %' =
+			// Gross margin: what percentage of sales is retained as profit
+			DIVIDE([Profit], [Sales])
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: a8f8a8d2-fdb9-4a55-88bf-163327321fd5
+
+	/// Discounts as a percentage of Gross Sales. Shows how much revenue is given away through discounting.
+	measure 'Discount % of Gross' =
+			// Discount rate: what percentage of gross revenue is discounted away
+			DIVIDE([Discounts], [Gross Sales])
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 45803d86-8e4e-4a81-9e3f-3e81c8d07857
+
+	/// Total sales for the most recent year in the current filter context.
+	measure 'Sales Current Year' =
+			// Sales for the most recent year visible in the current filter context
+			VAR _CurrentYear = MAX('Date'[Year])
+			RETURN
+			    CALCULATE(
+			        [Sales],
+			        'Date'[Year] = _CurrentYear
+			    )
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: e8026d78-c69f-4dc0-9327-98279acdf61f
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Total sales for the year prior to the most recent year in the current filter context.
+	measure 'Sales Previous Year' =
+			// Sales for the year before the most recent year in the current filter context
+			VAR _CurrentYear = MAX('Date'[Year])
+			VAR _PrevYear = _CurrentYear - 1
+			RETURN
+			    CALCULATE(
+			        [Sales],
+			        'Date'[Year] = _PrevYear
+			    )
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: d26f04ee-416a-4a88-b672-4a2c61b48867
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Average profit earned per unit sold (Profit divided by Units).
+	measure 'Profit per Unit' =
+			// Profit per unit: how much profit each unit generates
+			DIVIDE([Profit], [Units])
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		lineageTag: 5bb95d23-264b-4469-a965-039cbad35461
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	/// Sum of RandomValue from the Map table, used for the map visual demo.
+	measure 'Some value' = ```
+			
+			        SUM(Map[RandomValue])
+			```
+		formatString: #,0
+		lineageTag: 846b688e-6444-49ec-9ad5-3e484e102601
+
+	/// Change in sales revenue compared to the prior month.
+	measure 'Sales MoM' =
+			// Apply MoM calculation group item to Sales
+			CALCULATE([Sales], 'Time Calculation'[Time Calculation] = "MoM")
+		lineageTag: be8ae058-7849-4a63-ad05-45813bbb2229
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in sales revenue compared to the prior month.
+	measure 'Sales MoM %' =
+			// Apply MoM % calculation group item to Sales
+			CALCULATE([Sales], 'Time Calculation'[Time Calculation] = "MoM %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 3eabaee0-75a6-47a1-9912-2057e407186e
+
+	/// Change in cost of goods sold compared to the prior month.
+	measure 'COGS MoM' =
+			// Apply MoM calculation group item to COGS
+			CALCULATE([COGS], 'Time Calculation'[Time Calculation] = "MoM")
+		lineageTag: 02177985-69bc-4271-ad90-7a511451e8a5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in cost of goods sold compared to the prior month.
+	measure 'COGS MoM %' =
+			// Apply MoM % calculation group item to COGS
+			CALCULATE([COGS], 'Time Calculation'[Time Calculation] = "MoM %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: f01a3c56-af71-46fb-b380-1c768d56c62f
+
+	/// Change in cost of goods sold compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'COGS YoY' =
+			// Apply YoY calculation group item to COGS
+			CALCULATE([COGS], 'Time Calculation'[Time Calculation] = "YoY")
+		lineageTag: 04728d7a-6c4f-44c5-a58f-382d367cece2
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in cost of goods sold compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'COGS YoY %' =
+			// Apply YoY % calculation group item to COGS
+			CALCULATE([COGS], 'Time Calculation'[Time Calculation] = "YoY %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: f3bceee0-2e82-4b5e-b964-0a8a5a3c53ed
+
+	/// Change in gross sales compared to the prior month.
+	measure 'Gross Sales MoM' =
+			// Apply MoM calculation group item to Gross Sales
+			CALCULATE([Gross Sales], 'Time Calculation'[Time Calculation] = "MoM")
+		lineageTag: 47e3d280-46b3-4d80-b0e7-ef88f455a094
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in gross sales compared to the prior month.
+	measure 'Gross Sales MoM %' =
+			// Apply MoM % calculation group item to Gross Sales
+			CALCULATE([Gross Sales], 'Time Calculation'[Time Calculation] = "MoM %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 4f9fce24-9ffe-4891-8dae-5ea63f61572e
+
+	/// Change in gross sales compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Gross Sales YoY' =
+			// Apply YoY calculation group item to Gross Sales
+			CALCULATE([Gross Sales], 'Time Calculation'[Time Calculation] = "YoY")
+		lineageTag: 79cdece5-2ec8-4bb0-b1e4-560a51c84cce
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in gross sales compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Gross Sales YoY %' =
+			// Apply YoY % calculation group item to Gross Sales
+			CALCULATE([Gross Sales], 'Time Calculation'[Time Calculation] = "YoY %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: ffa1eede-e9fa-438b-91c9-8a8a2198e90b
+
+	/// Change in discount amount compared to the prior month.
+	measure 'Discounts MoM' =
+			// Apply MoM calculation group item to Discounts
+			CALCULATE([Discounts], 'Time Calculation'[Time Calculation] = "MoM")
+		lineageTag: 3b169b07-362a-4a12-88b1-ffb78db3630b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in discount amount compared to the prior month.
+	measure 'Discounts MoM %' =
+			// Apply MoM % calculation group item to Discounts
+			CALCULATE([Discounts], 'Time Calculation'[Time Calculation] = "MoM %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 49c2dd8f-7bf9-4f22-a669-703ac60fb421
+
+	/// Change in discount amount compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Discounts YoY' =
+			// Apply YoY calculation group item to Discounts
+			CALCULATE([Discounts], 'Time Calculation'[Time Calculation] = "YoY")
+		lineageTag: cc9b13b5-93e7-4217-b836-8fa1195db649
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in discount amount compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Discounts YoY %' =
+			// Apply YoY % calculation group item to Discounts
+			CALCULATE([Discounts], 'Time Calculation'[Time Calculation] = "YoY %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 1daef4f6-1e3f-4371-ab09-33d3beb51708
+
+	/// Change in profit compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Profit YoY' =
+			// Apply YoY calculation group item to Profit
+			CALCULATE([Profit], 'Time Calculation'[Time Calculation] = "YoY")
+		lineageTag: cf2b7c06-329f-49ec-afec-09a0098ab5af
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Percentage change in profit compared to the same period last year. At totals, only compares months that exist in both years.
+	measure 'Profit YoY %' =
+			// Apply YoY % calculation group item to Profit
+			CALCULATE([Profit], 'Time Calculation'[Time Calculation] = "YoY %")
+		formatString: #,0%;-#,0%;#,0%
+		lineageTag: 22df66ec-1e0e-4449-99ca-85ff5c71fce0
+
+	column 'Z hide'
+		isHidden
+		lineageTag: 36397df8-d97c-4638-92aa-112651ea3f7d
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Z hide]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Calculations = calculated
+		mode: import
+		source = SELECTCOLUMNS({"Measure group"},"Z hide", [Value])
+
+	annotation PBI_Id = 46eb4b511bfe4cecb952e7ab24f8d09d
+
+	annotation __PBI_SemanticLinks = [{"LinkTarget":{"TableName":"Financials","TableItemName":"Month Name (clusters)","ObjectType":4},"LinkType":"UsedInGroup"}]
+

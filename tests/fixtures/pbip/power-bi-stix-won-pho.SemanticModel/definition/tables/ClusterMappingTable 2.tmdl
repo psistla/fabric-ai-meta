@@ -1,0 +1,61 @@
+/// System-managed mapping of Month Name to ClusterId produced by KMeans clustering on Sales and Discounts.
+table 'ClusterMappingTable 2'
+	isHidden
+	isPrivate
+	lineageTag: 28d4d1ad-a6d3-4425-803b-8d9fe18f195f
+
+	column Month_Name
+		lineageTag: f6f6a171-39e4-4b9b-bfca-d4c3744c07de
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month_Name]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation __PBI_SemanticLinks = [{"LinkTarget":{"TableName":"Financials","TableItemName":"Month Name (clusters)","ObjectType":4},"LinkType":"UsedInGroup"}]
+
+	column ClusterId
+		formatString: 0
+		lineageTag: 166be9a4-b6e6-4025-b804-fb42a7955d64
+		summarizeBy: count
+		isNameInferred
+		sourceColumn: [ClusterId]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation __PBI_SemanticLinks = [{"LinkTarget":{"TableName":"Financials","TableItemName":"Month Name (clusters)","ObjectType":4},"LinkType":"UsedInGroup"}]
+
+	partition 'ClusterMappingTable 2' = calculated
+		mode: import
+		source = ```
+				VAR __DS0Core = 
+					SUMMARIZECOLUMNS(
+						'Financials'[Month Name],
+						"Sales", 'Calculations'[Sales],
+						"Discounts", 'Calculations'[Discounts]
+					)
+				
+				VAR __DataTransformT0 = 
+					KMeansClustering(
+						SELECTCOLUMNS(
+							__DS0Core,
+							"Month_Name", 'Financials'[Month Name],
+							"Sales", [Sales],
+							"Discounts", [Discounts]
+						),
+						{("[Sales]", "Attribute"),
+							("[Discounts]", "Attribute"),
+							("[Month_Name]", "Item")},
+						{("[Month_Name]", BLANK()),
+							("ClusterId", "ClusterId")},
+						-1
+					)
+				
+				RETURN __DataTransformT0
+				```
+			retainDataTillForceCalculate
+
+	annotation ClusterMappingTable = true
+
+	annotation __PBI_SemanticLinks = [{"LinkTarget":{"TableName":"Financials","TableItemName":"Month Name (clusters)","ObjectType":4},"LinkType":"UsedInGroup"}]
+

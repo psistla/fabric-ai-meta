@@ -1,0 +1,54 @@
+/// Field parameter that lets report users swap between Profit, Sales, Units, COGS, and Discounts measures.
+table 'Field parameter'
+	isHidden
+	lineageTag: 92e5ce02-234d-4aff-8587-dbfc93b1282b
+
+	column 'Field parameter'
+		isHidden
+		lineageTag: 71f4e16a-baa8-4b91-a1ba-de711e99ce53
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Field parameter Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Field parameter Fields'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Field parameter Fields'
+		isHidden
+		lineageTag: 8079b55f-1bf6-4f6c-950a-2a9dedf8bc2c
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Field parameter Order'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Field parameter Order'
+		isHidden
+		formatString: 0
+		lineageTag: 8104ddc0-2514-4f87-a311-b19477ab9b28
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Field parameter' = calculated
+		mode: import
+		source =
+				{
+				    ("Profit", NAMEOF('Calculations'[Profit]), 0),
+				    ("Sales", NAMEOF('Calculations'[Sales]), 1),
+				    ("Units", NAMEOF('Calculations'[Units]), 2),
+				    ("COGS", NAMEOF('Calculations'[COGS]), 3),
+				    ("Discounts", NAMEOF('Calculations'[Discounts]), 4)
+				}
+
+	annotation PBI_Id = 82ff0697b75944eb98f786339d9c320e
+

@@ -1,0 +1,58 @@
+table 'Shape map for stores'
+	lineageTag: 6f33357d-ef57-49a1-8b9c-5a9da9a237a9
+
+	column Postal
+		lineageTag: 14e7cdbd-b789-4484-b1f5-ce4938f10f83
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Postal]
+
+		annotation SummarizationSetBy = Automatic
+
+	column StateName
+		lineageTag: a7fef9bc-6f2a-48d6-8859-2008ec2f8149
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [StateName]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		lineageTag: e84bc318-5a62-482d-88d3-83d809ed4418
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Region]
+
+		annotation SummarizationSetBy = Automatic
+
+	column StoreCount
+		formatString: 0
+		lineageTag: a2b1030c-93df-4fff-b7c4-2360b763b457
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [StoreCount]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Shape map for stores' = calculated
+		mode: import
+		source =
+				
+				DATATABLE (
+				    "Postal", STRING, "StateName", STRING, "Region", STRING, "StoreCount", INTEGER,
+				    {
+				        { "CA", "California",    "Southwest",  87 },
+				        { "TX", "Texas",         "Southwest",  64 },
+				        { "NY", "New York",      "Northeast",  52 },
+				        { "FL", "Florida",       "Southeast",  48 },
+				        { "IL", "Illinois",      "Northeast",  31 },
+				        { "PA", "Pennsylvania",  "Northeast",  27 },
+				        { "GA", "Georgia",       "Southeast",  22 },
+				        { "WA", "Washington",    "Northwest",  19 },
+				        { "CO", "Southwest",     "Southwest",  14 },
+				        { "MA", "Massachusetts", "Northeast",  11 }
+				    }
+				)
+
+	annotation PBI_Id = ed66bcaa17d340b29f3d91d560ba3a2f
+

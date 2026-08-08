@@ -1,0 +1,140 @@
+/// Date dimension table covering 2025–2026 with Year, Quarter, Month, Day of Week, and Month Year attributes for time intelligence.
+table Date
+	lineageTag: b002f691-2a53-4fb2-b5a0-24c884632d3d
+	dataCategory: Time
+
+	/// Calendar date; primary key of the Date table.
+	column Date
+		isUnique
+		isKey
+		formatString: dd-mmm-yy
+		lineageTag: eec5d98d-7f55-4af5-842f-991419f6c85a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	/// Calendar year (e.g., 2025).
+	column Year
+		formatString: 0
+		lineageTag: 90c5af58-c299-49ea-8ed6-d55b2bcb90d4
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Calendar month number (1–12), useful for sorting.
+	column 'Month Number'
+		formatString: 0
+		lineageTag: e3cd3e2a-5ace-4f66-85fe-b46eab9fc901
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Month and year label (e.g., "Jan 2025").
+	column 'Month Year'
+		lineageTag: 4cd2d925-cbec-4c5e-8805-42610a527c76
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Year]
+		sortByColumn: Monthly
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Calendar quarter label (e.g., Q1, Q2).
+	column Quarter
+		lineageTag: 56accad7-ae44-41e7-83ad-647704a73a9a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Quarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Day of week as a number (1 = Sunday … 7 = Saturday).
+	column 'Day of Week'
+		formatString: 0
+		lineageTag: e95fceee-cc07-452c-9312-11c889dc1616
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Day of Week]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Three-letter day name (e.g., Mon, Tue).
+	column 'Day Name'
+		lineageTag: d77fd41e-9400-49ec-a299-d34d4205d18c
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Day Name]
+		sortByColumn: 'Day of Week'
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Numeric YYYYMM key (Year × 100 + Month) for sorting Month Year.
+	column 'Year Month'
+		formatString: 0
+		lineageTag: 449f3ccb-7399-4cf0-a58c-918e6ca31e43
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year Month]
+		sortByColumn: Monthly
+
+		annotation SummarizationSetBy = Automatic
+
+	/// First day of the month, used for monthly-level aggregations.
+	column Monthly = DATE(YEAR('Date'[Date]), MONTH('Date'[Date]), 1)
+		dataType: dateTime
+		formatString: MMM yyyy
+		lineageTag: 2e7bb133-33e4-4bf8-9321-130bb8953200
+		summarizeBy: none
+
+	/// Three-letter abbreviated month name (Jan–Dec).
+	column Month
+		lineageTag: 7c9b0e67-d601-411c-8baa-7ff2da98fb87
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+		sortByColumn: 'Month Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Date Hierarchy'
+		lineageTag: ef32de59-3094-4afb-9d59-bb134d9ede72
+
+		level Year
+			lineageTag: f1acae83-d44a-41ae-91fd-edf3807e02e5
+			column: Year
+
+		level Month
+			lineageTag: 745aa8b2-7553-457c-ac95-83e6c265144f
+			column: Month
+
+		level Date
+			lineageTag: a623d5eb-b4f5-45d2-9821-7c5c3b7c3779
+			column: Date
+
+	partition Date = calculated
+		mode: import
+		source =
+				
+				VAR _MinDate = DATE(2025, 1, 1)
+				VAR _MaxDate = DATE(2026, 12, 31)
+				RETURN
+				ADDCOLUMNS(
+				    CALENDAR(_MinDate, _MaxDate),
+				    "Year", YEAR([Date]),
+				    "Month Number", MONTH([Date]),
+				    "Month", FORMAT([Date], "MMM"),
+				    "Month Year", FORMAT([Date], "MMM YYYY"),
+				    "Quarter", "Q" & FORMAT([Date], "Q"),
+				    "Day of Week", WEEKDAY([Date]),
+				    "Day Name", FORMAT([Date], "ddd"),
+				    "Year Month", YEAR([Date]) * 100 + MONTH([Date])
+				)
+

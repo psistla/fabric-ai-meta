@@ -1,0 +1,4 @@
+relationship FinancialsToDate
+	fromColumn: Financials.Date
+	toColumn: Date.Date
+

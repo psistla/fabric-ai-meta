@@ -1,0 +1,183 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 284,
+            "y": 182
+          },
+          "nodeIndex": "Map",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1136,
+            "y": 182
+          },
+          "nodeIndex": "Markdown",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1420,
+            "y": 206
+          },
+          "nodeIndex": "Field parameter",
+          "nodeLineageTag": "92e5ce02-234d-4aff-8587-dbfc93b1282b",
+          "size": {
+            "height": 152,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1704,
+            "y": 182
+          },
+          "nodeIndex": "Scatter symmetry",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1988,
+            "y": 182
+          },
+          "nodeIndex": "Gantt software project",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2272,
+            "y": 206
+          },
+          "nodeIndex": "Category parameter",
+          "nodeLineageTag": "f7b04b6d-38af-49b4-8246-64fc9cebdc45",
+          "size": {
+            "height": 152,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 568,
+            "y": 182
+          },
+          "nodeIndex": "Formatting",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2840,
+            "y": 182
+          },
+          "nodeIndex": "Calculations",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2556,
+            "y": 182
+          },
+          "nodeIndex": "Financials",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2840,
+            "y": 180
+          },
+          "nodeIndex": "Time Calculation",
+          "size": {
+            "height": 104,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2452.6413994169093,
+            "y": 439.5218658892129
+          },
+          "nodeIndex": "Date",
+          "nodeLineageTag": "b002f691-2a53-4fb2-b5a0-24c884632d3d",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2840,
+            "y": 225.76093294460645
+          },
+          "nodeIndex": "Shape map for regions",
+          "nodeLineageTag": "c4fe54e8-8120-4307-833a-9d4eb0a0f9e6",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 3124,
+            "y": 249.76093294460645
+          },
+          "nodeIndex": "Shape map for stores",
+          "nodeLineageTag": "6f33357d-ef57-49a1-8b9c-5a9da9a237a9",
+          "size": {
+            "height": 176,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 28.970223325062033,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

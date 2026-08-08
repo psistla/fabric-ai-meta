@@ -1,0 +1,52 @@
+/// Field parameter that lets report users swap between Country, Segment, and Product as the category axis.
+table 'Category parameter'
+	isHidden
+	lineageTag: f7b04b6d-38af-49b4-8246-64fc9cebdc45
+
+	column 'Category parameter'
+		isHidden
+		lineageTag: 757093e3-99b8-4866-bd49-8c16c310c787
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Category parameter Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Category parameter Fields'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Category parameter Fields'
+		isHidden
+		lineageTag: 680cb134-7d81-4397-b128-6d0ffc5dcf03
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Category parameter Order'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Category parameter Order'
+		isHidden
+		formatString: 0
+		lineageTag: d403ed99-8218-4e2c-bba5-529a4bf54f8f
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Category parameter' = calculated
+		mode: import
+		source =
+				{
+				    ("Country", NAMEOF('Financials'[Country]), 0),
+				    ("Segment", NAMEOF('Financials'[Segment]), 1),
+				    ("Product", NAMEOF('Financials'[Product]), 2)
+				}
+
+	annotation PBI_Id = 5fb2daae67db4e0db0b69c5ea46c6936
+
