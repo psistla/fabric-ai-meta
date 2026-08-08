@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `--pbip` now classifies date columns as `DATE`. TMDL writes the type as `dateTime`, but the classifier and every other extractor use lowercase `datetime`, so on the local path every date column fell through to `ATTRIBUTE`, and any column whose name contained "order" or "sort" (such as `Order Date`) was labelled `SORT` instead. The type is now lowercased where it is parsed, matching the Fabric extractor. The Fabric path was never affected.
+
 ## [1.8.0] - 2026-07-25
 
 Dependency restructure and honesty pass. What the package ships now matches what it claims: a `pip install fabric-ai-meta` drops from ~730 MB to ~55 MB, `--mock` works from that install and never fabricates data, and the docs no longer describe an extraction path that was never built.

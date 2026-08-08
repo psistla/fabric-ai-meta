@@ -69,7 +69,7 @@ def test_parse_columns_skips_variation_block():
 
     t = _parse_table_file(os.path.join(AMAZON_TABLES, "All Items.tmdl"))
     order_date = _col(t, "Order Date")   # quoted name unquoted
-    assert order_date.data_type == "dateTime"
+    assert order_date.data_type == "datetime"  # TMDL emits `dateTime`, lowercased
     assert order_date.is_hidden is True
     assert order_date.format_string == "Long Date"
     # The nested `variation Variation` block must not leak in as a column.
@@ -262,6 +262,32 @@ def test_pbip_extract_amazon_single_table():
 
     m = PbipExtractor(FIXTURES).extract("stix-one-pho-amazon", "ws")
     assert [t.name for t in m.tables] == ["All Items"]
+
+
+def test_pbip_datetime_columns_classify_as_date():
+    """TMDL spells the type `dateTime`; the classifier tests lowercase `datetime`.
+
+    Without normalizing at the extractor boundary every date column on the pbip
+    path fell through to ATTRIBUTE, and `Order Date` to SORT (the sort rule sees
+    the substring "order" first).
+    """
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+    from fabric_ai_meta.models.metadata import ColumnRole
+
+    for model_name in ("stix-one-pho", "stix-one-pho-amazon"):
+        m = PbipExtractor(FIXTURES).extract(model_name, "ws")
+        classify_model_in_place(m)
+        dates = [
+            c
+            for t in m.tables
+            for c in t.columns
+            if c.data_type == "datetime"
+        ]
+        assert dates, f"{model_name} has no datetime columns to check"
+        assert all(c.role is ColumnRole.DATE for c in dates), [
+            (c.name, c.role) for c in dates if c.role is not ColumnRole.DATE
+        ]
 
 
 def test_pbip_copilot_present_absent_and_miscased(tmp_path):

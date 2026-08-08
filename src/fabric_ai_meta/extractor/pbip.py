@@ -152,7 +152,9 @@ def _parse_column(node: _Node) -> ColumnMeta:
     name = _unquote(node.header[len("column ") :].strip())
     return ColumnMeta(
         name=name,
-        data_type=node.prop_value("dataType", d) or "",
+        # lowercased to match the rest of the codebase: TMDL writes `dateTime`,
+        # the classifier and every fixture use `datetime`. Same as semantic_link.
+        data_type=(node.prop_value("dataType", d) or "").lower(),
         description=node.description,
         ai_description=None,
         role=ColumnRole.UNKNOWN,
