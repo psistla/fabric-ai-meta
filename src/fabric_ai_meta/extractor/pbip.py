@@ -47,6 +47,11 @@ def _unquote(name: str) -> str:
     return name
 
 
+def _unquote_opt(name: str | None) -> str | None:
+    """`_unquote` for optional properties: absent stays absent."""
+    return None if name is None else _unquote(name)
+
+
 def _split_first_unquoted(s: str, sep: str) -> tuple[str, str | None]:
     """Split `s` on the first `sep` that sits outside a single-quoted span.
 
@@ -161,7 +166,7 @@ def _parse_column(node: _Node) -> ColumnMeta:
         is_hidden=node.has_flag("isHidden", d),
         display_folder=None,
         format_string=node.prop_value("formatString", d),
-        sort_by_column=None,
+        sort_by_column=_unquote_opt(node.prop_value("sortByColumn", d)),
     )
 
 

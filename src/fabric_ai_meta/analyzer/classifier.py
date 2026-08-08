@@ -137,7 +137,8 @@ def classify_column_role(
     FK detection: column name matches a relationship's from_column for this table.
     Key detection: name ends with Key, ID, or Id and is not a FK.
     Date detection: data_type == datetime or name is Date / DateKey.
-    Sort detection: name contains Sort or Order and is not a numeric type.
+    Sort detection: another column declares this one as its sortByColumn, or the
+    name contains Sort.
     """
     name = column.name
     name_lower = name.lower()
@@ -153,8 +154,18 @@ def classify_column_role(
     if column.data_type == "datetime" or name in ("Date", "DateKey"):
         return ColumnRole.DATE
 
-    # Sort detection: name contains Sort or Order and is not a numeric type
-    if ("sort" in name_lower or "order" in name_lower) and column.data_type not in _NUMERIC_TYPES:
+    # Sort detection. The declared `sortByColumn` property is authoritative: a
+    # column is a sort column when ANOTHER column in the table names it, which is
+    # the inverse of how the property reads. The name fallback covers models that
+    # ship *Sort columns without ever wiring the property up (common; the
+    # footwear fixture's hand-built dim_date does exactly this).
+    #
+    # `order` used to be a keyword here and had to go: it matched Order ID,
+    # Order Status and Purchase Order Number in any sales model, none of them
+    # sort columns. The old `not in _NUMERIC_TYPES` guard was backwards too, since
+    # a sort column is nearly always an integer.
+    sort_targets = {c.sort_by_column for c in table.columns if c.sort_by_column}
+    if name in sort_targets or "sort" in name_lower:
         return ColumnRole.SORT
 
     # Key detection: ends with Key, ID, or Id

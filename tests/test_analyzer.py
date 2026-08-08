@@ -2,6 +2,7 @@
 
 
 from fabric_ai_meta.analyzer.classifier import (
+    classify_column_role,
     classify_measure_heuristic,
     classify_table_heuristic,
 )
@@ -264,6 +265,71 @@ def _str_col(name):
         sort_by_column=None,
         sample_values=None,
     )
+
+
+def _col(name, data_type="string", sort_by=None):
+    return ColumnMeta(
+        name=name,
+        data_type=data_type,
+        description=None,
+        ai_description=None,
+        role=ColumnRole.UNKNOWN,
+        is_hidden=False,
+        display_folder=None,
+        format_string=None,
+        sort_by_column=sort_by,
+        sample_values=None,
+    )
+
+
+def test_declared_sort_by_column_target_is_sort():
+    """`column Month { sortByColumn: MonthNo }` makes MonthNo the sort column.
+
+    The declared property is authoritative and beats the numeric-type rule that
+    would otherwise call an integer sort column a MEASURE_COLUMN.
+    """
+    month = _col("Month", sort_by="MonthNo")
+    month_no = _col("MonthNo", "int64")
+    t = _table("dim_date", columns=[month, month_no])
+    assert classify_column_role(month_no, t, []) == ColumnRole.SORT
+
+
+def test_numeric_sort_named_column_is_sort_without_declaration():
+    """dim_date in the footwear fixture names MonthSort/QuarterSort but declares
+    no sortByColumn, so the name fallback has to survive, minus the old
+    non-numeric exclusion that made it unable to match an integer."""
+    c = _col("MonthSort", "int64")
+    t = _table("dim_date", columns=[c])
+    assert classify_column_role(c, t, []) == ColumnRole.SORT
+
+
+def test_order_in_name_is_not_a_sort_column():
+    """`order` was a sort keyword, so every Order ID / Order Status in a sales
+    model came back SORT. A key is not a sort column."""
+    c = _col("Order ID")
+    t = _table("All Items", columns=[c])
+    assert classify_column_role(c, t, []) == ColumnRole.KEY
+
+
+def test_order_status_is_an_attribute_not_sort():
+    c = _col("Order Status")
+    t = _table("All Items", columns=[c])
+    assert classify_column_role(c, t, []) == ColumnRole.ATTRIBUTE
+
+
+def test_foreign_key_still_beats_declared_sort():
+    """A column that is both an FK and a sort target stays FOREIGN_KEY."""
+    from fabric_ai_meta.models.metadata import RelationshipMeta
+
+    rel = RelationshipMeta(
+        from_table="fact", from_column="MonthNo",
+        to_table="dim_date", to_column="MonthNo",
+        cardinality="many-to-one", cross_filter_direction="single", is_active=True,
+    )
+    label = _col("Month", sort_by="MonthNo")
+    month_no = _col("MonthNo", "int64")
+    t = _table("fact", columns=[label, month_no])
+    assert classify_column_role(month_no, t, [rel]) == ColumnRole.FOREIGN_KEY
 
 
 def test_dim_factory_is_not_a_fact_table():

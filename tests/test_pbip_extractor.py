@@ -15,6 +15,9 @@ PHO_TABLES = os.path.join(
 AMAZON_TABLES = os.path.join(
     FIXTURES, "stix-one-pho-amazon.SemanticModel", "definition", "tables"
 )
+FOOTWEAR_TABLES = os.path.join(
+    FIXTURES, "footwear-sustainability.SemanticModel", "definition", "tables"
+)
 
 
 def _col(table, name):
@@ -262,6 +265,59 @@ def test_pbip_extract_amazon_single_table():
 
     m = PbipExtractor(FIXTURES).extract("stix-one-pho-amazon", "ws")
     assert [t.name for t in m.tables] == ["All Items"]
+
+
+def test_parse_column_reads_sort_by_column():
+    """TMDL declares `sortByColumn`; the parser was dropping it on the floor."""
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    tmpl = next(
+        f for f in os.listdir(FOOTWEAR_TABLES) if f.startswith("DateTableTemplate_")
+    )
+    t = _parse_table_file(os.path.join(FOOTWEAR_TABLES, tmpl))
+    by_sort = {c.name: c.sort_by_column for c in t.columns if c.sort_by_column}
+    assert by_sort == {
+        'Month = FORMAT([Date], "MMMM")': "MonthNo",
+        'Quarter = "Qtr " & [QuarterNo]': "QuarterNo",
+    }
+    assert _col(t, "Date").sort_by_column is None  # not declared, stays None
+
+
+def test_declared_sort_target_is_defeated_by_calculated_column_names():
+    """Known limitation, pinned so it is not mistaken for working.
+
+    Every column in Power BI's auto date tables is calculated, and `--pbip` parses
+    a calculated column's name as the whole `Name = DAX` header. So the declared
+    target "MonthNo" never matches the column actually called
+    `MonthNo = MONTH([Date])`, and the sortByColumn link cannot resolve on this
+    path. The declared lookup does work wherever names are clean (the sempy path,
+    and non-calculated columns). Fixing this means fixing calculated-column name
+    parsing, which is a separate pre-existing defect.
+    """
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    tmpl = next(
+        f for f in os.listdir(FOOTWEAR_TABLES) if f.startswith("DateTableTemplate_")
+    )
+    t = _parse_table_file(os.path.join(FOOTWEAR_TABLES, tmpl))
+    names = {c.name for c in t.columns}
+    targets = {c.sort_by_column for c in t.columns if c.sort_by_column}
+    assert targets and not (targets & names)  # declared, but unresolvable here
+
+
+def test_pbip_declared_sort_columns_classify_as_sort():
+    """End to end: the declared target becomes SORT rather than MEASURE_COLUMN."""
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+    from fabric_ai_meta.models.metadata import ColumnRole
+
+    m = PbipExtractor(FIXTURES).extract("footwear-sustainability", "ws")
+    classify_model_in_place(m)
+    dim_date = next(t for t in m.tables if t.name == "dim_date")
+    roles = {c.name: c.role for c in dim_date.columns}
+    # named *Sort, no sortByColumn declared anywhere in dim_date
+    for name in ("QuarterSort", "MonthSort", "DayOfWeekSort", "WeekSort"):
+        assert roles[name] is ColumnRole.SORT, name
 
 
 def test_pbip_footwear_star_schema_classification():
