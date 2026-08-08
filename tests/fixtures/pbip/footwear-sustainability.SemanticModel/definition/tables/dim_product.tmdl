@@ -1,0 +1,104 @@
+table dim_product
+	lineageTag: 76ec3345-20a4-490d-8b7e-97fb82798a37
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: 17072d12-52d3-4761-907f-251fd17c6c64
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column style_name
+		dataType: string
+		lineageTag: c297c4d4-7edb-4796-a8ba-05228bb4c681
+		summarizeBy: none
+		sourceColumn: style_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column category
+		dataType: string
+		lineageTag: 0f705702-36ab-4b9b-a74c-fca528d36ddd
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = Automatic
+
+	column gender
+		dataType: string
+		lineageTag: d0113f77-e72f-44bd-9faa-f69a73fe67f4
+		summarizeBy: none
+		sourceColumn: gender
+
+		annotation SummarizationSetBy = Automatic
+
+	column material_family
+		dataType: string
+		lineageTag: 5663e0bb-ff44-4bc8-80e3-534e85daf0c2
+		summarizeBy: none
+		sourceColumn: material_family
+
+		annotation SummarizationSetBy = Automatic
+
+	column unit_weight_kg
+		dataType: double
+		lineageTag: cdec8af9-ea13-4b9d-936c-f02fd43ab445
+		summarizeBy: none
+		sourceColumn: unit_weight_kg
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column list_price
+		dataType: double
+		lineageTag: e3439e8c-4bf5-465d-84e1-cf32cb294c37
+		summarizeBy: none
+		sourceColumn: list_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column recycled_content_pct
+		dataType: double
+		lineageTag: 79383f24-78fd-48d4-a4b0-b2dbd393e623
+		summarizeBy: none
+		sourceColumn: recycled_content_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column circularity_score
+		dataType: int64
+		formatString: 0
+		lineageTag: caab1892-c67a-4d2e-8242-7cebed113675
+		summarizeBy: none
+		sourceColumn: circularity_score
+
+		annotation SummarizationSetBy = Automatic
+
+	column take_back_eligible
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 6b231f8f-8b15-4e50-9d27-75d9e0ece4d5
+		summarizeBy: none
+		sourceColumn: take_back_eligible
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_product = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\claude-projects\datasets\out\footwear-sustainability-star\clean\dim_product.csv"),[Delimiter=",", Columns=10, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"style_name", type text}, {"category", type text}, {"gender", type text}, {"material_family", type text}, {"unit_weight_kg", type number}, {"list_price", type number}, {"recycled_content_pct", type number}, {"circularity_score", Int64.Type}, {"take_back_eligible", type logical}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

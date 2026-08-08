@@ -232,6 +232,73 @@ def test_dimension_table_classification_enterprise(enterprise_sales_model):
 
 
 # ---------------------------------------------------------------------------
+# Table name matching: token boundaries, not raw substrings
+# ---------------------------------------------------------------------------
+
+def _table(name, columns=(), measures=()):
+    return TableMeta(
+        name=name,
+        table_type=TableType.UNKNOWN,
+        description=None,
+        ai_description=None,
+        columns=list(columns),
+        measures=list(measures),
+        hierarchies=[],
+        row_count_estimate=None,
+        is_hidden=False,
+        grain=None,
+        source_partition_type=None,
+    )
+
+
+def _str_col(name):
+    return ColumnMeta(
+        name=name,
+        data_type="string",
+        description=None,
+        ai_description=None,
+        role=ColumnRole.ATTRIBUTE,
+        is_hidden=False,
+        display_folder=None,
+        format_string=None,
+        sort_by_column=None,
+        sample_values=None,
+    )
+
+
+def test_dim_factory_is_not_a_fact_table():
+    """`fact` is a substring of `factory`; the name rule must not fire on it.
+
+    dim_factory in the footwear-sustainability fixture is a textbook dimension:
+    it sits on the "one" side of a many-to-one from fact_order_line.
+    """
+    from fabric_ai_meta.models.metadata import RelationshipMeta
+
+    rel = RelationshipMeta(
+        from_table="fact_order_line",
+        from_column="factory_id",
+        to_table="dim_factory",
+        to_column="factory_id",
+        cardinality="many-to-one",
+        cross_filter_direction="single",
+        is_active=True,
+    )
+    t = _table("dim_factory", columns=[_str_col("factory_id"), _str_col("factory_name")])
+    assert classify_table_heuristic(t, [rel]) == TableType.DIMENSION
+
+
+def test_camelcase_fact_name_still_matches():
+    """Guard: SalesOrderLarge has no separator, so token splitting must handle case."""
+    t = _table("SalesOrderLarge", columns=[_str_col("a"), _str_col("b")])
+    assert classify_table_heuristic(t, []) == TableType.FACT
+
+
+def test_underscored_fact_name_still_matches():
+    t = _table("fact_order_line", columns=[_str_col("a"), _str_col("b")])
+    assert classify_table_heuristic(t, []) == TableType.FACT
+
+
+# ---------------------------------------------------------------------------
 # Enterprise fixture, measure classification
 # ---------------------------------------------------------------------------
 
@@ -251,6 +318,50 @@ def test_semi_additive_opening_balance(enterprise_sales_model):
     """[Opening Balance] uses FIRSTDATE and should be SEMI_ADDITIVE."""
     measure = _get_measure(enterprise_sales_model, "[Opening Balance]")
     assert classify_measure_heuristic(measure) == MeasureCategory.SEMI_ADDITIVE
+
+
+def _measure(name, dax):
+    return MeasureMeta(
+        name=name,
+        dax_expression=dax,
+        description=None,
+        ai_description=None,
+        category=MeasureCategory.UNKNOWN,
+        display_folder=None,
+        format_string=None,
+    )
+
+
+# The balance functions below sit in BOTH TIME_INTEL_FUNCTIONS and
+# SEMI_ADDITIVE_PATTERNS. Time intelligence is the earlier rule, so before the
+# precedence fix these four were unreachable and every balance measure came back
+# TIME_INTELLIGENCE. DAX taken verbatim from the footwear-sustainability fixture.
+
+def test_semi_additive_closing_balance_month():
+    m = _measure("Revenue Month End", "CLOSINGBALANCEMONTH ( [Revenue], dim_date[date_actual] )")
+    assert classify_measure_heuristic(m) == MeasureCategory.SEMI_ADDITIVE
+
+
+def test_semi_additive_opening_balance_month():
+    m = _measure("Revenue Month Start", "OPENINGBALANCEMONTH ( [Revenue], dim_date[date_actual] )")
+    assert classify_measure_heuristic(m) == MeasureCategory.SEMI_ADDITIVE
+
+
+def test_semi_additive_closing_balance_quarter():
+    m = _measure("Revenue Qtr End", "CLOSINGBALANCEQUARTER ( [Revenue], dim_date[date_actual] )")
+    assert classify_measure_heuristic(m) == MeasureCategory.SEMI_ADDITIVE
+
+
+def test_genuine_time_intelligence_survives_semi_additive_precedence():
+    """The fix must not drag real time-intelligence measures into SEMI_ADDITIVE."""
+    for name, dax in (
+        ("Sales YTD", "TOTALYTD ( SUM ( Sales[Amount] ), 'Date'[Date] )"),
+        ("Sales PY", "CALCULATE ( SUM ( Sales[Amount] ), SAMEPERIODLASTYEAR ( 'Date'[Date] ) )"),
+        ("Sales Prev M", "CALCULATE ( SUM ( Sales[Amount] ), PREVIOUSMONTH ( 'Date'[Date] ) )"),
+    ):
+        assert classify_measure_heuristic(_measure(name, dax)) == (
+            MeasureCategory.TIME_INTELLIGENCE
+        ), name
 
 
 def test_filter_context_measure_classification(enterprise_sales_model):

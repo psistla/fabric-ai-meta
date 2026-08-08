@@ -1,0 +1,29 @@
+relationship f054d494-729b-4571-a2cb-593148946aac
+	joinOnDateBehavior: datePartOnly
+	fromColumn: fact_order_line.order_ts
+	toColumn: LocalDateTable_4b4ceae4-bdb2-412c-8150-7b9497ed5c57.Date
+
+relationship AutoDetected_05c192cd-9486-4ee5-b090-db5b5255ff3a
+	fromColumn: fact_order_line.dim_customer_id
+	toColumn: dim_customer.id
+
+relationship AutoDetected_b18a44e6-6629-47bf-82c1-c93411271d26
+	fromColumn: fact_order_line.dim_product_id
+	toColumn: dim_product.id
+
+relationship AutoDetected_0f21ecee-c194-46aa-8201-366fc74a5a14
+	fromColumn: fact_order_line.dim_supplier_id
+	toColumn: dim_supplier.id
+
+relationship AutoDetected_c7abe73b-703b-4448-a562-09fbde2f29f0
+	fromColumn: fact_order_line.dim_factory_id
+	toColumn: dim_factory.id
+
+relationship AutoDetected_c5eb6d75-b4f2-413d-a9c3-9346b834240e
+	fromColumn: fact_order_line.dim_ship_mode_id
+	toColumn: dim_ship_mode.id
+
+relationship AutoDetected_42f13e8f-7665-4f43-a9b6-b71c9090967f
+	fromColumn: fact_order_line.dim_date_id
+	toColumn: dim_date.id
+

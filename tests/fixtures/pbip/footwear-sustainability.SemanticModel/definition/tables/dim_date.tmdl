@@ -1,0 +1,220 @@
+table dim_date
+	lineageTag: 8a65f988-204f-442a-b70f-6c82531e5077
+	dataCategory: Time
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: 885eccc6-bd13-41af-8ed5-ee4df0993631
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column date_actual
+		dataType: dateTime
+		isKey
+		formatString: Long Date
+		lineageTag: c4ce11a8-a827-4a35-bf55-f217dcb5c192
+		summarizeBy: none
+		sourceColumn: date_actual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 28a6dad5-348b-47bf-bc54-6a6ecb7efffd
+		summarizeBy: sum
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: string
+		lineageTag: 9e2e97d6-2c06-434f-a5c8-3c1efd64a064
+		summarizeBy: none
+		sourceColumn: Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarterSort
+		dataType: int64
+		formatString: 0
+		lineageTag: fc1b178d-ef6f-4958-85a5-283ac40dbec5
+		summarizeBy: sum
+		sourceColumn: QuarterSort
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 6c5cb7fa-db0f-4e6b-b696-e2f3b0762983
+		summarizeBy: none
+		sourceColumn: Month
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column MonthName
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 2910d42a-ad7f-44d8-9d8c-a35cecfe3f41
+		summarizeBy: none
+		sourceColumn: MonthName
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column MonthSort
+		dataType: int64
+		formatString: 0
+		lineageTag: 7ab978ad-8b2e-4a40-b1d6-09b72be85ee1
+		summarizeBy: sum
+		sourceColumn: MonthSort
+
+		annotation SummarizationSetBy = Automatic
+
+	column DayOfWeek
+		dataType: string
+		lineageTag: 5aac99de-0f88-4e79-afb0-7917a7967a38
+		summarizeBy: none
+		sourceColumn: DayOfWeek
+
+		annotation SummarizationSetBy = Automatic
+
+	column DayOfWeekSort
+		dataType: int64
+		formatString: 0
+		lineageTag: 51d9e6f7-2f19-421e-a3a6-7861c967f483
+		summarizeBy: sum
+		sourceColumn: DayOfWeekSort
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekStart
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 8c208760-3534-4180-844e-072dacd6d776
+		summarizeBy: none
+		sourceColumn: WeekStart
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column YearWeek
+		dataType: string
+		lineageTag: 45c44a3d-a429-4263-9f95-a3260aea6ba4
+		summarizeBy: none
+		sourceColumn: YearWeek
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekSort
+		dataType: int64
+		formatString: 0
+		lineageTag: 59493c88-d433-4b3b-a701-2d66e6c72a20
+		summarizeBy: sum
+		sourceColumn: WeekSort
+
+		annotation SummarizationSetBy = Automatic
+
+	column DayOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: ea44d02a-62f5-4582-9c56-f40d2b0d38cf
+		summarizeBy: sum
+		sourceColumn: DayOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: d0ba1c2b-42f5-4ab1-9acc-f83e346cef3a
+		summarizeBy: sum
+		sourceColumn: MonthOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarterOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: ae7dcf40-9c0c-43ee-8a55-623ae2255441
+		summarizeBy: sum
+		sourceColumn: QuarterOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 855ba956-8db0-4a09-b031-766839a7e38f
+		summarizeBy: sum
+		sourceColumn: YearOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsWeekend
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b9fa60a2-3b2b-46eb-a8ea-ed976e8ea17d
+		summarizeBy: none
+		sourceColumn: IsWeekend
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsFuture
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: bce5e5d6-e611-487d-9b43-96398baa2bd6
+		summarizeBy: none
+		sourceColumn: IsFuture
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsLast30Days
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 0f50bfa0-a9a9-4a08-a661-19a17f53b0e9
+		summarizeBy: none
+		sourceColumn: IsLast30Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsLast90Days
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 7b708d2a-023c-4197-9a26-c7e762fee542
+		summarizeBy: none
+		sourceColumn: IsLast90Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsCompleteMonth
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 7d09d26c-cb99-478b-8ea8-0d88bc358e5b
+		summarizeBy: none
+		sourceColumn: IsCompleteMonth
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_date = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\claude-projects\datasets\out\footwear-sustainability-star\clean\dim_date.csv"),[Delimiter=",", Columns=22, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"date_actual", type date}, {"Year", Int64.Type}, {"Quarter", type text}, {"QuarterSort", Int64.Type}, {"Month", type date}, {"MonthName", type date}, {"MonthSort", Int64.Type}, {"DayOfWeek", type text}, {"DayOfWeekSort", Int64.Type}, {"WeekStart", type date}, {"YearWeek", type text}, {"WeekSort", Int64.Type}, {"DayOffset", Int64.Type}, {"MonthOffset", Int64.Type}, {"QuarterOffset", Int64.Type}, {"YearOffset", Int64.Type}, {"IsWeekend", type logical}, {"IsFuture", type logical}, {"IsLast30Days", type logical}, {"IsLast90Days", type logical}, {"IsCompleteMonth", type logical}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

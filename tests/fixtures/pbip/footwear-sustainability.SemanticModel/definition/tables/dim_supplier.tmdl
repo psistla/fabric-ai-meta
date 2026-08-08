@@ -1,0 +1,75 @@
+table dim_supplier
+	lineageTag: 374d9d11-b26e-40bb-9d9a-63c6b3d35495
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: 09f3659a-c337-46ce-82c5-e42674adb220
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		lineageTag: 8c1afe80-5519-4ccf-a664-40556c99a29a
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column country
+		dataType: string
+		lineageTag: c3dca7b2-aa9a-4669-9284-8fbd6cb91d71
+		summarizeBy: none
+		sourceColumn: country
+
+		annotation SummarizationSetBy = Automatic
+
+	column region
+		dataType: string
+		lineageTag: 1d3ecdc4-938e-42c6-8e7e-9e9c12d999e1
+		summarizeBy: none
+		sourceColumn: region
+
+		annotation SummarizationSetBy = Automatic
+
+	column sustainability_rating
+		dataType: string
+		lineageTag: 68ba3da6-6d37-4456-ae53-3f7c9b0deeb7
+		summarizeBy: none
+		sourceColumn: sustainability_rating
+
+		annotation SummarizationSetBy = Automatic
+
+	column renewable_energy_pct
+		dataType: double
+		lineageTag: fb58a79e-c87b-4148-b73e-a2b4f36df271
+		summarizeBy: none
+		sourceColumn: renewable_energy_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column zero_waste_certified
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 3cfd68f9-1b58-43ce-b88d-f268fc271649
+		summarizeBy: none
+		sourceColumn: zero_waste_certified
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_supplier = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\claude-projects\datasets\out\footwear-sustainability-star\clean\dim_supplier.csv"),[Delimiter=",", Columns=7, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"name", type text}, {"country", type text}, {"region", type text}, {"sustainability_rating", type text}, {"renewable_energy_pct", type number}, {"zero_waste_certified", type logical}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

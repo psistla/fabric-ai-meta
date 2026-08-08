@@ -41,6 +41,15 @@ _FACT_NAME_PATTERNS = {"fact", "fct", "sales", "transactions", "events", "orders
 _DIM_NAME_PATTERNS = {"dim", "dimension", "lookup", "product", "customer", "date", "calendar"}
 _NUMERIC_TYPES = {"int64", "double", "decimal"}
 
+# Splits on separators AND camelCase, so `dim_factory` -> {dim, factory} and
+# `SalesOrderLarge` -> {sales, order, large}. Plain substring matching made
+# `dim_factory` a FACT table, because "fact" is inside "factory".
+_TOKEN_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z]*|[a-z]+|\d+")
+
+
+def _name_tokens(name: str) -> set[str]:
+    return {t.lower() for t in _TOKEN_RE.findall(name)}
+
 
 def classify_table_heuristic(
     table: TableMeta, relationships: list[RelationshipMeta]
@@ -69,7 +78,7 @@ def classify_table_heuristic(
 
     Returns TableType.UNKNOWN when no rule matches confidently.
     """
-    name_lower = table.name.lower()
+    name_tokens = _name_tokens(table.name)
 
     # Outbound many-to-one (table is on "many" side, typical of fact tables)
     outbound_many_to_one = [
@@ -101,7 +110,7 @@ def classify_table_heuristic(
         return TableType.CONFIGURATION
 
     # Fact indicators
-    fact_name_match = any(pat in name_lower for pat in _FACT_NAME_PATTERNS)
+    fact_name_match = bool(name_tokens & _FACT_NAME_PATTERNS)
     has_multiple_outbound = len(outbound_many_to_one) >= 2
     numeric_cols = [c for c in table.columns if c.data_type in _NUMERIC_TYPES]
     has_numeric_cols = len(numeric_cols) >= 2
@@ -110,7 +119,7 @@ def classify_table_heuristic(
         return TableType.FACT
 
     # Dimension indicators
-    dim_name_match = any(pat in name_lower for pat in _DIM_NAME_PATTERNS)
+    dim_name_match = bool(name_tokens & _DIM_NAME_PATTERNS)
     has_inbound = len(inbound) >= 1
 
     if dim_name_match or (has_inbound and not table.measures):
@@ -164,7 +173,7 @@ def classify_measure_heuristic(measure: MeasureMeta) -> MeasureCategory:
     Heuristic measure category detection from the DAX expression.
 
     Priority order:
-    1. TIME_INTELLIGENCE, any time intelligence function present
+    1. TIME_INTELLIGENCE, any time intelligence function that is not a balance function
     2. NON_ADDITIVE: DISTINCTCOUNT (cannot be summed across any dimension)
     3. SEMI_ADDITIVE, balance-type patterns (LASTDATE, OPENINGBALANCEMONTH, etc.)
     4. NON_ADDITIVE, ratios/averages (DIVIDE, AVERAGE, AVERAGEX)
@@ -177,8 +186,14 @@ def classify_measure_heuristic(measure: MeasureMeta) -> MeasureCategory:
     # Extract all DAX function names (word followed by opening paren)
     functions_used = set(re.findall(r'\b([A-Z]+)\s*\(', dax_upper))
 
-    # 1. TIME_INTELLIGENCE
-    if functions_used & TIME_INTEL_FUNCTIONS:
+    # 1. TIME_INTELLIGENCE, excluding the balance functions. The four
+    # OPENING/CLOSINGBALANCE* functions sit in both sets, and while this rule
+    # matched them they shadowed rule 3 entirely: no measure could ever be
+    # SEMI_ADDITIVE via a balance function, only via LASTDATE/FIRSTDATE.
+    # Semi-additive is the more actionable label ("do not SUM across dates"), so
+    # a measure using ONLY balance functions falls through to rule 3. A measure
+    # that also uses a real time-intelligence function still lands here.
+    if functions_used & (TIME_INTEL_FUNCTIONS - SEMI_ADDITIVE_PATTERNS):
         return MeasureCategory.TIME_INTELLIGENCE
 
     # 2. NON_ADDITIVE: DISTINCTCOUNT before semi-additive check

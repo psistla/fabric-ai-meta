@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Balance measures now classify as `SEMI_ADDITIVE` instead of `TIME_INTELLIGENCE`. `OPENINGBALANCEMONTH`, `CLOSINGBALANCEMONTH`, `OPENINGBALANCEQUARTER` and `CLOSINGBALANCEQUARTER` appear in both the time-intelligence and the semi-additive pattern sets, and the time-intelligence rule ran first, so those four could never reach the semi-additive rule. Only `LASTDATE` and `FIRSTDATE` ever produced a `SEMI_ADDITIVE` result. The time-intelligence rule now excludes the balance functions, so a measure using only balance functions falls through to semi-additive while a measure that also uses a real time-intelligence function is unchanged. This matters because semi-additive is the label that says "do not SUM this across dates".
+- Dimension tables whose name contains a fact keyword as a substring are no longer classified as facts. `dim_factory` became a `FACT` table because `fact` is inside `factory`. Table name matching now splits on separators and camelCase and compares whole tokens, so `dim_factory` gives `{dim, factory}` and no longer matches, while `fact_order_line` and `SalesOrderLarge` still do.
 - `--pbip` now classifies date columns as `DATE`. TMDL writes the type as `dateTime`, but the classifier and every other extractor use lowercase `datetime`, so on the local path every date column fell through to `ATTRIBUTE`, and any column whose name contained "order" or "sort" (such as `Order Date`) was labelled `SORT` instead. The type is now lowercased where it is parsed, matching the Fabric extractor. The Fabric path was never affected.
 
 ## [1.8.0] - 2026-07-25

@@ -230,7 +230,7 @@ def test_pbip_list_models_dir_of_dirs_sorted():
     from fabric_ai_meta.extractor.pbip import PbipExtractor
 
     assert PbipExtractor(FIXTURES).list_models("ignored") == [
-        "stix-one-pho", "stix-one-pho-amazon"
+        "footwear-sustainability", "stix-one-pho", "stix-one-pho-amazon"
     ]
 
 
@@ -262,6 +262,29 @@ def test_pbip_extract_amazon_single_table():
 
     m = PbipExtractor(FIXTURES).extract("stix-one-pho-amazon", "ws")
     assert [t.name for t in m.tables] == ["All Items"]
+
+
+def test_pbip_footwear_star_schema_classification():
+    """The one fixture with a full star schema and real balance-pattern DAX.
+
+    Guards the two precedence fixes together: `dim_factory` must not be a FACT
+    table (the `fact` substring lives inside `factory`), and the OPENING/CLOSING
+    balance measures must be SEMI_ADDITIVE rather than TIME_INTELLIGENCE.
+    """
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    from fabric_ai_meta.extractor.pbip import PbipExtractor
+    from fabric_ai_meta.models.metadata import MeasureCategory
+
+    m = PbipExtractor(FIXTURES).extract("footwear-sustainability", "ws")
+    classify_model_in_place(m)
+    types = {t.name: t.table_type for t in m.tables}
+    assert types["fact_order_line"] is TableType.FACT
+    for dim in ("dim_factory", "dim_customer", "dim_product", "dim_supplier"):
+        assert types[dim] is TableType.DIMENSION, dim
+
+    cats = {x.name: x.category for t in m.tables for x in t.measures}
+    for name in ("Revenue Month End", "Revenue Month Start", "Revenue on Last Day"):
+        assert cats[name] is MeasureCategory.SEMI_ADDITIVE, name
 
 
 def test_pbip_datetime_columns_classify_as_date():

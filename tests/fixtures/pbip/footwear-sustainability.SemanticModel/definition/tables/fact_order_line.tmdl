@@ -1,0 +1,226 @@
+table fact_order_line
+	lineageTag: e85c9e9b-47a9-4dbc-93a9-db52b91b9f05
+
+	column order_line_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3d66b829-95a9-4053-a362-060d4998ffdd
+		summarizeBy: sum
+		sourceColumn: order_line_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column dim_date_id
+		dataType: int64
+		formatString: 0
+		lineageTag: ddc5c4af-c07b-42ee-9a6f-f7feb797e512
+		summarizeBy: none
+		sourceColumn: dim_date_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column dim_customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 66f0e4ab-5ae1-4070-85d7-a0621d1502ca
+		summarizeBy: none
+		sourceColumn: dim_customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column dim_product_id
+		dataType: int64
+		formatString: 0
+		lineageTag: ddf28242-0edd-46da-b69d-e18ecb648baa
+		summarizeBy: none
+		sourceColumn: dim_product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column dim_supplier_id
+		dataType: int64
+		formatString: 0
+		lineageTag: f5869052-6fa2-4db0-a7dd-7ef585678c2f
+		summarizeBy: none
+		sourceColumn: dim_supplier_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column dim_factory_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 6c4941e5-2374-4f58-897a-ec659a569f5e
+		summarizeBy: none
+		sourceColumn: dim_factory_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column dim_ship_mode_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 37320a0c-80cf-43c9-96b5-f8ab5ef80852
+		summarizeBy: none
+		sourceColumn: dim_ship_mode_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_ts
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: c8e8b92b-fe55-4d70-b6d4-e92395e73006
+		summarizeBy: none
+		sourceColumn: order_ts
+
+		variation Variation
+			isDefault
+			relationship: f054d494-729b-4571-a2cb-593148946aac
+			defaultHierarchy: LocalDateTable_4b4ceae4-bdb2-412c-8150-7b9497ed5c57.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel
+		dataType: string
+		lineageTag: 09ba2cbd-57c5-48f1-a264-a6fb4c80f7f7
+		summarizeBy: none
+		sourceColumn: channel
+
+		annotation SummarizationSetBy = Automatic
+
+	column quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: 555db1d2-82d0-461e-a3da-fac6fe877fef
+		summarizeBy: sum
+		sourceColumn: quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column unit_price
+		dataType: double
+		lineageTag: 97c43793-336f-4686-ac9f-4ecf165b9717
+		summarizeBy: sum
+		sourceColumn: unit_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column discount
+		dataType: double
+		lineageTag: 27084a06-6bf0-4997-844a-5a31164d6d57
+		summarizeBy: sum
+		sourceColumn: discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column line_revenue
+		dataType: double
+		lineageTag: 4c59bb69-9737-4e6f-bbde-e61f4780af09
+		summarizeBy: sum
+		sourceColumn: line_revenue
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column embodied_co2e_kg_per_unit
+		dataType: double
+		lineageTag: 19629f36-949b-4185-862d-c196be93c475
+		summarizeBy: sum
+		sourceColumn: embodied_co2e_kg_per_unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column transport_co2e_kg_per_unit
+		dataType: double
+		lineageTag: 3287ce0f-0f87-40e1-9bfe-f22b54cd4e90
+		summarizeBy: sum
+		sourceColumn: transport_co2e_kg_per_unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column packaging_waste_kg_per_unit
+		dataType: double
+		lineageTag: 745cdfd4-82da-4ddf-8799-c7a803002fae
+		summarizeBy: sum
+		sourceColumn: packaging_waste_kg_per_unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column manufacturing_waste_kg_per_unit
+		dataType: double
+		lineageTag: 0eb3d4ac-989f-4aae-9ec0-3aecddb3428d
+		summarizeBy: sum
+		sourceColumn: manufacturing_waste_kg_per_unit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column line_co2e_kg
+		dataType: double
+		lineageTag: c4420d2e-159a-4354-a772-e2898c492504
+		summarizeBy: sum
+		sourceColumn: line_co2e_kg
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column line_waste_kg
+		dataType: double
+		lineageTag: 56d235c2-e97f-409d-b5a8-c35c7e44b610
+		summarizeBy: sum
+		sourceColumn: line_waste_kg
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column co2e_per_revenue_dollar
+		dataType: double
+		lineageTag: fe1b2e59-06f0-48d1-b5f9-61145fbc3509
+		summarizeBy: sum
+		sourceColumn: co2e_per_revenue_dollar
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column offset_purchased
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 97b850be-86cd-403a-88f0-7276119fc9b5
+		summarizeBy: none
+		sourceColumn: offset_purchased
+
+		annotation SummarizationSetBy = Automatic
+
+	column return_flag
+		dataType: string
+		lineageTag: 124ff146-a026-4e18-8ff0-d17b2941b700
+		summarizeBy: none
+		sourceColumn: return_flag
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_order_line = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\claude-projects\datasets\out\footwear-sustainability-star\clean\fact_order_line.csv"),[Delimiter=",", Columns=22, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"order_line_id", Int64.Type}, {"dim_date_id", Int64.Type}, {"dim_customer_id", Int64.Type}, {"dim_product_id", Int64.Type}, {"dim_supplier_id", Int64.Type}, {"dim_factory_id", Int64.Type}, {"dim_ship_mode_id", Int64.Type}, {"order_ts", type datetime}, {"channel", type text}, {"quantity", Int64.Type}, {"unit_price", type number}, {"discount", type number}, {"line_revenue", type number}, {"embodied_co2e_kg_per_unit", type number}, {"transport_co2e_kg_per_unit", type number}, {"packaging_waste_kg_per_unit", type number}, {"manufacturing_waste_kg_per_unit", type number}, {"line_co2e_kg", type number}, {"line_waste_kg", type number}, {"co2e_per_revenue_dollar", type number}, {"offset_purchased", type logical}, {"return_flag", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

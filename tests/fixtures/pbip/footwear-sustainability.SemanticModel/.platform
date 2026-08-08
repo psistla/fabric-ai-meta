@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "footwear-sustainability"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "76ad424b-df83-45e2-9079-899a5f299ad9"
+  }
+}

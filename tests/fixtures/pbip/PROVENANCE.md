@@ -6,16 +6,18 @@ records exactly what produced each artifact.
 
 ## Semantic models (real Power BI Desktop output)
 
-Both `*.SemanticModel` folders were produced by Microsoft Power BI Desktop with
+All `*.SemanticModel` folders were produced by Microsoft Power BI Desktop with
 the "Store semantic model using TMDL format" preview feature enabled, via
-File > Save As > Power BI project (.pbip). Source data is the public
-coffee-sales CSV dataset (`small.csv`, `large.csv`, `cards.csv`). TMDL envelope
-version is `4.2` (`definition.pbism`); platform schema `2.0.0` (`.platform`).
+File > Save As > Power BI project (.pbip). TMDL envelope version is `4.2`
+(`definition.pbism`); platform schema `2.0.0` (`.platform`). The two
+`stix-one-pho*` models are built on the public coffee-sales CSV dataset
+(`small.csv`, `large.csv`, `cards.csv`).
 
 | Folder | Produced by | Date | Notes |
 |--------|-------------|------|-------|
 | `stix-one-pho.SemanticModel/definition/` | Power BI Desktop, Save As .pbip (TMDL) | 2026-07-17 | 3 tables (`Sales Order`, `SalesOrderLarge`, `cards`). Measures authored in Desktop, including `Coffee YTD`, which carries a hardcoded literal (`coffee_name = "Hot Chocolate"`) inside `TOTALYTD(CALCULATE(...))` to exercise the rule-eligible + literal-bearing case. |
 | `stix-one-pho-amazon.SemanticModel/definition/` | Power BI Desktop, Save As .pbip (TMDL) | 2026-07-17 | Single `All Items` table. Deliberately has NO `Copilot/` folder, so the "Copilot absent" path is a real fixture rather than a mocked one. |
+| `footwear-sustainability.SemanticModel/definition/` | Power BI Desktop, Save As .pbip (TMDL) | 2026-08-08 | The only fixture with a full star schema: `fact_order_line` plus six conformed dimensions, a dedicated `_Measures` table of 17 measures, and a real `dim_date` rather than Power BI's auto-generated date tables. Added specifically to cover two cases nothing else did: **balance-pattern DAX** (`CLOSINGBALANCEMONTH`, `OPENINGBALANCEMONTH`, `LASTDATE`, `FIRSTNONBLANK`), and a **table name whose dimension prefix contains a fact keyword** (`dim_factory`, where `fact` is a substring of `factory`). Both were latent bugs no other fixture could reach; see the classifier precedence fix. |
 
 ### What was stripped after export (not part of extraction, not committed)
 
@@ -23,8 +25,10 @@ version is `4.2` (`definition.pbism`); platform schema `2.0.0` (`.platform`).
   `*.SemanticModel` folders; the report layer is out of scope.
 - `.pbi/` folders: contained `localSettings.json` (a machine-specific
   `securityBindingsSignature` blob that must never be committed to a public
-  repo) and `cache.abf` (a 168-506 KB binary Analysis Services cache with no
-  test value).
+  repo), `editorSettings.json`, and `cache.abf` (a binary Analysis Services
+  cache, 168 KB to 2.5 MB, with no test value). Stripping this from
+  `footwear-sustainability` alone took it from 2.6 MB to 76 KB. **Strip `.pbi/`
+  before staging any new fixture; this repo is public.**
 - A byte-identical duplicate item (`stix-one-pho-large`, whose
   `SemanticModel/definition/` matched `stix-one-pho` exactly) was dropped.
 

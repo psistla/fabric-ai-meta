@@ -1,0 +1,77 @@
+table dim_factory
+	lineageTag: b5bf9982-0ecf-42a0-a50a-026359dda0e5
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: b5ba1fd1-2a06-4eac-94f1-fe988275d050
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		lineageTag: a182d98e-65ad-48e3-a1a4-f945b997fdb4
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column country
+		dataType: string
+		lineageTag: b4502bdd-ec47-498a-ae76-3a4527a29032
+		summarizeBy: none
+		sourceColumn: country
+
+		annotation SummarizationSetBy = Automatic
+
+	column region
+		dataType: string
+		lineageTag: 3d2cd05b-243a-4d35-9f9b-b4abba8c72a3
+		summarizeBy: none
+		sourceColumn: region
+
+		annotation SummarizationSetBy = Automatic
+
+	column grid_kg_co2e_per_kwh
+		dataType: double
+		lineageTag: 7a3e316b-600d-4ff9-b643-d2b3b954d4c2
+		summarizeBy: none
+		sourceColumn: grid_kg_co2e_per_kwh
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column renewable_energy_pct
+		dataType: double
+		lineageTag: 2f3e4f1f-618e-4cee-adb0-a300fbb4e1da
+		summarizeBy: none
+		sourceColumn: renewable_energy_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column zero_waste_certified
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: eb4a8df0-cae2-498d-b25f-ecb8a7e76489
+		summarizeBy: none
+		sourceColumn: zero_waste_certified
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_factory = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\claude-projects\datasets\out\footwear-sustainability-star\clean\dim_factory.csv"),[Delimiter=",", Columns=7, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"name", type text}, {"country", type text}, {"region", type text}, {"grid_kg_co2e_per_kwh", type number}, {"renewable_energy_pct", type number}, {"zero_waste_certified", type logical}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

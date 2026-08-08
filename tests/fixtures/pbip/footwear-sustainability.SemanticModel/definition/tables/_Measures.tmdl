@@ -1,0 +1,120 @@
+table _Measures
+	isHidden
+	lineageTag: 217f83bf-7a84-4cf3-84b0-db9ea920dce7
+
+	measure Revenue = SUM('fact_order_line'[line_revenue])
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		lineageTag: 931c1737-11c6-4835-b2b1-419fba3d3658
+
+	measure 'Units Sold' = SUM('fact_order_line'[quantity])
+		formatString: 0
+		lineageTag: c4e89c16-95df-4176-91b6-e67c8f5f4c7b
+
+	measure 'Total CO2e (kg)' = SUM('fact_order_line'[line_co2e_kg])
+		lineageTag: fb7903d0-0fce-4849-b4ea-d38603a3d693
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Waste (kg)' = SUM('fact_order_line'[line_waste_kg])
+		lineageTag: 2e0b97a8-1bd5-4565-b31f-1f61e1d61d66
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Carbon Intensity' =
+			
+			DIVIDE( [Total CO2e (kg)], [Revenue] )
+		formatString: 0.000
+		lineageTag: facdfe80-a3d4-4347-b9b4-38202b8395b9
+
+	measure 'Carbon Intensity Target' = 0.09
+		lineageTag: fd1ff372-0181-412d-a14b-cc72ecaf40dc
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Intensity vs Target' =
+			
+			DIVIDE( [Carbon Intensity] - [Carbon Intensity Target], [Carbon Intensity Target] )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: fe34effb-8296-4ac5-aaa0-64adae1a6faf
+
+	measure 'Revenue at Risk' =
+			
+			CALCULATE(
+			    [Revenue],
+			    FILTER( 'fact_order_line',
+			            'fact_order_line'[co2e_per_revenue_dollar] > [Carbon Intensity Target] )
+			)
+		lineageTag: 6d36f137-438f-4611-97dd-f1327aef9be8
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Revenue at Risk %' = DIVIDE( [Revenue at Risk], [Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: e07d7653-3b3e-40ca-a0ee-2509911cade4
+
+	measure 'CO2e Rolling 3M' =
+			
+			CALCULATE(
+			    [Total CO2e (kg)],
+			    DATESINPERIOD( 'dim_date'[date_actual], MAX('dim_date'[date_actual]), -3, MONTH )
+			)
+		lineageTag: 4d245760-2b71-48f6-b1c3-096a6abc2c4b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Supplier Intensity Rank' =
+			
+			RANKX( ALLSELECTED('dim_supplier'[name]), [Carbon Intensity], , DESC )
+		formatString: 0
+		lineageTag: 8697723d-a5cb-4685-8f6a-f0cf242ee824
+
+	measure 'Above Target' =
+			COUNTROWS(
+			    FILTER(
+			        dim_supplier,
+			        [Carbon Intensity] > [Carbon Intensity Target]
+			    )
+			)
+		formatString: 0
+		lineageTag: 57234f87-d44a-4613-985f-5dcbed76dceb
+
+	measure 'Revenue on Last Day' = CALCULATE ( [Revenue], LASTDATE ( dim_date[date_actual] ) )
+		lineageTag: a732b0ce-071f-4a1c-adc5-6630c82bc40d
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Cumulative Revenue' = CALCULATE ( [Revenue], dim_date[date_actual] <= MAX ( dim_date[date_actual] ), ALL ( dim_date ) )
+		lineageTag: 4f010ae8-4cdd-4b70-9048-d7ab29a6feaf
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Revenue Month End' = CLOSINGBALANCEMONTH ( [Revenue], dim_date[date_actual] )
+		lineageTag: 3d907cde-d95f-46a9-9c39-d10bad0a601e
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Revenue Month Start' = OPENINGBALANCEMONTH ( [Revenue], dim_date[date_actual] )
+		lineageTag: 0b4912e0-0757-4fef-a437-fd6d5f399268
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'First Sale Date' = FIRSTNONBLANK ( dim_date[date_actual], [Revenue] )
+		formatString: General Date
+		lineageTag: 245c92d6-9618-46e8-9810-c619eaef6781
+
+	column Value
+		isHidden
+		formatString: 0
+		lineageTag: b2b23773-3517-4b4d-88f9-1f3834d28d42
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source = { BLANK() }
+
+	annotation PBI_Id = 3e94b62bbc0243c7b697690336256c0b
+

@@ -1,0 +1,42 @@
+table dim_ship_mode
+	lineageTag: e10074fe-f8f1-493a-abb9-eb06889af2a5
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: 9f3ff750-43de-4e47-9100-317e52939dc4
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column mode
+		dataType: string
+		lineageTag: 8d9f37ff-2ee4-4f90-a428-2514199efe5d
+		summarizeBy: none
+		sourceColumn: mode
+
+		annotation SummarizationSetBy = Automatic
+
+	column kg_co2e_per_tonne_km
+		dataType: double
+		lineageTag: a6412780-7391-4d20-84d3-048f2ac12adc
+		summarizeBy: none
+		sourceColumn: kg_co2e_per_tonne_km
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition dim_ship_mode = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\claude-projects\datasets\out\footwear-sustainability-star\clean\dim_ship_mode.csv"),[Delimiter=",", Columns=3, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"mode", type text}, {"kg_co2e_per_tonne_km", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
