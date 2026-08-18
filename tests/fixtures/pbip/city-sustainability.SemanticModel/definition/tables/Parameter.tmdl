@@ -1,0 +1,53 @@
+table Parameter
+	isHidden
+	lineageTag: 03f23046-beb4-4aef-b15f-6da2f9519eb6
+
+	column Parameter
+		isHidden
+		lineageTag: 63524d21-945b-4289-bd96-c54b1cc94012
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Parameter Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Parameter Fields'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parameter Fields'
+		isHidden
+		lineageTag: 42a32b52-0d35-4b6b-bc1d-ca12672870fb
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Parameter Order'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parameter Order'
+		isHidden
+		formatString: 0
+		lineageTag: 208a16a9-3fc4-49b6-9089-17a7731523d1
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Parameter = calculated
+		mode: import
+		source =
+				{
+				    ("Livability Index", NAMEOF('_Measures'[Avg Livability Score]), 0),
+				    ("Housing Affordability", NAMEOF('_Measures'[Avg Housing Affordability]), 1),
+				    ("Transit Quality", NAMEOF('_Measures'[Avg Transit Score]), 2),
+				    ("Green Space", NAMEOF('_Measures'[Avg Green Space]), 3),
+				    ("Emissions", NAMEOF('_Measures'[Avg Emissions]), 4)
+				}
+
+	annotation PBI_Id = 31d8798458d64be7a3d4a183aed24800
+

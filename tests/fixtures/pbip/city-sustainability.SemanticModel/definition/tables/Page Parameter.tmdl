@@ -1,0 +1,40 @@
+table 'Page Parameter'
+	isHidden
+	lineageTag: 2d864fc4-ca63-428f-ae6e-9211953e120d
+
+	column Page
+		isHidden
+		formatString: 0
+		lineageTag: 8e629019-c591-4a7a-8ea4-cd075524ed85
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Page]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Page Label'
+		isHidden
+		lineageTag: 89891e50-bc87-4a67-ac5f-3708b2313435
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Page Label]
+		sortByColumn: Page
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Page Parameter' = calculated
+		mode: import
+		source =
+				
+				DATATABLE(
+				    "Page", INTEGER,
+				    "Page Label", STRING,
+				    {
+				        {1, "1-5"},
+				        {2, "6-10"},
+				        {3, "11-12"}
+				    }
+				)
+
+	annotation PBI_Id = 41d75005d9e242fa96a75cc1e040db8c
+

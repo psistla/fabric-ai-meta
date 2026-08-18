@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "city-sustainability"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "8f989d7f-b8e0-45c9-9e9f-eea955525b89"
+  }
+}

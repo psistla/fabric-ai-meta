@@ -1,0 +1,25 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["City Lookup","City Metrics"]
+
+annotation __TEdtr = 1
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table 'City Lookup'
+ref table 'City Metrics'
+ref table _Measures
+ref table Parameter
+ref table 'Page Parameter'
+ref table 'City Slicer'
+
+ref cultureInfo en-US
+

@@ -1,0 +1,84 @@
+table 'City Metrics'
+	lineageTag: 4b92ee6c-8789-4bf0-80e5-621598d99958
+
+	column City
+		dataType: string
+		lineageTag: 6dce4cd5-3854-484f-a00a-926630f16a84
+		summarizeBy: none
+		sourceColumn: City
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 74e0e447-96d6-4154-9129-e80e7a16ba28
+		summarizeBy: sum
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column HousingAffordabilityIndex
+		dataType: double
+		lineageTag: 19947918-baf7-4e7b-8ac9-3f6ec8e42e8d
+		summarizeBy: sum
+		sourceColumn: HousingAffordabilityIndex
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column TransitScore
+		dataType: double
+		lineageTag: 4525cde5-6bc6-4075-be07-0ce37b98e9e4
+		summarizeBy: sum
+		sourceColumn: TransitScore
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column GreenSpacePct
+		dataType: double
+		lineageTag: de9755c0-cf49-41d3-9d7d-745952e6c001
+		summarizeBy: sum
+		sourceColumn: GreenSpacePct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column EmissionsIndex
+		dataType: double
+		lineageTag: a231db33-747c-4dff-90a8-4fcf1ea17e3c
+		summarizeBy: sum
+		sourceColumn: EmissionsIndex
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LivabilityComposite
+		dataType: double
+		lineageTag: 11d26ef5-ae5e-4f7e-a1ff-27e34dbbfa47
+		summarizeBy: sum
+		sourceColumn: LivabilityComposite
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'City Metrics' = m
+		mode: import
+		source =
+				let
+				    // This data was manually populated in Power Query.
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("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", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [City = _t, Year = _t, HousingAffordabilityIndex = _t, TransitScore = _t, GreenSpacePct = _t, EmissionsIndex = _t, LivabilityComposite = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"City", type text}, {"Year", Int64.Type}, {"HousingAffordabilityIndex", type number}, {"TransitScore", type number}, {"GreenSpacePct", type number}, {"EmissionsIndex", type number}, {"LivabilityComposite", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

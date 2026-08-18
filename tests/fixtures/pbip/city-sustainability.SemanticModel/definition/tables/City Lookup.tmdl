@@ -1,0 +1,49 @@
+table 'City Lookup'
+	lineageTag: 497ea5b1-fbee-4c4a-8ad2-e9ae64a32214
+
+	column City
+		dataType: string
+		lineageTag: 9fefcac0-3060-461a-a844-1862429dd259
+		summarizeBy: none
+		sourceColumn: City
+
+		annotation SummarizationSetBy = Automatic
+
+	column State
+		dataType: string
+		lineageTag: 56985d7b-223e-4f03-a86b-b688b33be787
+		summarizeBy: none
+		sourceColumn: State
+
+		annotation SummarizationSetBy = Automatic
+
+	column Country
+		dataType: string
+		lineageTag: 3d5b2b45-363f-4b69-8e4c-7d7fe08e297f
+		summarizeBy: none
+		sourceColumn: Country
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		dataType: string
+		lineageTag: 750135ca-7459-4483-b651-4df5fc36d25c
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'City Lookup' = m
+		mode: import
+		source =
+				let
+				    // This data was manually populated in Power Query.
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("jZHBCsIwDIZfpfTsS+gQ9aDIPOwwPGQ2rsHaSNptr287FGQg9Pb3z/8lJG1bvRECebFEvdIXHqJF8epiGVxITk0jyhMFv1V9XbV6x87gT+oIQn3yVMUQ4l9sVr9uwaiGnOPpzmLK55wFSAg79BnaI0h04I06OyC/oI5kJky9MldJUhNElNyOXEqpGnyPC6b5Agdh30Fpeh1sLzxiYbxyPJhOEB6FwCl9orUwYt5xfgTLsozPBYQPs01iotujnGjIpwOFiJCPux7i8PSqRrjZ/9j1DQ==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [City = _t, State = _t, Country = _t, Region = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"City", type text}, {"State", type text}, {"Country", type text}, {"Region", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

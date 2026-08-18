@@ -34,6 +34,11 @@ logger = logging.getLogger(__name__)
 
 _AUTO_DATE_TABLE = re.compile(r"^(LocalDateTable_|DateTableTemplate_)")
 
+# TMDL encloses an expression in three backticks when it must be read verbatim
+# (TMDL language reference, "Expressions"). Opening delimiter follows the `=`;
+# closing delimiter sits alone on its own line after the body.
+_FENCE = "`" * 3
+
 
 def _unquote(name: str) -> str:
     """Strip TMDL single-quotes from a name (`'Sales Order'` -> `Sales Order`).
@@ -173,11 +178,15 @@ def _parse_column(node: _Node) -> ColumnMeta:
 def _parse_measure(node: _Node) -> MeasureMeta:
     """A `measure <name> = ...` block into MeasureMeta.
 
-    Two DAX forms both occur in the fixtures: single-line (expression after
-    `= ` on the header) and indentation-continuation (nothing after `=`, DAX on
-    following lines one tab deeper than the measure's own sub-properties). The
-    tokenizer already stripped the leading tabs, so continuation lines join back
-    into faithful DAX with their relative (space) indentation intact.
+    Three DAX forms occur in the fixtures: single-line (expression after `= `
+    on the header), indentation-continuation (nothing after `=`, DAX on
+    following lines one tab deeper than the measure's own sub-properties), and
+    backtick-fenced (a three-backtick delimiter after `=`, body one level
+    deeper, closing delimiter alone on its own line). TMDL emits the fence when
+    the expression must be read verbatim, so neither fence line belongs to the
+    expression. The tokenizer already stripped the leading tabs, so continuation
+    and fenced lines join back into faithful DAX with their relative (space)
+    indentation intact; blank lines are dropped in all three forms.
     `category` stays UNKNOWN for the classifier; `format_string` is carried by a
     `PBI_FormatHint` annotation this parser skips, so it stays None (parity).
     """
@@ -185,15 +194,17 @@ def _parse_measure(node: _Node) -> MeasureMeta:
     name_part, inline_dax = _split_first_unquoted(decl, "=")
     name = _unquote(name_part)
     inline_dax = (inline_dax or "").strip()
-    if inline_dax:
+    if inline_dax and inline_dax != _FENCE:
         dax = inline_dax
     else:
-        # Continuation DAX sits deeper than the measure's sub-properties
-        # (which are at depth+1). Collect everything below that level so a
-        # varying continuation indent cannot silently truncate the expression.
-        dax = "\n".join(
-            c.header for c in node.children if c.depth >= node.depth + 2
-        )
+        # Continuation and fenced DAX both sit deeper than the measure's
+        # sub-properties (which are at depth+1). Collect everything below that
+        # level so a varying continuation indent cannot silently truncate the
+        # expression, then drop the closing fence when one was opened.
+        body = [c.header for c in node.children if c.depth >= node.depth + 2]
+        if inline_dax == _FENCE and body and body[-1].strip() == _FENCE:
+            body.pop()
+        dax = "\n".join(body)
 
     return MeasureMeta(
         name=name,

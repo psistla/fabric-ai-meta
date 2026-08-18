@@ -1,0 +1,9 @@
+relationship AutoDetected_0443f1e1-102b-4000-94e3-dc5cafef9318
+	fromColumn: 'City Metrics'.City
+	toColumn: 'City Lookup'.City
+
+relationship ee008f80-1c0b-1408-4bb9-1da03efcc831
+	isActive: false
+	fromColumn: 'City Metrics'.City
+	toColumn: 'City Slicer'.City
+

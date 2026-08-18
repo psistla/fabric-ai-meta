@@ -18,6 +18,9 @@ AMAZON_TABLES = os.path.join(
 FOOTWEAR_TABLES = os.path.join(
     FIXTURES, "footwear-sustainability.SemanticModel", "definition", "tables"
 )
+WON_PHO_TABLES = os.path.join(
+    FIXTURES, "power-bi-stix-won-pho.SemanticModel", "definition", "tables"
+)
 
 
 def _col(table, name):
@@ -233,6 +236,7 @@ def test_pbip_list_models_dir_of_dirs_sorted():
     from fabric_ai_meta.extractor.pbip import PbipExtractor
 
     assert PbipExtractor(FIXTURES).list_models("ignored") == [
+        "city-sustainability",
         "footwear-sustainability",
         "power-bi-stix-won-pho",
         "stix-one-pho",
@@ -488,3 +492,17 @@ def test_pbip_roundtrip_preserves_copilot():
     assert back.copilot is not None
     assert back.copilot.signals() == m.copilot.signals()
     assert [t.name for t in back.tables] == [t.name for t in m.tables]
+
+
+def test_parse_measure_backtick_fenced_dax():
+    """TMDL wraps an expression in ``` when it must be read verbatim.
+
+    The fence opens on the declaration line, the body sits one level deeper,
+    and the closing fence is alone on its own line. Neither fence line is part
+    of the expression.
+    """
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    t = _parse_table_file(os.path.join(WON_PHO_TABLES, "Calculations.tmdl"))
+    m = _measure(t, "Some value")
+    assert m.dax_expression == "        SUM(Map[RandomValue])"
