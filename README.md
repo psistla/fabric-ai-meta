@@ -74,7 +74,7 @@ Every command takes `--pbip <folder>`, `--mock`, or `--workspace <name>`. Worked
 | `apply-descriptions` | Push generated descriptions to a live model through XMLA / TOM |
 | `apply-copilot` | Push an edited `Copilot/` folder back through the Fabric REST API |
 | `diff` | Compare two workspace scans: score changes, models added or removed, regressions |
-| `serve` | MCP server exposing six tools, so your IDE agent can answer questions about your models directly |
+| `serve` | MCP server exposing seven tools, so your IDE agent can answer questions about your models directly |
 
 Add `--llm-enrich` to any extraction command to fill in missing descriptions and detect fact-table grain. It is off unless you ask, [cost-capped, and works with 10+ providers](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md#7-turn-on-llm-enrichment-fill-in-the-gaps) including a local Ollama.
 

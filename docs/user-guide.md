@@ -383,12 +383,15 @@ fabric-ai-meta serve --transport streamable-http --port 8000    # HTTP
 
 The project ships a `.mcp.json` at the repository root so any MCP-aware IDE auto-discovers the server when the working directory is opened.
 
-Six tools are exposed to agents:
+Seven tools are exposed to agents:
 
 - `list_models`: enumerate the available models
 - `analyze_model`: full per-model analysis
 - `score_model`: AI readiness score
 - `generate_schema`: produce the AI-ready schema
+- `guide_query`: F1 - guidance to read before writing a query against a model (correct measure,
+  safe join path, ambiguity/refusal flags, semi-additive/ratio/hardcoded-literal/calculation-group
+  warnings)
 - `governance_report`: cross-model report; accepts `graph_necessity=True` and an inline `questions` list
 - `diff_summaries`: compare two scans
 
