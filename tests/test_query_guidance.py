@@ -62,3 +62,13 @@ def test_find_join_path_ignores_inactive_relationship():
 def test_find_join_path_unreachable():
     rels = [RelationshipMeta("fact", "date_id", "date", "id", "many-to-one", "single", True)]
     assert _find_join_path(rels, "fact", "unrelated_table") is None
+
+
+def test_resolve_base_table_dangling_measure_ref_falls_back_to_own_columns():
+    # A measure ref that doesn't exist in measures_by_name must not silently
+    # return None when the node has its own columns to fall back to.
+    m = _measure(
+        "Weird", "[Ghost] + 1", depends_on_measures=["[Ghost]"],
+        depends_on_columns=["Financials[Sales]"],
+    )
+    assert _resolve_base_table(m, {"Weird": m}) == "Financials"

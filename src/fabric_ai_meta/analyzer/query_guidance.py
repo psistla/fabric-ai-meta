@@ -11,13 +11,9 @@ guessing; see planning/decisions/f1-narrowed-to-verified-metadata.md.
 
 from __future__ import annotations
 
-import re
-
 from fabric_ai_meta.models.metadata import (
-    MeasureCategory,
     MeasureMeta,
     RelationshipMeta,
-    SemanticModelMeta,
 )
 
 _MAX_MEASURE_WALK_DEPTH = 10
@@ -45,12 +41,14 @@ def _resolve_base_table(
             unseen_refs = [
                 r.strip("[]") for r in m.depends_on_measures if r.strip("[]") not in seen
             ]
-            if unseen_refs:
-                for ref_name in unseen_refs:
-                    seen.add(ref_name)
-                    dep = measures_by_name.get(ref_name)
-                    if dep is not None:
-                        next_queue.append(dep)
+            resolved_any = False
+            for ref_name in unseen_refs:
+                seen.add(ref_name)
+                dep = measures_by_name.get(ref_name)
+                if dep is not None:
+                    next_queue.append(dep)
+                    resolved_any = True
+            if resolved_any:
                 continue
             if m.depends_on_columns:
                 return m.depends_on_columns[0].split("[", 1)[0]
