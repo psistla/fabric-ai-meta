@@ -389,7 +389,7 @@ Seven tools are exposed to agents:
 - `analyze_model`: full per-model analysis
 - `score_model`: AI readiness score
 - `generate_schema`: produce the AI-ready schema
-- `guide_query`: F1 - guidance to read before writing a query against a model (correct measure,
+- `guide_query`: guidance to read before writing a query against a model (correct measure,
   safe join path, ambiguity/refusal flags, semi-additive/ratio/hardcoded-literal/calculation-group
   warnings)
 - `governance_report`: cross-model report; accepts `graph_necessity=True` and an inline `questions` list
