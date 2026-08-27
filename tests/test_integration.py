@@ -900,6 +900,24 @@ class TestSchemaValidation:
             schema = json.load(f)
         jsonschema.validate(output, schema)
 
+    def test_capability_manifest_validates(self):
+        """Manifest output validates against schemas/capability-manifest/v1.json."""
+        import jsonschema
+
+        from fabric_ai_meta.analyzer.capability_manifest import generate_capability_manifest
+        from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+        from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+        ex = PbipExtractor("tests/fixtures/pbip/power-bi-stix-won-pho.SemanticModel")
+        model = ex.extract(ex.list_models("")[0], "")
+        classify_model_in_place(model)
+        manifest = generate_capability_manifest(model)
+
+        with open(os.path.join(SCHEMAS_DIR, "capability-manifest", "v1.json")) as f:
+            schema = json.load(f)
+
+        jsonschema.validate(manifest, schema)
+
     def test_schema_files_are_valid_json_schema(self):
         """All schema files are syntactically valid JSON Schema Draft 2020-12."""
         schema_paths = [

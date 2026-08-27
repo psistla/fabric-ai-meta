@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/capability-manifest/v1.json",
+  "title": "Capability Manifest",
+  "description": "Output schema for fabric-ai-meta generate_capability_manifest(). Classifies every measure in a single semantic model as answerable, answerable with caveats, or refused - honest boundaries so an agent declines instead of fabricating.",
+  "type": "object",
+  "required": ["$schema", "version", "model", "generated_at", "summary", "measures"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/capability-manifest/v1.json"
+    },
+    "version": { "type": "string" },
+    "model": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "summary": { "$ref": "#/$defs/summary" },
+    "measures": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/measure_entry" }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "required": ["total_measures", "answerable", "answerable_with_caveats", "refused"],
+      "additionalProperties": false,
+      "properties": {
+        "total_measures": { "type": "integer" },
+        "answerable": { "type": "integer" },
+        "answerable_with_caveats": { "type": "integer" },
+        "refused": { "type": "integer" }
+      }
+    },
+    "measure_entry": {
+      "type": "object",
+      "required": ["table", "name", "status", "warnings", "refused_reason"],
+      "additionalProperties": false,
+      "properties": {
+        "table": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "enum": ["answerable", "answerable_with_caveats", "refused"] },
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/warning" }
+        },
+        "refused_reason": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/refused_reason" }
+          ]
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "required": ["type", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "refused_reason": {
+      "type": "object",
+      "required": ["reason", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "reason": { "type": "string" },
+        "detail": { "type": "string" }
+      }
+    }
+  }
+}
