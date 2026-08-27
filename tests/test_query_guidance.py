@@ -512,3 +512,10 @@ def test_gap_title_total_sales_not_excluded_as_plumbing(won_pho):
     """
     result = guide_query(won_pho, measure="Title total sales")
     assert result["excluded"] is None
+
+
+def test_guide_query_is_a_public_export():
+    import fabric_ai_meta
+
+    assert "guide_query" in fabric_ai_meta.__all__
+    assert fabric_ai_meta.guide_query is not None
