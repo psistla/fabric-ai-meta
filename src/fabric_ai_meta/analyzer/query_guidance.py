@@ -27,27 +27,30 @@ def _resolve_base_table(
     `depends_on_columns` on the measure ITSELF is not trusted first: a
     time-intelligence measure's only literal `Table[Column]` reference is
     often its date-filter argument (`TOTALYTD([Sales], 'Date'[Date])`), which
-    is not the table it aggregates. Measure references are followed first;
-    only a measure with no further measure references falls back to its own
-    column references. Depth- and cycle-guarded.
+    is not the table it aggregates. A node falls back to its own column
+    references only when NONE of its measure references resolve to a real
+    measure in `measures_by_name` (a dangling reference counts as
+    unresolved). Resolution is evaluated independently per node, so one
+    branch of a diamond-shaped dependency graph (two measures sharing a
+    common base measure) cannot make a sibling branch wrongly think its own
+    real dependency is unresolved. Depth- and cycle-guarded.
     """
-    seen: set[str] = set()
+    seen: set[str] = {measure.name}
     queue = [measure]
     depth = 0
     while queue and depth < _MAX_MEASURE_WALK_DEPTH:
         depth += 1
         next_queue: list[MeasureMeta] = []
         for m in queue:
-            unseen_refs = [
-                r.strip("[]") for r in m.depends_on_measures if r.strip("[]") not in seen
-            ]
+            ref_names = [r.strip("[]") for r in m.depends_on_measures]
             resolved_any = False
-            for ref_name in unseen_refs:
-                seen.add(ref_name)
+            for ref_name in ref_names:
                 dep = measures_by_name.get(ref_name)
                 if dep is not None:
-                    next_queue.append(dep)
                     resolved_any = True
+                    if ref_name not in seen:
+                        seen.add(ref_name)
+                        next_queue.append(dep)
             if resolved_any:
                 continue
             if m.depends_on_columns:

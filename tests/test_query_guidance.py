@@ -1,5 +1,5 @@
 from fabric_ai_meta.analyzer.query_guidance import _find_join_path, _resolve_base_table
-from fabric_ai_meta.models.metadata import MeasureMeta, MeasureCategory, RelationshipMeta
+from fabric_ai_meta.models.metadata import MeasureCategory, MeasureMeta, RelationshipMeta
 
 
 def _measure(name, dax, depends_on_measures=(), depends_on_columns=()):
@@ -72,3 +72,19 @@ def test_resolve_base_table_dangling_measure_ref_falls_back_to_own_columns():
         depends_on_columns=["Financials[Sales]"],
     )
     assert _resolve_base_table(m, {"Weird": m}) == "Financials"
+
+
+def test_resolve_base_table_diamond_dependency_not_corrupted_by_sibling_seen():
+    # Top depends on two branches (A, B) that both resolve through a shared
+    # measure C. Processing A first must not "claim" C in a way that makes
+    # B wrongly think it has no resolvable ref and fall back to B's own
+    # (irrelevant) column reference.
+    c = _measure("C", "SUM('TrueTable'[amt])", depends_on_columns=["TrueTable[amt]"])
+    a = _measure("A", "[C] * 1", depends_on_measures=["[C]"])
+    b = _measure(
+        "B", "TOTALYTD([C], 'WrongTable'[Date])",
+        depends_on_measures=["[C]"], depends_on_columns=["WrongTable[Date]"],
+    )
+    top = _measure("Top", "[A] + [B]", depends_on_measures=["[A]", "[B]"])
+    by_name = {"C": c, "A": a, "B": b, "Top": top}
+    assert _resolve_base_table(top, by_name) == "TrueTable"
