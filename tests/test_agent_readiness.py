@@ -1,4 +1,5 @@
 import json
+import os
 
 from fabric_ai_meta.analyzer.agent_readiness import (
     _find_ambiguous_names,
@@ -8,7 +9,9 @@ from fabric_ai_meta.analyzer.agent_readiness import (
     assess_agent_readiness,
     write_agent_readiness_report,
 )
+from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
 from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, score_model
+from fabric_ai_meta.extractor.pbip import PbipExtractor
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
     ColumnRole,
@@ -18,6 +21,15 @@ from fabric_ai_meta.models.metadata import (
     SemanticModelMeta,
     TableMeta,
 )
+
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "pbip")
+
+
+def _load(folder):
+    ex = PbipExtractor(f"{FIXTURES}/{folder}.SemanticModel")
+    model = ex.extract(ex.list_models("")[0], "")
+    classify_model_in_place(model)
+    return model
 
 
 def _column(name, data_type="string", description=None, role=ColumnRole.ATTRIBUTE):
@@ -254,3 +266,38 @@ def test_write_agent_readiness_report_writes_valid_json(tmp_path):
         data = json.load(f)
     assert data["model"] == "Test Model"
     assert "findings" in data
+
+
+# --- real .pbip fixture integration ---
+
+def test_won_pho_sales_amt_is_unreliable_type():
+    """GAP: extractor/pbip.py's _parse_column doesn't split a calculated
+    column's TMDL header on '=' the way _parse_measure does - `column 'Sales
+    amt' = RANDBETWEEN(10,1000)` is parsed whole into `.name`, DAX and all,
+    instead of just "Sales amt". This is the documented, known pbip.py
+    behavior the unreliable_type detector was built around (calculated
+    columns arrive with DAX baked into the name and an empty data_type) -
+    tracked separately for a real fix (spawned task, not this plan's scope:
+    fixing extractor/pbip.py is a different blast radius than
+    agent_readiness.py). This test pins the CURRENT column name so the
+    real-fixture assertion doesn't silently drift - it does not claim the
+    name is correct, only that data_type=="" (what unreliable_type actually
+    detects) is correctly flagged regardless of the name bug.
+    """
+    report = assess_agent_readiness(_load("power-bi-stix-won-pho"))
+    entry = next(
+        f for f in report["findings"]
+        if f["type"] == "unreliable_type"
+        and f["table"] == "Shape map for regions"
+        and f["column"] == "'Sales amt' = RANDBETWEEN(10,1000)"
+    )
+    assert entry["column"] == "'Sales amt' = RANDBETWEEN(10,1000)"
+
+
+def test_footwear_sustainability_report_runs_end_to_end():
+    """Smoke test: the full report runs without error on a real fixture and
+    produces a well-formed shape, regardless of what it finds."""
+    report = assess_agent_readiness(_load("footwear-sustainability"))
+    assert report["model"]
+    assert isinstance(report["findings"], list)
+    assert report["summary"]["total_findings"] == len(report["findings"])
