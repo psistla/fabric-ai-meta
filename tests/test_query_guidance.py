@@ -265,3 +265,51 @@ def test_guide_query_column_with_no_wrapper_measure_warns_instead_of_guessing():
     result = guide_query(model, column="co2e_per_revenue_dollar")
     assert result["redirect"] is None
     assert any(w["type"] == "unwrapped_column" for w in result["warnings"])
+
+
+def test_guide_query_column_ambiguous_across_tables_warns_and_uses_first_hit():
+    from fabric_ai_meta.models.metadata import ColumnMeta
+
+    def region_col():
+        return ColumnMeta(
+            name="region", data_type="string", description=None, ai_description=None,
+            role=None, is_hidden=False, display_folder=None, format_string=None,
+            sort_by_column=None,
+        )
+
+    dim_a = _table("dim_customer")
+    dim_a.columns = [region_col()]
+    dim_b = _table("dim_supplier")
+    dim_b.columns = [region_col()]
+    model = _model([dim_a, dim_b])
+
+    result = guide_query(model, column="region")
+    assert any(w["type"] == "ambiguous_column_name" for w in result["warnings"])
+
+
+def test_guide_query_wrapper_search_ignores_same_table_decoy_for_different_column():
+    """A same-table ADDITIVE wrapper for a DIFFERENT column must not be
+    mistaken for the real cross-table wrapper of the requested column - the
+    exact `depends_on_columns == [target_dep]` match is what prevents this."""
+    from fabric_ai_meta.models.metadata import ColumnMeta
+
+    sales_col = ColumnMeta(
+        name="Sales", data_type="", description=None, ai_description=None,
+        role=None, is_hidden=True, display_folder=None, format_string=None,
+        sort_by_column=None,
+    )
+    financials = _table("Financials")
+    financials.columns = [sales_col]
+    # Decoy: an ADDITIVE wrapper on Financials itself, but for "Cost", not "Sales".
+    cost_wrapper = _measure("CostWrapper", "SUM('Financials'[Cost])", depends_on_columns=["Financials[Cost]"])
+    cost_wrapper.category = MeasureCategory.ADDITIVE
+    financials.measures = [cost_wrapper]
+    # Real wrapper for "Sales", on a different table.
+    sales_wrapper = _measure("SalesWrapper", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    sales_wrapper.category = MeasureCategory.ADDITIVE
+    calculations = _table("Calculations", measures=[sales_wrapper])
+    model = _model([financials, calculations])
+
+    result = guide_query(model, column="Sales")
+    assert result["redirect"]["to_measure"] == "SalesWrapper"
+    assert result["measure"]["table"] == "Calculations"

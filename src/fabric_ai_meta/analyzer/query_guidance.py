@@ -196,6 +196,30 @@ def _find_columns_by_name(model: SemanticModelMeta, name: str):
     return hits
 
 
+def _find_wrapper_measure(model: SemanticModelMeta, target_dep: str):
+    """The measure that plainly aggregates `target_dep` (a "Table[Column]"
+    string), searching every table, not just the column's own.
+
+    Searches EVERY table's measures, not just col_table's own. Both real
+    fixtures this plan is grounded on put measures in a separate table
+    from the data (footwear's `_Measures`, won-pho's `Calculations`),
+    so a wrapper for a fact-table column almost never lives on the fact
+    table itself. Scoping this search to only the column's table was caught
+    in review as dead code on exactly the model shape the plan cites as its
+    grounding - do not narrow it back.
+
+    Returns (measure, table) or None."""
+    for table in model.tables:
+        for m in table.measures:
+            # ADDITIVE + this exact sole column dependency is a proxy for
+            # "is a plain SUM(...) around this column" - true in practice
+            # for every ADDITIVE measure in this project's fixtures, but
+            # not literally re-parsed from the DAX text here.
+            if m.depends_on_columns == [target_dep] and m.category == MeasureCategory.ADDITIVE:
+                return m, table
+    return None
+
+
 def guide_query(
     model: SemanticModelMeta,
     *,
@@ -246,28 +270,10 @@ def guide_query(
         # base_table will feed Task 5's dimension join-path search; unused until then
         _base_table = col_table.name  # noqa: F841
         home_table = col_table
-        # Search EVERY table's measures, not just col_table's own. Both real
-        # fixtures this plan is grounded on put measures in a separate table
-        # from the data (footwear's `_Measures`, won-pho's `Calculations`),
-        # so a wrapper for a fact-table column almost never lives on the fact
-        # table itself. Scoping this search to col_table was caught in review
-        # as dead code on exactly the model shape the plan cites as its
-        # grounding - do not narrow it back to col_table.measures.
         target_dep = f"{col_table.name}[{col_name}]"
-        wrapper = None
-        wrapper_table = None
-        for table in model.tables:
-            for m in table.measures:
-                # ADDITIVE + this exact sole column dependency is a proxy for
-                # "is a plain SUM(...) around this column" - true in practice
-                # for every ADDITIVE measure in this project's fixtures, but
-                # not literally re-parsed from the DAX text here.
-                if m.depends_on_columns == [target_dep] and m.category == MeasureCategory.ADDITIVE:
-                    wrapper, wrapper_table = m, table
-                    break
-            if wrapper is not None:
-                break
-        if wrapper is not None:
+        found_wrapper = _find_wrapper_measure(model, target_dep)
+        if found_wrapper is not None:
+            wrapper, wrapper_table = found_wrapper
             result["redirect"] = {
                 "from_column": target_dep,
                 "to_measure": wrapper.name,
