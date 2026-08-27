@@ -143,3 +143,74 @@ def test_write_capability_manifest_writes_valid_json(tmp_path):
         data = json.load(f)
     assert data["model"] == "Test Model"
     assert data["summary"]["total_measures"] == 1
+
+
+# Integration tests against real PBIP fixtures
+
+import os
+
+from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "pbip")
+
+
+def _load(folder):
+    ex = PbipExtractor(f"{FIXTURES}/{folder}.SemanticModel")
+    model = ex.extract(ex.list_models("")[0], "")
+    classify_model_in_place(model)
+    return model
+
+
+def _entry(manifest, name):
+    return next(e for e in manifest["measures"] if e["name"] == name)
+
+
+def test_won_pho_cogs_icon_is_refused():
+    manifest = generate_capability_manifest(_load("power-bi-stix-won-pho"))
+    entry = _entry(manifest, "COGS icon")
+    assert entry["table"] == "Formatting"
+    assert entry["status"] == "refused"
+    assert entry["refused_reason"]["reason"] == "report_plumbing"
+
+
+def test_won_pho_sales_mom_is_caveated_not_refused():
+    manifest = generate_capability_manifest(_load("power-bi-stix-won-pho"))
+    entry = _entry(manifest, "Sales MoM")
+    assert entry["table"] == "Calculations"
+    assert entry["status"] == "answerable_with_caveats"
+    assert any(w["type"] == "opaque_calculation_group" for w in entry["warnings"])
+
+
+def test_won_pho_title_total_sales_inherits_the_known_gap():
+    """GAP: pinned, matching query_guidance's own pinned characterization
+    test (test_gap_title_total_sales_not_excluded_as_plumbing). This measure
+    is a display string ("Total sales: " & FORMAT([Sales], ...)) but
+    _report_plumbing_reason does not catch a FORMAT() call embedded
+    mid-concatenation, so it is NOT refused here either. Do not "fix" this
+    in capability_manifest.py alone - it must stay in sync with
+    query_guidance.py, or the two features will disagree."""
+    manifest = generate_capability_manifest(_load("power-bi-stix-won-pho"))
+    entry = _entry(manifest, "Title total sales")
+    assert entry["status"] != "refused"
+
+
+def test_footwear_carbon_intensity_is_caveated_ratio():
+    manifest = generate_capability_manifest(_load("footwear-sustainability"))
+    entry = _entry(manifest, "Carbon Intensity")
+    assert entry["status"] == "answerable_with_caveats"
+    assert any(w["type"] == "ratio" for w in entry["warnings"])
+
+
+def test_footwear_revenue_month_end_is_caveated_semi_additive():
+    manifest = generate_capability_manifest(_load("footwear-sustainability"))
+    entry = _entry(manifest, "Revenue Month End")
+    assert entry["status"] == "answerable_with_caveats"
+    assert any(w["type"] == "semi_additive" for w in entry["warnings"])
+
+
+def test_footwear_carbon_intensity_target_is_caveated_hardcoded():
+    manifest = generate_capability_manifest(_load("footwear-sustainability"))
+    entry = _entry(manifest, "Carbon Intensity Target")
+    assert entry["status"] == "answerable_with_caveats"
+    assert any(w["type"] == "hardcoded_literal" for w in entry["warnings"])
