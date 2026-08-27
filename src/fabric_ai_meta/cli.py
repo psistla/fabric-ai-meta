@@ -606,6 +606,46 @@ def export_capability_manifest(model_name, workspace, output, mock, pbip):
     console.print(f"[green]Written:[/green] {path}")
 
 
+@export_group.command("agent-readiness")
+@click.argument("model_name")
+@click.option("--workspace", "-w", default=None)
+@click.option("--output", "-o", default=None, help="Output directory.")
+@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
+@click.option("--pbip", default=None, type=click.Path(exists=True),
+              help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
+def export_agent_readiness(model_name, workspace, output, mock, pbip):
+    """Export an agent-readiness report: ranked findings and fixes for this model."""
+    from fabric_ai_meta.analyzer.agent_readiness import assess_agent_readiness
+
+    _resolve_source(mock, pbip, workspace)
+    cfg = load_config()
+    if not pbip:
+        workspace = workspace or cfg.extraction.default_workspace
+    output = output or cfg.output.output_dir
+
+    console.print(Panel(
+        f"[bold]export agent-readiness[/bold]  model=[cyan]{model_name}[/cyan]  "
+        f"workspace=[cyan]{workspace or pbip}[/cyan]  mock=[cyan]{mock}[/cyan]",
+        title="fabric-ai-meta"
+    ))
+
+    from fabric_ai_meta.extractor.factory import _build_extractor
+    extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
+    model = extractor.extract(model_name, workspace)
+
+    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+    classify_model_in_place(model)
+
+    report = assess_agent_readiness(model)
+
+    slug = _slugify(model_name)
+    out_dir = os.path.join(output, slug)
+    _ensure_dir(out_dir)
+    path = os.path.join(out_dir, "agent-readiness.json")
+    _write_json(path, report)
+    console.print(f"[green]Written:[/green] {path}")
+
+
 # ---------------------------------------------------------------------------
 # score command
 # ---------------------------------------------------------------------------
