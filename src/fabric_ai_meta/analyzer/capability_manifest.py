@@ -22,6 +22,8 @@ string concatenation is not detected - see query_guidance's own docstring).
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import datetime, timezone
 
 from fabric_ai_meta.analyzer.query_guidance import (
@@ -70,3 +72,15 @@ def generate_capability_manifest(model: SemanticModelMeta) -> dict:
         "summary": {"total_measures": len(measures), **counts},
         "measures": measures,
     }
+
+
+def write_capability_manifest(model: SemanticModelMeta, output_path: str) -> str:
+    """Generate the capability manifest and write it to a JSON file.
+
+    Returns the output file path.
+    """
+    manifest = generate_capability_manifest(model)
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+    return output_path

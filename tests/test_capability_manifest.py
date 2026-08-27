@@ -1,4 +1,9 @@
-from fabric_ai_meta.analyzer.capability_manifest import generate_capability_manifest
+import json
+
+from fabric_ai_meta.analyzer.capability_manifest import (
+    generate_capability_manifest,
+    write_capability_manifest,
+)
 from fabric_ai_meta.models.metadata import (
     MeasureCategory,
     MeasureMeta,
@@ -123,3 +128,18 @@ def test_top_level_shape():
     assert manifest["version"] == "1.0"
     assert manifest["model"] == "Test Model"
     assert "generated_at" in manifest
+
+
+def test_write_capability_manifest_writes_valid_json(tmp_path):
+    m = _measure("Sales", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    model = _model([_table("Financials", measures=[m])])
+    out_path = tmp_path / "capability-manifest.json"
+
+    result_path = write_capability_manifest(model, str(out_path))
+
+    assert result_path == str(out_path)
+    assert out_path.exists()
+    with open(out_path) as f:
+        data = json.load(f)
+    assert data["model"] == "Test Model"
+    assert data["summary"]["total_measures"] == 1
