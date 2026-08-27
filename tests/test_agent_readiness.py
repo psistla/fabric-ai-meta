@@ -271,27 +271,25 @@ def test_write_agent_readiness_report_writes_valid_json(tmp_path):
 # --- real .pbip fixture integration ---
 
 def test_won_pho_sales_amt_is_unreliable_type():
-    """GAP: extractor/pbip.py's _parse_column doesn't split a calculated
-    column's TMDL header on '=' the way _parse_measure does - `column 'Sales
-    amt' = RANDBETWEEN(10,1000)` is parsed whole into `.name`, DAX and all,
-    instead of just "Sales amt". This is the documented, known pbip.py
-    behavior the unreliable_type detector was built around (calculated
-    columns arrive with DAX baked into the name and an empty data_type) -
-    tracked separately for a real fix (spawned task, not this plan's scope:
-    fixing extractor/pbip.py is a different blast radius than
-    agent_readiness.py). This test pins the CURRENT column name so the
-    real-fixture assertion doesn't silently drift - it does not claim the
-    name is correct, only that data_type=="" (what unreliable_type actually
-    detects) is correctly flagged regardless of the name bug.
+    """Formerly pinned a known gap: extractor/pbip.py's `_parse_column` used to
+    parse a calculated column's whole TMDL header (`column 'Sales amt' =
+    RANDBETWEEN(10,1000)`) into `.name`, DAX and all, instead of splitting on
+    the DAX `=` the way `_parse_measure` already did. That's fixed now (see
+    `_parse_column`'s docstring and `test_parse_column_splits_calculated_column_name_from_dax`
+    in `tests/test_pbip_extractor.py`), so this fixture's column name comes out
+    clean. `data_type` is still empty for this column - Power BI never
+    serializes `dataType` for a calculated column, the type comes from the
+    expression - which is the actual thing `unreliable_type` detects and is
+    unaffected by the name fix.
     """
     report = assess_agent_readiness(_load("power-bi-stix-won-pho"))
     entry = next(
         f for f in report["findings"]
         if f["type"] == "unreliable_type"
         and f["table"] == "Shape map for regions"
-        and f["column"] == "'Sales amt' = RANDBETWEEN(10,1000)"
+        and f["column"] == "Sales amt"
     )
-    assert entry["column"] == "'Sales amt' = RANDBETWEEN(10,1000)"
+    assert entry["column"] == "Sales amt"
 
 
 def test_footwear_sustainability_report_runs_end_to_end():
