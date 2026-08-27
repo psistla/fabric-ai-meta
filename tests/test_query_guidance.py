@@ -1,5 +1,17 @@
-from fabric_ai_meta.analyzer.query_guidance import _find_join_path, _resolve_base_table
-from fabric_ai_meta.models.metadata import MeasureCategory, MeasureMeta, RelationshipMeta
+from fabric_ai_meta.analyzer.query_guidance import (
+    _calc_group_reference,
+    _find_join_path,
+    _report_plumbing_reason,
+    _resolve_base_table,
+    _warnings_for_measure,
+)
+from fabric_ai_meta.models.metadata import (
+    MeasureCategory,
+    MeasureMeta,
+    RelationshipMeta,
+    SemanticModelMeta,
+    TableMeta,
+)
 
 
 def _measure(name, dax, depends_on_measures=(), depends_on_columns=()):
@@ -88,3 +100,75 @@ def test_resolve_base_table_diamond_dependency_not_corrupted_by_sibling_seen():
     top = _measure("Top", "[A] + [B]", depends_on_measures=["[A]", "[B]"])
     by_name = {"C": c, "A": a, "B": b, "Top": top}
     assert _resolve_base_table(top, by_name) == "TrueTable"
+
+
+# Task 2: Measure lookup and warning detectors
+
+
+def _table(name, measures=(), partition="Import"):
+    return TableMeta(
+        name=name, description=None, ai_description=None,
+        table_type=None, grain=None, measures=list(measures),
+        source_partition_type=partition,
+    )
+
+
+def _model(tables, relationships=()):
+    return SemanticModelMeta(
+        name="t", workspace="", description=None,
+        tables=list(tables), relationships=list(relationships),
+    )
+
+
+def test_report_plumbing_data_uri():
+    assert _report_plumbing_reason('"data:image/svg+xml,..."') == "returns an embedded image (data URI)"
+
+
+def test_report_plumbing_whole_string_literal():
+    assert _report_plumbing_reason('"#F8696B"') == "returns a fixed string literal"
+
+
+def test_report_plumbing_format_call():
+    assert _report_plumbing_reason('FORMAT([Sales], "$#,##0")') == "returns a formatted display string"
+
+
+def test_report_plumbing_not_flagged_for_real_measure():
+    assert _report_plumbing_reason("SUM('Financials'[Sales])") is None
+
+
+def test_calc_group_reference_detected_via_missing_partition():
+    calc_group = _table("Time Calculation", partition=None)
+    real_table = _table("Financials")
+    model = _model([calc_group, real_table])
+    dax = 'CALCULATE([Sales], \'Time Calculation\'[Time Calculation] = "MoM")'
+    assert _calc_group_reference(model, dax) == "Time Calculation"
+
+
+def test_calc_group_reference_ignores_real_column_filter():
+    real_table = _table("Financials")
+    model = _model([real_table])
+    dax = "CALCULATE([Sales], 'Financials'[Discount Band] = \"High\")"
+    assert _calc_group_reference(model, dax) is None
+
+
+def test_warnings_semi_additive():
+    m = _measure(
+        "Revenue Month End", "CLOSINGBALANCEMONTH([Revenue], dim_date[date_actual])",
+        depends_on_measures=["[Revenue]"],
+    )
+    m.category = MeasureCategory.SEMI_ADDITIVE
+    warnings = _warnings_for_measure(_model([]), m)
+    assert any(w["type"] == "semi_additive" for w in warnings)
+
+
+def test_warnings_ratio():
+    m = _measure("Gross Margin %", "DIVIDE([Profit], [Sales])", depends_on_measures=["[Profit]", "[Sales]"])
+    m.category = MeasureCategory.NON_ADDITIVE
+    warnings = _warnings_for_measure(_model([]), m)
+    assert any(w["type"] == "ratio" for w in warnings)
+
+
+def test_warnings_hardcoded_literal():
+    m = _measure("Carbon Intensity Target", "0.09")
+    warnings = _warnings_for_measure(_model([]), m)
+    assert any(w["type"] == "hardcoded_literal" for w in warnings)

@@ -11,12 +11,20 @@ guessing; see planning/decisions/f1-narrowed-to-verified-metadata.md.
 
 from __future__ import annotations
 
+import re
+
 from fabric_ai_meta.models.metadata import (
+    MeasureCategory,
     MeasureMeta,
     RelationshipMeta,
+    SemanticModelMeta,
 )
 
 _MAX_MEASURE_WALK_DEPTH = 10
+
+_WHOLE_BODY_LITERAL_RE = re.compile(r"^\s*[+-]?\d+(\.\d+)?\s*$")
+_WHOLE_BODY_STRING_RE = re.compile(r'^\s*"([^"]|"")*"\s*$')
+_CALC_GROUP_FILTER_RE = re.compile(r"'([^']+)'\[([^\]]+)\]\s*=\s*\"[^\"]*\"")
 
 
 def _resolve_base_table(
@@ -93,3 +101,70 @@ def _find_join_path(
             visited.add(neighbor)
             frontier.append(new_path)
     return None
+
+
+def _report_plumbing_reason(dax: str) -> str | None:
+    """A narrow, cheap heuristic (design decision 5): catches icons, swatches,
+    and pure display strings. Does NOT catch a string-concatenation measure
+    with FORMAT() embedded mid-expression (e.g. won-pho's
+    `"Total sales: " & FORMAT([Sales], ...)`) - see Task 6's pinned
+    characterization test."""
+    stripped = dax.strip()
+    if "data:image" in dax:
+        return "returns an embedded image (data URI)"
+    if _WHOLE_BODY_STRING_RE.match(stripped):
+        return "returns a fixed string literal"
+    if stripped.upper().startswith("FORMAT("):
+        return "returns a formatted display string"
+    return None
+
+
+def _calc_group_reference(model: SemanticModelMeta, dax: str) -> str | None:
+    """Name of a table referenced in an equality filter whose own TMDL has no
+    partition block - the structural signature of a calculation-group item
+    selector (design decision 6). Returns the table name, or None."""
+    tables_by_name = {t.name: t for t in model.tables}
+    for table_name, _column_name in _CALC_GROUP_FILTER_RE.findall(dax):
+        table = tables_by_name.get(table_name)
+        if table is not None and table.source_partition_type is None:
+            return table_name
+    return None
+
+
+def _warnings_for_measure(model: SemanticModelMeta, measure: MeasureMeta) -> list[dict]:
+    warnings: list[dict] = []
+    if measure.category == MeasureCategory.SEMI_ADDITIVE:
+        warnings.append({
+            "type": "semi_additive",
+            "message": f"[{measure.name}] is a balance-type measure; do not sum it across "
+                       "time. Recompute at the grain you need instead.",
+        })
+    if measure.category == MeasureCategory.NON_ADDITIVE and "DIVIDE" in measure.dax_expression.upper():
+        warnings.append({
+            "type": "ratio",
+            "message": f"[{measure.name}] is a ratio of two other measures; do not average "
+                       "it across groups. Recompute DIVIDE(sum of numerator, sum of "
+                       "denominator) at the grain you need.",
+        })
+    literal = _WHOLE_BODY_LITERAL_RE.match(measure.dax_expression.strip())
+    if literal:
+        warnings.append({
+            "type": "hardcoded_literal",
+            "message": f"[{measure.name}] is a hardcoded constant "
+                       f"({literal.group(0).strip()}), not derived from data. Confirm this "
+                       "is the intended value.",
+        })
+    for rule in measure.implicit_filters:
+        warnings.append({
+            "type": "implicit_business_rule",
+            "message": f"[{measure.name}] hardcodes a filter ({rule}) inside its DAX.",
+        })
+    calc_group_table = _calc_group_reference(model, measure.dax_expression)
+    if calc_group_table:
+        warnings.append({
+            "type": "opaque_calculation_group",
+            "message": f"[{measure.name}] applies a calculation-group item from "
+                       f"'{calc_group_table}'. Calculation groups are not extracted "
+                       "(constraint 5); the underlying arithmetic is unknown.",
+        })
+    return warnings
