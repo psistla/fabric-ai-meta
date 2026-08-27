@@ -4,6 +4,7 @@ from fabric_ai_meta.analyzer.query_guidance import (
     _report_plumbing_reason,
     _resolve_base_table,
     _warnings_for_measure,
+    guide_query,
 )
 from fabric_ai_meta.models.metadata import (
     MeasureCategory,
@@ -172,3 +173,42 @@ def test_warnings_hardcoded_literal():
     m = _measure("Carbon Intensity Target", "0.09")
     warnings = _warnings_for_measure(_model([]), m)
     assert any(w["type"] == "hardcoded_literal" for w in warnings)
+
+
+# Task 3: guide_query orchestration - measure path
+
+
+def test_guide_query_requires_exactly_one_of_measure_or_column():
+    model = _model([])
+    assert guide_query(model)["refusal"] is not None
+    assert guide_query(model, measure="X", column="Y")["refusal"] is not None
+
+
+def test_guide_query_measure_not_found():
+    model = _model([_table("Financials")])
+    result = guide_query(model, measure="Nonexistent")
+    assert result["refusal"] == "No measure named 'Nonexistent' in this model."
+
+
+def test_guide_query_returns_measure_and_warnings():
+    sales = _measure("Sales", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    sales.category = MeasureCategory.ADDITIVE
+    ratio = _measure("Gross Margin %", "DIVIDE([Profit], [Sales])", depends_on_measures=["[Profit]", "[Sales]"])
+    ratio.category = MeasureCategory.NON_ADDITIVE
+    model = _model([_table("Financials", measures=[sales, ratio])])
+
+    result = guide_query(model, measure="Gross Margin %")
+    assert result["refusal"] is None
+    assert result["measure"]["name"] == "Gross Margin %"
+    assert result["measure"]["table"] == "Financials"
+    assert any(w["type"] == "ratio" for w in result["warnings"])
+
+
+def test_guide_query_excludes_report_plumbing_measure():
+    icon = _measure("COGS icon", '"data:image/svg+xml,..."')
+    model = _model([_table("Formatting", measures=[icon])])
+
+    result = guide_query(model, measure="COGS icon")
+    assert result["measure"]["name"] == "COGS icon"
+    assert result["excluded"]["reason"] == "report_plumbing"
+    assert result["warnings"] == []

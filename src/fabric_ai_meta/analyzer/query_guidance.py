@@ -168,3 +168,67 @@ def _warnings_for_measure(model: SemanticModelMeta, measure: MeasureMeta) -> lis
                        "(constraint 5); the underlying arithmetic is unknown.",
         })
     return warnings
+
+
+def _find_measure(model: SemanticModelMeta, name: str):
+    """Lookup a measure by name, case-insensitive, with bracket stripping."""
+    target = name.strip().lstrip("[").rstrip("]").lower()
+    for table in model.tables:
+        for measure in table.measures:
+            if measure.name.lower() == target:
+                return table, measure
+    return None
+
+
+def _all_measures_by_name(model: SemanticModelMeta) -> dict[str, MeasureMeta]:
+    """Flat dict of {measure_name: MeasureMeta} for all measures in model."""
+    return {m.name: m for t in model.tables for m in t.measures}
+
+
+def guide_query(
+    model: SemanticModelMeta,
+    *,
+    measure: str | None = None,
+    column: str | None = None,
+    dimensions: list[str] | None = None,
+) -> dict:
+    """Guidance to read before writing a query against `model`.
+
+    Pass exactly one of `measure` (a measure name) or `column` (a raw column
+    the caller was about to aggregate directly). `dimensions` is an optional
+    list of column names to group or filter by. See module docstring and
+    planning/decisions/f1-narrowed-to-verified-metadata.md for what this
+    does and refuses to answer.
+    """
+    result: dict = {
+        "measure": None, "redirect": None, "excluded": None,
+        "warnings": [], "dimensions": {}, "refusal": None,
+    }
+    if (measure is None) == (column is None):
+        result["refusal"] = "Pass exactly one of `measure` or `column`."
+        return result
+
+    resolved_measure: MeasureMeta | None = None
+    home_table = None
+
+    if measure is not None:
+        found = _find_measure(model, measure)
+        if found is None:
+            result["refusal"] = f"No measure named {measure!r} in this model."
+            return result
+        home_table, resolved_measure = found
+
+    if resolved_measure is not None:
+        reason = _report_plumbing_reason(resolved_measure.dax_expression)
+        result["measure"] = {
+            "table": home_table.name,
+            "name": resolved_measure.name,
+            "dax": resolved_measure.dax_expression,
+            "category": resolved_measure.category.name,
+        }
+        if reason:
+            result["excluded"] = {"reason": "report_plumbing", "detail": reason}
+        else:
+            result["warnings"].extend(_warnings_for_measure(model, resolved_measure))
+
+    return result
