@@ -624,3 +624,30 @@ The reports surface `models_without_ai_instructions`, `verified_answer_count`, `
 
 - Refresh-latency warning for DirectQuery / Direct Lake models is not yet emitted. The Fabric REST write returns success on the metadata change itself; downstream cache invalidation is out of scope.
 - The mock writer reports every primitive as `create` because it has no live envelope to diff against; in real mode you will see the full `create` / `update` / `delete` vocabulary.
+
+## Generating a capability manifest (`export capability-manifest`)
+
+A whole-model artifact answering "what can and cannot this model answer" - the mirror of
+`guide_query` (section 12): `guide_query` is how to ask right, this is what not to ask, read
+once instead of discovered one query at a time.
+
+Every measure in the model is classified as:
+
+- **`answerable`** - no known traps.
+- **`answerable_with_caveats`** - has a semi-additive, ratio, hardcoded-literal, implicit-
+  business-rule, or opaque-calculation-group warning attached. Still queryable, but an agent
+  should read the warning before summing or averaging it.
+- **`refused`** - report plumbing (an icon, a hardcoded display string, a `FORMAT()`-built
+  title). Not a real business metric; don't query it at all.
+
+```bash
+fabric-ai-meta export capability-manifest "Contoso Sales" --mock --output ./output
+```
+
+Writes `<output>/<model-slug>/capability-manifest.json`. Works with `--pbip` for a local
+`.SemanticModel` folder, same as every other extraction command.
+
+**What this does not cover (v1):** raw columns with no wrapping measure, and column names that
+exist on multiple tables (both of these are things `guide_query` already flags per-query - see
+section 12). No MCP tool yet; this is a file-based export today, same as `export prep-for-ai`
+and `export copilot`.

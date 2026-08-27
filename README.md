@@ -69,7 +69,7 @@ Every command takes `--pbip <folder>`, `--mock`, or `--workspace <name>`. Worked
 | `scan` | The same across a whole workspace or a Git Integration repo, plus `workspace-summary.json` |
 | `score` | AI readiness score: description coverage, naming consistency, relationship completeness |
 | `governance` | Cross-model naming inconsistencies, duplicate DAX under different names, readiness ranking |
-| `export` | `langchain`, `openai`, `semantic-kernel`, `autogen`, `prep-for-ai`, `copilot`, or [your own plugin](https://github.com/psistla/fabric-ai-meta#custom-exporters) |
+| `export` | `langchain`, `openai`, `semantic-kernel`, `autogen`, `prep-for-ai`, `copilot`, `capability-manifest`, or [your own plugin](https://github.com/psistla/fabric-ai-meta#custom-exporters) |
 | `auth` | `login`, `status`, `logout` for local Entra sign-in (requires `[fabric]`) |
 | `apply-descriptions` | Push generated descriptions to a live model through XMLA / TOM |
 | `apply-copilot` | Push an edited `Copilot/` folder back through the Fabric REST API |
