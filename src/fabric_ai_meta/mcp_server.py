@@ -141,18 +141,20 @@ def guide_query(
     the other tools' convention.
 
     When `refusal` is `None`: `measure` carries the resolved measure's table,
-    name, DAX and category, or `redirect` names a real measure to use instead
-    of a raw column you asked about. `excluded` is set (instead of
-    `warnings`) when the resolved measure is report plumbing (an icon, a
-    color swatch, a formatted display string) rather than a business
-    measure - the DAX is still returned so you can judge for yourself, but
-    nothing else is computed for it. Otherwise `warnings` lists any traps
-    found (semi-additive, ratio, hardcoded literal, opaque calculation
-    group). Each requested dimension resolves to a `status` of `resolved`
-    (with a `join_path`), `ambiguous` (every reachable candidate is listed;
-    none is picked for you - ask which one is meant), `unrelated` (the
-    column exists but nothing connects it to this measure's table), or
-    `not_found`.
+    name, DAX and category. If you passed a raw `column` that a real measure
+    already wraps, `redirect` also names that measure - `measure` and
+    `redirect` are populated together in that case, not one or the other.
+    `excluded` is set (instead of `warnings`) when the resolved measure is
+    report plumbing (an icon, a color swatch, a formatted display string)
+    rather than a business measure - the DAX is still returned so you can
+    judge for yourself, but nothing else is computed for it. Otherwise
+    `warnings` lists any traps found, e.g. semi-additive, ratio, hardcoded
+    literal, opaque calculation group, an ambiguous column name, or an
+    unwrapped raw column with no verified aggregation. Each requested
+    dimension resolves to a `status` of `resolved` (with a `join_path`),
+    `ambiguous` (every reachable candidate is listed; none is picked for you -
+    ask which one is meant), `unrelated` (the column exists but nothing
+    connects it to this measure's table), or `not_found`.
 
     Omit `pbip` to read a bundled sample model; pass a *.SemanticModel
     folder to read a real one.
