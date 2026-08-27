@@ -3,8 +3,9 @@ from fabric_ai_meta.analyzer.agent_readiness import (
     _find_missing_relationships,
     _find_undescribed,
     _find_unreliable_types,
+    assess_agent_readiness,
 )
-from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS
+from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, score_model
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
     ColumnRole,
@@ -137,3 +138,102 @@ def test_empty_data_type_is_flagged():
 def test_typed_column_produces_no_finding():
     model = _model([_table("Sales", columns=[_column("Amount", data_type="double")])])
     assert _find_unreliable_types(model) == []
+
+
+# --- assess_agent_readiness ---
+
+def test_zero_findings_model_has_empty_report():
+    model = _model([_table(
+        "Sales", description="Sales fact table",
+        columns=[_column("Amount", data_type="double", description="Sale amount")],
+        measures=[_measure("Total Sales", description="Sum of sales")],
+    )])
+    report = assess_agent_readiness(model)
+    assert report["summary"]["total_findings"] == 0
+    assert report["findings"] == []
+
+
+def test_findings_sorted_by_weight_descending():
+    # Detectors run in a fixed order whose weights already happen to be
+    # non-increasing (0.25/0.20 -> 0.15 -> 0.15 -> 0.05), so raw emission
+    # order is already sorted before .sort() runs on this fixture - pin the
+    # exact expected sequence (not just weight monotonicity) so a real
+    # ordering regression is still caught. CustomerKey/sales_amt need their
+    # own descriptions here so they don't *also* trip the undescribed
+    # detector and blur the one-finding-per-type intent of this fixture.
+    model = _model([_table(
+        "Sales",
+        columns=[
+            # missing_relationship 0.15
+            _column("CustomerKey", role=ColumnRole.FOREIGN_KEY, description="Customer FK"),
+            # ambiguous_name 0.15 + unreliable_type 0.05
+            _column("sales_amt", data_type="", description="Sale amount"),
+        ],
+        measures=[_measure("Total Sales", description=None)],  # undescribed measure 0.20
+        description=None,  # undescribed table 0.25
+    )])
+    report = assess_agent_readiness(model)
+    weights = [f["weight"] for f in report["findings"]]
+    assert weights == sorted(weights, reverse=True)
+    types_in_order = [(f["type"], f["table"], f["column"], f["measure"]) for f in report["findings"]]
+    assert types_in_order == [
+        ("undescribed", "Sales", None, None),
+        ("undescribed", "Sales", None, "Total Sales"),
+        ("ambiguous_name", "Sales", "sales_amt", None),
+        ("missing_relationship", "Sales", "CustomerKey", None),
+        ("unreliable_type", "Sales", "sales_amt", None),
+    ]
+
+
+def test_sort_actually_reorders_out_of_weight_order_findings():
+    """Unlike the single-table fixture above, this fixture's raw detector-
+    emission order is genuinely NOT already sorted: table A's undescribed
+    measure (0.20) is emitted before table B's undescribed table (0.25),
+    since _find_undescribed iterates model.tables in order. This proves
+    findings.sort(...) is load-bearing - deleting it would fail this test.
+    """
+    table_a = _table(
+        "A", description="A desc", measures=[_measure("Total", description=None)],
+    )
+    table_b = _table("B", description=None)
+    model = _model([table_a, table_b])
+
+    report = assess_agent_readiness(model)
+
+    assert [(f["table"], f["weight"]) for f in report["findings"]] == [
+        ("B", 0.25),
+        ("A", 0.20),
+    ]
+
+
+def test_summary_counts_match_findings():
+    model = _model([_table(
+        "Sales",
+        columns=[_column("CustomerKey", role=ColumnRole.FOREIGN_KEY)],
+    )])
+    report = assess_agent_readiness(model)
+    summary = report["summary"]
+    assert summary["total_findings"] == len(report["findings"])
+    assert sum(summary[t] for t in
+               ["undescribed", "ambiguous_name", "missing_relationship", "unreliable_type"]
+               ) == summary["total_findings"]
+
+
+def test_score_and_breakdown_match_scorer_directly():
+    model = _model([_table("Sales", columns=[_column("Amount")])])
+    report = assess_agent_readiness(model)
+    expected_score, expected_breakdown = score_model(model)
+    assert report["score"] == expected_score
+    assert report["breakdown"] == expected_breakdown
+
+
+def test_top_level_shape():
+    model = _model([_table("Sales")])
+    report = assess_agent_readiness(model)
+    assert report["$schema"] == (
+        "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/"
+        "schemas/agent-readiness/v1.json"
+    )
+    assert report["version"] == "1.0"
+    assert report["model"] == "Test Model"
+    assert "generated_at" in report

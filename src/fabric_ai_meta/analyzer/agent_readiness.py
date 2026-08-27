@@ -15,8 +15,17 @@ derived from SCORING_WEIGHTS - see the constant below.
 
 from __future__ import annotations
 
-from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, _is_name_consistent
+from datetime import datetime, timezone
+
+from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, _is_name_consistent, score_model
 from fabric_ai_meta.models.metadata import ColumnRole, SemanticModelMeta
+
+_SCHEMA_URL = (
+    "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/"
+    "schemas/agent-readiness/v1.json"
+)
+
+_FINDING_TYPES = ("undescribed", "ambiguous_name", "missing_relationship", "unreliable_type")
 
 _UNDESCRIBED_STRUCTURAL_WEIGHT = SCORING_WEIGHTS["description_coverage"]
 _UNDESCRIBED_MEASURE_WEIGHT = SCORING_WEIGHTS["measure_documentation"]
@@ -122,3 +131,32 @@ def _find_unreliable_types(model: SemanticModelMeta) -> list[dict]:
                     column=column.name,
                 ))
     return findings
+
+
+def assess_agent_readiness(model: SemanticModelMeta) -> dict:
+    """Run all four detectors against `model`, rank the findings by how much
+    they affect the model's existing AI-readiness score, and return the full
+    report dict, ready to serialize."""
+    findings: list[dict] = []
+    findings.extend(_find_undescribed(model))
+    findings.extend(_find_ambiguous_names(model))
+    findings.extend(_find_missing_relationships(model))
+    findings.extend(_find_unreliable_types(model))
+    findings.sort(key=lambda f: f["weight"], reverse=True)
+
+    overall, breakdown = score_model(model)
+
+    counts = dict.fromkeys(_FINDING_TYPES, 0)
+    for finding in findings:
+        counts[finding["type"]] += 1
+
+    return {
+        "$schema": _SCHEMA_URL,
+        "version": "1.0",
+        "model": model.name,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "score": overall,
+        "breakdown": breakdown,
+        "summary": {"total_findings": len(findings), **counts},
+        "findings": findings,
+    }
