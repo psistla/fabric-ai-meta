@@ -321,6 +321,26 @@ def test_export_prep_for_ai_mock_exits_0(runner, tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# export capability-manifest --mock
+# ---------------------------------------------------------------------------
+
+def test_export_capability_manifest_mock_exits_0(runner, tmp_path):
+    result = runner.invoke(main, [
+        "export", "capability-manifest", "Adventure Works",
+        "--workspace", "test",
+        "--output", str(tmp_path),
+        "--mock",
+    ])
+    assert result.exit_code == 0, f"Exit {result.exit_code}: {result.output}"
+    out_file = tmp_path / "adventure-works" / "capability-manifest.json"
+    assert out_file.exists()
+    with open(out_file) as f:
+        data = json.load(f)
+    for key in ["model", "summary", "measures"]:
+        assert key in data, f"Missing key '{key}' in capability-manifest.json"
+
+
+# ---------------------------------------------------------------------------
 # diff command
 # ---------------------------------------------------------------------------
 
