@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
@@ -400,7 +402,7 @@ def test_guide_query_dimension_unknown_base_table():
 
 # Task 6: Integration against the real fixtures
 
-FIXTURES = "tests/fixtures/pbip"
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "pbip")
 
 
 def _load(folder):
@@ -498,14 +500,15 @@ def test_won_pho_q1_direct_attribute_no_join_needed(won_pho):
 # --- pinned known limitation (design decision 5) ---
 
 
-def test_KNOWN_GAP_title_total_sales_not_excluded_as_plumbing(won_pho):
-    """Pinned, not silently fixed: `[Title total sales]` concatenates a
+def test_gap_title_total_sales_not_excluded_as_plumbing(won_pho):
+    """GAP: pinned, not silently fixed. `[Title total sales]` concatenates a
     string literal with a FORMAT([Sales], ...) call. Neither the data:image
     check, the whole-string check, nor the leading-FORMAT( check catches a
     concatenation, so it still surfaces as an ordinary CALCULATED measure.
     A broader fix is real, separate scope (won-pho contract doc, finding 2).
     This test fails - on purpose - the day someone widens the heuristic
     enough to catch it; when that happens, delete this test and add a
-    positive one instead."""
+    positive one instead.
+    """
     result = guide_query(won_pho, measure="Title total sales")
     assert result["excluded"] is None
