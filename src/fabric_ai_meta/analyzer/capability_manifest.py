@@ -1,10 +1,10 @@
 """Capability manifest: what this model can and cannot answer.
 
 A whole-model artifact - one manifest per model, generated once, unlike
-guide_query (F1) which answers a single query on demand. Every measure is
-classified using the exact same rules F1 uses to decide whether to warn or
-exclude, so an agent that already trusts guide_query's contract can trust
-this one without learning new semantics:
+guide_query which answers a single query on demand. Every measure is
+classified using the exact same rules guide_query uses to decide whether to
+warn or exclude, so an agent that already trusts guide_query's contract can
+trust this one without learning new semantics:
 
 - refused: report-plumbing only (same boundary as guide_query's `excluded`)
 - answerable_with_caveats: 1+ warnings from _warnings_for_measure (semi-
@@ -53,7 +53,7 @@ def _classify_measure(model: SemanticModelMeta, measure: MeasureMeta) -> dict:
 
 def generate_capability_manifest(model: SemanticModelMeta) -> dict:
     """Classify every measure in `model` as answerable, answerable-with-
-    caveats, or refused, using the same rules guide_query (F1) applies
+    caveats, or refused, using the same rules guide_query applies
     per-query. Returns the full manifest dict, ready to serialize."""
     measures: list[dict] = []
     counts = {"answerable": 0, "answerable_with_caveats": 0, "refused": 0}
