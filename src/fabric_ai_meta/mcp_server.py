@@ -99,6 +99,30 @@ def score_model(model_name: str, workspace: str = "", pbip: str | None = None) -
         return _error(str(exc))
 
 
+def assess_agent_readiness(model_name: str, workspace: str = "", pbip: str | None = None) -> dict:
+    """Run the agent-readiness critic report for a single model.
+
+    Omit `pbip` to read a bundled sample model (Adventure Works, Contoso Sales,
+    Enterprise Sales); pass a *.SemanticModel folder to read a real one. An
+    unrecognised model name is an error, not a substitution. Returns ranked
+    findings (undescribed objects, ambiguous names, missing relationships,
+    unreliable column types), each with a suggested fix, plus the same
+    score/breakdown `score_model` returns.
+    """
+    try:
+        from fabric_ai_meta.analyzer.agent_readiness import (
+            assess_agent_readiness as _assess,
+        )
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
+        )
+        model = extractor.extract(model_name, workspace)
+        classify_model_in_place(model)
+        return _assess(model)
+    except Exception as exc:
+        return _error(str(exc))
+
+
 def generate_schema(model_name: str, workspace: str = "", pbip: str | None = None) -> dict:
     """Generate the AI-ready schema dict for a model.
 
@@ -230,6 +254,7 @@ TOOLS: tuple[Any, ...] = (
     list_models,
     analyze_model,
     score_model,
+    assess_agent_readiness,
     generate_schema,
     guide_query,
     governance_report,

@@ -15,6 +15,7 @@ from fabric_ai_meta.cli import main
 from fabric_ai_meta.mcp_server import (
     TOOLS,
     analyze_model,
+    assess_agent_readiness,
     diff_summaries,
     generate_schema,
     governance_report,
@@ -35,8 +36,8 @@ def test_module_imports_without_mcp_installed():
     assert callable(mcp_server.run)
 
 
-def test_tools_tuple_lists_seven_callables():
-    assert len(TOOLS) == 7
+def test_tools_tuple_lists_eight_callables():
+    assert len(TOOLS) == 8
     for fn in TOOLS:
         assert callable(fn)
 
@@ -306,3 +307,20 @@ def test_mcp_defaults_to_bundled_samples():
     from fabric_ai_meta.mcp_server import list_models
     result = list_models(workspace="Production Analytics")
     assert "Adventure Works" in result["models"]
+
+
+def test_assess_agent_readiness_returns_report_shape():
+    result = assess_agent_readiness(model_name="Adventure Works", workspace=WORKSPACE)
+    for key in ["model", "score", "breakdown", "summary", "findings"]:
+        assert key in result, f"Missing key '{key}'"
+    assert 0.0 <= result["score"] <= 1.0
+
+
+def test_assess_agent_readiness_unknown_model_is_error():
+    result = assess_agent_readiness(model_name="Does Not Exist", workspace=WORKSPACE)
+    assert "error" in result
+
+
+def test_assess_agent_readiness_is_in_tools_tuple():
+    from fabric_ai_meta.mcp_server import TOOLS, assess_agent_readiness
+    assert assess_agent_readiness in TOOLS
