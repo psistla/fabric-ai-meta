@@ -18,7 +18,8 @@ flowchart TB
   CMD --> OUT[(JSON outputs<br/>ai-ready-schema, langchain-tool,<br/>readiness-score, governance-report)]
   OUT --> AI([AI frameworks<br/>LangChain / OpenAI / Semantic Kernel / AutoGen])
   OUT --> WB[Writeback<br/>apply-descriptions / apply-copilot]
-  OUT --> MCP([serve: tools over MCP])
+  OUT --> SAFE[Agent-safety exports<br/>capability-manifest / agent-readiness]
+  OUT --> MCP([serve: 8 tools over MCP<br/>incl. guide_query])
 ```
 
 ---
@@ -424,7 +425,7 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-47 symbols are exposed at the top level (see `fabric_ai_meta.__all__`). Embed in data platforms, notebooks, governance pipelines, or backend services.
+51 symbols are exposed at the top level (see `fabric_ai_meta.__all__`). Embed in data platforms, notebooks, governance pipelines, or backend services.
 
 ---
 
@@ -474,51 +475,7 @@ Reports models added and removed, score changes per model, table and measure cou
 
 ---
 
-## Typical workflow paths
-
-Different personas need different command sequences. Pick the one that matches you:
-
-### Solo BI developer exploring the tool
-
-```
-1. Install                           pip install fabric-ai-meta
-2. Save your model                   Power BI Desktop: File > Save As > .pbip
-3. Analyze it locally, no Fabric     fabric-ai-meta analyze "Your Model" --pbip ./YourModel.SemanticModel
-4. Export to your framework          fabric-ai-meta export openai "Your Model" --pbip ./YourModel.SemanticModel
-```
-
-### Enterprise governance team
-
-```
-1. Install                           pip install fabric-ai-meta
-2. Configure TOML                    write .fabric-ai-meta.toml
-3. Bulk scan                         fabric-ai-meta scan --workspace ...
-4. Governance report                 fabric-ai-meta governance --workspace ... --report ...
-5. Wire into CI                      see docs/ci-cd-guide.md
-6. Track over time                   fabric-ai-meta scan --baseline previous-summary.json
-```
-
-### AI engineer building agents
-
-```
-1. Install + LLM extra               pip install 'fabric-ai-meta[llm,mcp]'
-2. Enrich the model                  fabric-ai-meta analyze "Your Model" --workspace ... --llm-enrich
-3. Export for your framework         fabric-ai-meta export langchain "Your Model" --workspace ...
-4. Or expose via MCP                 fabric-ai-meta serve  (then connect from your IDE)
-```
-
-### Fabric architect cleaning a model
-
-```
-1. Install + LLM extra               pip install 'fabric-ai-meta[llm]'
-2. Enrich descriptions               fabric-ai-meta analyze "Sales Model" --workspace ... --llm-enrich
-3. Generate Prep for AI config       fabric-ai-meta export prep-for-ai "Sales Model" --workspace ... --llm-enrich
-4. Preview writeback                 fabric-ai-meta apply-descriptions ./...config.json --mock
-5. Commit writeback                  fabric-ai-meta apply-descriptions ./...config.json --workspace ... --no-dry-run
-                                     (must run inside a Fabric notebook)
-```
-
-## Exporting Copilot artifacts (`export copilot`)
+## 16. Exporting Copilot artifacts (`export copilot`)
 
 Microsoft Fabric stores Prep for AI primitives - AI Instructions, Verified Answers, AI Data Schema, example prompts, Copilot settings - in a `Copilot/` folder inside the semantic model. fabric-ai-meta v1.4.0 reads that folder via the Fabric REST `getDefinition` endpoint and writes it to your local disk in the same layout, so you can diff, version-control, and review it outside Fabric.
 
@@ -566,7 +523,9 @@ Microsoft Fabric stores Prep for AI primitives - AI Instructions, Verified Answe
 - Models with no Copilot configuration produce an empty bundle and the exporter prints a notice (no `copilot/` directory written).
 - Outside a Fabric notebook, `--with-copilot` without `--mock` raises `FabricEnvironmentError`.
 
-## Applying Copilot artifacts back to a model (`apply-copilot`)
+---
+
+## 17. Applying Copilot artifacts back to a model (`apply-copilot`)
 
 The inverse of `export copilot`. Reads a local `Copilot/` folder and writes it to a live semantic model through the Fabric REST `updateDefinition` long-running operation. Closes the read-edit-write loop for Prep for AI.
 
@@ -628,7 +587,9 @@ The reports surface `models_without_ai_instructions`, `verified_answer_count`, `
 - Refresh-latency warning for DirectQuery / Direct Lake models is not yet emitted. The Fabric REST write returns success on the metadata change itself; downstream cache invalidation is out of scope.
 - The mock writer reports every primitive as `create` because it has no live envelope to diff against; in real mode you will see the full `create` / `update` / `delete` vocabulary.
 
-## Generating a capability manifest (`export capability-manifest`)
+---
+
+## 18. Generating a capability manifest (`export capability-manifest`)
 
 A whole-model artifact answering "what can and cannot this model answer" - the mirror of
 `guide_query` (section 12): `guide_query` is how to ask right, this is what not to ask, read
@@ -655,7 +616,9 @@ exist on multiple tables (both of these are things `guide_query` already flags p
 section 12). No MCP tool yet; this is a file-based export today, same as `export prep-for-ai`
 and `export copilot`.
 
-## Assessing agent-readiness (`export agent-readiness`)
+---
+
+## 19. Assessing agent-readiness (`export agent-readiness`)
 
 A per-model critic report: concrete findings - undescribed tables/columns/measures, ambiguous
 names, missing relationships, unreliable column types - each ranked by how much it affects the
@@ -686,3 +649,58 @@ yet - `apply-descriptions` needs a notebook), duplicate-measure detection within
 (structurally a cross-model signal, see `governance --report`), and the `ColumnRole`
 misclassification bugs that some `unreliable_type` columns also happen to trigger - those are
 separate, known `classifier.py` issues this report doesn't second-guess.
+
+---
+
+## Typical workflow paths
+
+Different personas need different command sequences. Pick the one that matches you:
+
+### Solo BI developer exploring the tool
+
+```
+1. Install                           pip install fabric-ai-meta
+2. Save your model                   Power BI Desktop: File > Save As > .pbip
+3. Analyze it locally, no Fabric     fabric-ai-meta analyze "Your Model" --pbip ./YourModel.SemanticModel
+4. Export to your framework          fabric-ai-meta export openai "Your Model" --pbip ./YourModel.SemanticModel
+```
+
+### Enterprise governance team
+
+```
+1. Install                           pip install fabric-ai-meta
+2. Configure TOML                    write .fabric-ai-meta.toml
+3. Bulk scan                         fabric-ai-meta scan --workspace ...
+4. Governance report                 fabric-ai-meta governance --workspace ... --report ...
+5. Wire into CI                      see docs/ci-cd-guide.md
+6. Track over time                   fabric-ai-meta scan --baseline previous-summary.json
+```
+
+### AI engineer building agents
+
+```
+1. Install + LLM extra               pip install 'fabric-ai-meta[llm,mcp]'
+2. Enrich the model                  fabric-ai-meta analyze "Your Model" --workspace ... --llm-enrich
+3. Export for your framework         fabric-ai-meta export langchain "Your Model" --workspace ...
+4. Or expose via MCP                 fabric-ai-meta serve  (then connect from your IDE)
+```
+
+### Fabric architect cleaning a model
+
+```
+1. Install + LLM extra               pip install 'fabric-ai-meta[llm]'
+2. Enrich descriptions               fabric-ai-meta analyze "Sales Model" --workspace ... --llm-enrich
+3. Generate Prep for AI config       fabric-ai-meta export prep-for-ai "Sales Model" --workspace ... --llm-enrich
+4. Preview writeback                 fabric-ai-meta apply-descriptions ./...config.json --mock
+5. Commit writeback                  fabric-ai-meta apply-descriptions ./...config.json --workspace ... --no-dry-run
+                                     (must run inside a Fabric notebook)
+```
+
+### AI engineer trusting an agent to query the model
+
+```
+1. Install + MCP extra               pip install 'fabric-ai-meta[mcp]'
+2. Check the model is agent-ready    fabric-ai-meta export agent-readiness "Your Model" --pbip ./YourModel.SemanticModel
+3. Read the whole-model caveats      fabric-ai-meta export capability-manifest "Your Model" --pbip ./YourModel.SemanticModel
+4. Expose guide_query to the agent   fabric-ai-meta serve  (then connect from your IDE)
+```

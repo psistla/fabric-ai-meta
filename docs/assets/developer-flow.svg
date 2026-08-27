@@ -1,82 +1,99 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="720" viewBox="0 0 720 588" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-label="fabric-ai-meta developer flow: install, pick a source (local .pbip, Fabric notebook, or mock fixtures), run a command, get JSON outputs, then feed to AI frameworks, writeback, or MCP.">
+<svg xmlns="http://www.w3.org/2000/svg" width="880" viewBox="0 0 880 600" font-family="Consolas, SFMono-Regular, Menlo, monospace" role="img" aria-label="fabric-ai-meta developer flow drawn as an engineering blueprint: install, three model sources, a command hub, JSON output, and three consumers with the new agent tools called out in amber, signal flow animated along the connectors.">
   <defs>
-    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L7,3 L0,6" fill="none" stroke="#656d76" stroke-width="1.4"/>
+    <marker id="bp-ah" markerWidth="8" markerHeight="8" refX="6" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L6,2.5 L0,5" fill="none" stroke="#4f7ea8" stroke-width="1.2"/>
     </marker>
   </defs>
-
-  <rect x="1" y="1" width="718" height="586" rx="12" fill="#ffffff" stroke="#d0d7de"/>
-
-  <!-- arrows: install -> sources -->
-  <g fill="none" stroke="#656d76" stroke-width="1.4" marker-end="url(#ah)">
-    <path d="M360,68 L128,108"/>
-    <path d="M360,68 L360,108"/>
-    <path d="M360,68 L592,108"/>
-    <!-- sources -> command -->
-    <path d="M125,186 L350,226"/>
-    <path d="M360,186 L360,226"/>
-    <path d="M595,186 L370,226"/>
-    <!-- command -> outputs -->
-    <path d="M360,322 L360,354"/>
-    <!-- outputs -> consumers -->
-    <path d="M360,430 L128,462"/>
-    <path d="M360,430 L360,462"/>
-    <path d="M360,430 L592,462"/>
-  </g>
-
-  <!-- Install -->
-  <rect x="210" y="24" width="300" height="44" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="360" y="51" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">pip install fabric-ai-meta</text>
-
-  <!-- Source: pbip (highlighted) -->
-  <rect x="20" y="110" width="210" height="76" rx="8" fill="#ddf4ff" stroke="#0969da"/>
-  <text x="125" y="140" text-anchor="middle" font-size="15" font-weight="600" fill="#0a3069">--pbip</text>
-  <text x="125" y="160" text-anchor="middle" font-size="12" fill="#0550ae">local .SemanticModel</text>
-  <text x="125" y="176" text-anchor="middle" font-size="12" fill="#0550ae">folder, no auth</text>
-
-  <!-- Source: Fabric -->
-  <rect x="255" y="110" width="210" height="76" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="360" y="140" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">Fabric notebook</text>
-  <text x="360" y="160" text-anchor="middle" font-size="12" fill="#57606a">live model</text>
-  <text x="360" y="176" text-anchor="middle" font-size="12" fill="#57606a">ambient credential</text>
-
-  <!-- Source: mock -->
-  <rect x="490" y="110" width="210" height="76" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="595" y="140" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">--mock</text>
-  <text x="595" y="160" text-anchor="middle" font-size="12" fill="#57606a">fixtures</text>
-  <text x="595" y="176" text-anchor="middle" font-size="12" fill="#57606a">for dev / CI</text>
-
-  <!-- Command -->
-  <rect x="160" y="228" width="400" height="94" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="360" y="258" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">Run a command</text>
-  <text x="360" y="284" text-anchor="middle" font-size="12" fill="#57606a">analyze  ·  scan  ·  score</text>
-  <text x="360" y="302" text-anchor="middle" font-size="12" fill="#57606a">governance  ·  export &lt;framework&gt;</text>
-
-  <!-- Outputs -->
-  <rect x="160" y="356" width="400" height="74" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="360" y="384" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">JSON outputs</text>
-  <text x="360" y="406" text-anchor="middle" font-size="12" fill="#57606a">ai-ready-schema  ·  langchain-tool</text>
-  <text x="360" y="423" text-anchor="middle" font-size="12" fill="#57606a">readiness-score  ·  governance-report</text>
-
-  <!-- Consumer: AI frameworks -->
-  <rect x="20" y="464" width="210" height="78" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="125" y="492" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">AI frameworks</text>
-  <text x="125" y="513" text-anchor="middle" font-size="12" fill="#57606a">LangChain  ·  OpenAI</text>
-  <text x="125" y="530" text-anchor="middle" font-size="12" fill="#57606a">Semantic Kernel  ·  AutoGen</text>
-
-  <!-- Consumer: Writeback -->
-  <rect x="255" y="464" width="210" height="78" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="360" y="492" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">Writeback</text>
-  <text x="360" y="513" text-anchor="middle" font-size="12" fill="#57606a">apply-descriptions</text>
-  <text x="360" y="530" text-anchor="middle" font-size="12" fill="#57606a">apply-copilot</text>
-
-  <!-- Consumer: MCP -->
-  <rect x="490" y="464" width="210" height="78" rx="8" fill="#f6f8fa" stroke="#656d76"/>
-  <text x="595" y="492" text-anchor="middle" font-size="15" font-weight="600" fill="#1f2328">MCP server</text>
-  <text x="595" y="513" text-anchor="middle" font-size="12" fill="#57606a">serve tools to</text>
-  <text x="595" y="530" text-anchor="middle" font-size="12" fill="#57606a">Claude Code / Desktop</text>
-
-  <!-- Legend -->
-  <rect x="20" y="558" width="14" height="14" rx="3" fill="#ddf4ff" stroke="#0969da"/>
-  <text x="42" y="569" font-size="12" fill="#57606a">Blue = new in v1.6 (local extraction, no Fabric or tenant needed)</text>
+  <style>
+    .flow { animation: flow 0.9s linear infinite; }
+    .w0 { animation-delay: 0s; }
+    .w1 { animation-delay: 0.35s; }
+    .w2 { animation-delay: 0.7s; }
+    .w3 { animation-delay: 1.05s; }
+    @keyframes flow { to { stroke-dashoffset: -18; } }
+    .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.25; transform: scale(1); }
+      50%      { opacity: 0.65; transform: scale(1.035); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .flow { animation: none; }
+      .pulse { animation: none; opacity: 0.35; }
+    }
+  </style>
+  <rect width="880" height="600" fill="#0a2140"/>
+  <g opacity="0.55"><line x1="0" y1="0" x2="0" y2="600" stroke="#153562" stroke-width="1"/><line x1="24" y1="0" x2="24" y2="600" stroke="#153562" stroke-width="1"/><line x1="48" y1="0" x2="48" y2="600" stroke="#153562" stroke-width="1"/><line x1="72" y1="0" x2="72" y2="600" stroke="#153562" stroke-width="1"/><line x1="96" y1="0" x2="96" y2="600" stroke="#153562" stroke-width="1"/><line x1="120" y1="0" x2="120" y2="600" stroke="#153562" stroke-width="1"/><line x1="144" y1="0" x2="144" y2="600" stroke="#153562" stroke-width="1"/><line x1="168" y1="0" x2="168" y2="600" stroke="#153562" stroke-width="1"/><line x1="192" y1="0" x2="192" y2="600" stroke="#153562" stroke-width="1"/><line x1="216" y1="0" x2="216" y2="600" stroke="#153562" stroke-width="1"/><line x1="240" y1="0" x2="240" y2="600" stroke="#153562" stroke-width="1"/><line x1="264" y1="0" x2="264" y2="600" stroke="#153562" stroke-width="1"/><line x1="288" y1="0" x2="288" y2="600" stroke="#153562" stroke-width="1"/><line x1="312" y1="0" x2="312" y2="600" stroke="#153562" stroke-width="1"/><line x1="336" y1="0" x2="336" y2="600" stroke="#153562" stroke-width="1"/><line x1="360" y1="0" x2="360" y2="600" stroke="#153562" stroke-width="1"/><line x1="384" y1="0" x2="384" y2="600" stroke="#153562" stroke-width="1"/><line x1="408" y1="0" x2="408" y2="600" stroke="#153562" stroke-width="1"/><line x1="432" y1="0" x2="432" y2="600" stroke="#153562" stroke-width="1"/><line x1="456" y1="0" x2="456" y2="600" stroke="#153562" stroke-width="1"/><line x1="480" y1="0" x2="480" y2="600" stroke="#153562" stroke-width="1"/><line x1="504" y1="0" x2="504" y2="600" stroke="#153562" stroke-width="1"/><line x1="528" y1="0" x2="528" y2="600" stroke="#153562" stroke-width="1"/><line x1="552" y1="0" x2="552" y2="600" stroke="#153562" stroke-width="1"/><line x1="576" y1="0" x2="576" y2="600" stroke="#153562" stroke-width="1"/><line x1="600" y1="0" x2="600" y2="600" stroke="#153562" stroke-width="1"/><line x1="624" y1="0" x2="624" y2="600" stroke="#153562" stroke-width="1"/><line x1="648" y1="0" x2="648" y2="600" stroke="#153562" stroke-width="1"/><line x1="672" y1="0" x2="672" y2="600" stroke="#153562" stroke-width="1"/><line x1="696" y1="0" x2="696" y2="600" stroke="#153562" stroke-width="1"/><line x1="720" y1="0" x2="720" y2="600" stroke="#153562" stroke-width="1"/><line x1="744" y1="0" x2="744" y2="600" stroke="#153562" stroke-width="1"/><line x1="768" y1="0" x2="768" y2="600" stroke="#153562" stroke-width="1"/><line x1="792" y1="0" x2="792" y2="600" stroke="#153562" stroke-width="1"/><line x1="816" y1="0" x2="816" y2="600" stroke="#153562" stroke-width="1"/><line x1="840" y1="0" x2="840" y2="600" stroke="#153562" stroke-width="1"/><line x1="864" y1="0" x2="864" y2="600" stroke="#153562" stroke-width="1"/><line x1="0" y1="0" x2="880" y2="0" stroke="#153562" stroke-width="1"/><line x1="0" y1="24" x2="880" y2="24" stroke="#153562" stroke-width="1"/><line x1="0" y1="48" x2="880" y2="48" stroke="#153562" stroke-width="1"/><line x1="0" y1="72" x2="880" y2="72" stroke="#153562" stroke-width="1"/><line x1="0" y1="96" x2="880" y2="96" stroke="#153562" stroke-width="1"/><line x1="0" y1="120" x2="880" y2="120" stroke="#153562" stroke-width="1"/><line x1="0" y1="144" x2="880" y2="144" stroke="#153562" stroke-width="1"/><line x1="0" y1="168" x2="880" y2="168" stroke="#153562" stroke-width="1"/><line x1="0" y1="192" x2="880" y2="192" stroke="#153562" stroke-width="1"/><line x1="0" y1="216" x2="880" y2="216" stroke="#153562" stroke-width="1"/><line x1="0" y1="240" x2="880" y2="240" stroke="#153562" stroke-width="1"/><line x1="0" y1="264" x2="880" y2="264" stroke="#153562" stroke-width="1"/><line x1="0" y1="288" x2="880" y2="288" stroke="#153562" stroke-width="1"/><line x1="0" y1="312" x2="880" y2="312" stroke="#153562" stroke-width="1"/><line x1="0" y1="336" x2="880" y2="336" stroke="#153562" stroke-width="1"/><line x1="0" y1="360" x2="880" y2="360" stroke="#153562" stroke-width="1"/><line x1="0" y1="384" x2="880" y2="384" stroke="#153562" stroke-width="1"/><line x1="0" y1="408" x2="880" y2="408" stroke="#153562" stroke-width="1"/><line x1="0" y1="432" x2="880" y2="432" stroke="#153562" stroke-width="1"/><line x1="0" y1="456" x2="880" y2="456" stroke="#153562" stroke-width="1"/><line x1="0" y1="480" x2="880" y2="480" stroke="#153562" stroke-width="1"/><line x1="0" y1="504" x2="880" y2="504" stroke="#153562" stroke-width="1"/><line x1="0" y1="528" x2="880" y2="528" stroke="#153562" stroke-width="1"/><line x1="0" y1="552" x2="880" y2="552" stroke="#153562" stroke-width="1"/><line x1="0" y1="576" x2="880" y2="576" stroke="#153562" stroke-width="1"/></g>
+  <rect x="6" y="6" width="868" height="588" fill="none" stroke="#4f7ea8" stroke-width="1"/>
+  <g><path class="flow w0" d="M165,86 L165,116" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w0" d="M440,86 L440,116" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w0" d="M715,86 L715,116" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w1" d="M165,196 L400,234" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w1" d="M440,196 L440,234" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w1" d="M715,196 L480,234" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w2" d="M440,306 L440,334" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w3" d="M440,396 L165,426" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w3" d="M440,396 L440,426" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/><path class="flow w3" d="M440,396 L715,426" fill="none" stroke="#4f7ea8" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#bp-ah)"/></g>
+  <rect x="40" y="40" width="800" height="46" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M40,49 L40,40 L49,40" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M840,49 L840,40 L831,40" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M40,77 L40,86 L49,86" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M840,77 L840,86 L831,86" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="54" y="66" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">PIP INSTALL FABRIC-AI-META</text>
+  <rect x="40" y="118" width="250" height="78" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M40,127 L40,118 L49,118" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M290,127 L290,118 L281,118" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M40,187 L40,196 L49,196" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M290,187 L290,196 L281,196" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="54" y="144" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">--PBIP</text>
+  <text x="54" y="164" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">local .SemanticModel folder</text>
+  <text x="54" y="180" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">no auth required</text>
+  <rect x="315" y="118" width="250" height="78" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M315,127 L315,118 L324,118" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M565,127 L565,118 L556,118" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M315,187 L315,196 L324,196" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M565,187 L565,196 L556,196" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="329" y="144" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">FABRIC NOTEBOOK</text>
+  <text x="329" y="164" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">live model</text>
+  <text x="329" y="180" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">ambient credential</text>
+  <rect x="590" y="118" width="250" height="78" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M590,127 L590,118 L599,118" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M840,127 L840,118 L831,118" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M590,187 L590,196 L599,196" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M840,187 L840,196 L831,196" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="604" y="144" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">--MOCK</text>
+  <text x="604" y="164" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">bundled fixtures</text>
+  <text x="604" y="180" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">dev / CI</text>
+  <rect x="190" y="236" width="500" height="70" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M190,245 L190,236 L199,236" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M690,245 L690,236 L681,236" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M190,297 L190,306 L199,306" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M690,297 L690,306 L681,306" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="204" y="262" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">RUN: analyze / scan / score / governance / export</text>
+  <rect x="190" y="336" width="500" height="60" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M190,345 L190,336 L199,336" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M690,345 L690,336 L681,336" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M190,387 L190,396 L199,396" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M690,387 L690,396 L681,396" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="204" y="362" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">OUTPUT: ai-ready-schema.json + N artifacts</text>
+  <rect x="40" y="428" width="250" height="74" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M40,437 L40,428 L49,428" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M290,437 L290,428 L281,428" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M40,493 L40,502 L49,502" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M290,493 L290,502 L281,502" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="54" y="454" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">AI FRAMEWORKS</text>
+  <text x="54" y="474" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">LangChain · OpenAI</text>
+  <text x="54" y="490" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">Semantic Kernel · AutoGen</text>
+  <rect x="315" y="428" width="250" height="74" fill="none" stroke="#8ecdf7" stroke-width="1.4"/>
+  <path d="M315,437 L315,428 L324,428" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M565,437 L565,428 L556,428" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M315,493 L315,502 L324,502" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <path d="M565,493 L565,502 L556,502" fill="none" stroke="#8ecdf7" stroke-width="2"/>
+  <text x="329" y="454" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#eaf4ff">WRITEBACK</text>
+  <text x="329" y="474" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">apply-descriptions</text>
+  <text x="329" y="490" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">apply-copilot</text>
+  <rect class="pulse" x="584" y="422" width="262" height="86" fill="none" stroke="#ffb454" stroke-width="2"/>
+  <rect x="590" y="428" width="250" height="74" fill="none" stroke="#ffb454" stroke-width="1.4"/>
+  <path d="M590,437 L590,428 L599,428" fill="none" stroke="#ffb454" stroke-width="2"/>
+  <path d="M840,437 L840,428 L831,428" fill="none" stroke="#ffb454" stroke-width="2"/>
+  <path d="M590,493 L590,502 L599,502" fill="none" stroke="#ffb454" stroke-width="2"/>
+  <path d="M840,493 L840,502 L831,502" fill="none" stroke="#ffb454" stroke-width="2"/>
+  <text x="604" y="454" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="700" fill="#ffb454">AGENT TOOLS — NEW</text>
+  <text x="604" y="474" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">guide_query · capability-manifest</text>
+  <text x="604" y="490" font-family="Consolas, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#a9cdea">agent-readiness</text>
+  <line x1="40" y1="542" x2="840" y2="542" stroke="#4f7ea8" stroke-width="1"/>
+  <text x="40" y="564" font-size="11" fill="#a9cdea">DWG. FABRIC-AI-META &#8212; DEVELOPER FLOW</text>
+  <text x="840" y="564" text-anchor="end" font-size="11" fill="#ffb454">REV. v2.0 &#8212; AMBER = NEW</text>
+  <text x="40" y="582" font-size="10" fill="#4f7ea8">SCALE: NOT TO SCALE &#8212; PIP INSTALL FABRIC-AI-META</text>
 </svg>

@@ -3,7 +3,7 @@
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/fabric-ai-meta?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/fabric-ai-meta)
 ![Version](https://img.shields.io/badge/version-1.8.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-683%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-685%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -11,7 +11,18 @@
 
 Point it at a `.pbip` folder and you get a classified schema, an AI readiness score, and framework-native exports for LangChain, OpenAI, Semantic Kernel, and AutoGen. No Fabric tenant, no notebook, no sign-in.
 
-![Extract, classify, score, and export a semantic model](https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/developer-flow.svg)
+![Install, pick a source, run a command, and feed the output to AI frameworks, writeback, or the new agent tools](https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/developer-flow.svg)
+
+## Who it's for
+
+| You are | You get |
+|---|---|
+| A **BI developer** exploring a model | A local, classified schema and readiness score, no Fabric tenant needed |
+| An **AI engineer** building on top of it | Framework-native exports, plus MCP tools an agent can query safely |
+| A **governance team** watching many models | Cross-model drift, naming inconsistency, and duplicate-DAX detection at scale |
+| A **Fabric architect** cleaning up a model | Auto-generated descriptions and a dry-run-first writeback path |
+
+Full command sequence for each in the [user guide's workflow paths](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md#typical-workflow-paths).
 
 ## Try it
 
@@ -78,35 +89,29 @@ Every command takes `--pbip <folder>`, `--mock`, or `--workspace <name>`. Worked
 
 Add `--llm-enrich` to any extraction command to fill in missing descriptions and detect fact-table grain. It is off unless you ask, [cost-capped, and works with 10+ providers](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md#7-turn-on-llm-enrichment-fill-in-the-gaps) including a local Ollama.
 
-## Do you even need an ontology?
+Before funding a knowledge-graph project: `governance --graph-necessity` scores whether your star schema already answers real questions without one, so you're not building infrastructure the model doesn't need. Verdict tiers and the scoring signals are in the [user guide](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md#do-you-even-need-an-ontology---graph-necessity).
 
-Knowledge graph projects are expensive and most semantic models do not need one: a star schema with good descriptions already answers the questions people actually ask. Run this before you fund the project.
+## Built for an agent to query safely
+
+An agent writing DAX against your model can't see the traps an analyst would catch on sight: a semi-additive measure summed across time, a ratio averaged instead of recomputed, a column that means something different than its name suggests. Three tools close that gap.
+
+- **`guide_query` (MCP).** Guidance to read before writing one query: the correct measure, a safe join path, and warnings for semi-additive, ratio, hardcoded-literal, or calculation-group traps.
+- **`export capability-manifest`.** The same warnings for the whole model, read once instead of discovered query by query. Every measure comes back `answerable`, `answerable_with_caveats`, or `refused`.
+- **`export agent-readiness`.** A ranked list of what's currently blocking clean answers, undescribed objects, ambiguous names, missing relationships, each paired with a fix.
 
 ```bash
-fabric-ai-meta governance --pbip ./models --graph-necessity --report ./gov.json
+fabric-ai-meta export agent-readiness "Contoso Sales" --mock --output ./output
 ```
-
-The report gains a verdict per model:
 
 ```json
 {
-  "name": "Contoso Sales",
-  "tier": "GRAPH_UNNECESSARY",
-  "pressure": 0.0,
-  "confidence": "evidenced",
-  "evidence": [
-    "4 of 4 questions resolve within <=2 tables (flat aggregation)",
-    "no bridge or many-to-many relationships",
-    "relationship graph is a shallow star (diameter 2)",
-    "single fact table"
-  ],
-  "recommendation": "Described schema suffices; defer ontology/graph adoption."
+  "type": "ambiguous_name",
+  "table": "FactSales",
+  "column": "Customer_Key",
+  "message": "Column name 'Customer_Key' is inconsistent (underscore, all-caps abbreviation, or too short).",
+  "fix": "Rename 'Customer_Key' to a clear, consistent name."
 }
 ```
-
-Tiers are `GRAPH_UNNECESSARY`, `GRAPH_OPTIONAL`, and `GRAPH_WARRANTED`, blended from four signals: how many real questions traverse three or more tables, bridge and many-to-many presence, relationship graph depth, and multi-fact complexity. No Fabric capacity, no LLM calls.
-
-Pass `--questions ./questions.txt` (one per line, or a JSON list) to judge against what your users actually ask. Without it the check falls back to Copilot example prompts, then to measure dependencies, which is a conservative proxy: DAX names columns in one or two tables while real traversal happens through relationships at query time. That fallback biases toward `GRAPH_UNNECESSARY`, so supply real questions when you want the verdict to carry weight.
 
 ## Why this exists
 
@@ -125,7 +130,7 @@ schema = generate_ai_ready_schema(model)
 openai_fn = to_openai_function(model)
 ```
 
-47 public exports; see `fabric_ai_meta.__all__`.
+51 public exports; see `fabric_ai_meta.__all__`.
 
 ### Custom exporters
 
@@ -147,7 +152,7 @@ Issues and pull requests welcome. Before opening one:
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/ -q     # 591 tests, no Fabric runtime or network needed
+pytest tests/ -q     # 685 tests, no Fabric runtime or network needed
 ruff check .
 ```
 
