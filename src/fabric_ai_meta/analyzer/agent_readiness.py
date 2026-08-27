@@ -15,6 +15,8 @@ derived from SCORING_WEIGHTS - see the constant below.
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import datetime, timezone
 
 from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, _is_name_consistent, score_model
@@ -160,3 +162,15 @@ def assess_agent_readiness(model: SemanticModelMeta) -> dict:
         "summary": {"total_findings": len(findings), **counts},
         "findings": findings,
     }
+
+
+def write_agent_readiness_report(model: SemanticModelMeta, output_path: str) -> str:
+    """Generate the agent-readiness report and write it to a JSON file.
+
+    Returns the output file path.
+    """
+    report = assess_agent_readiness(model)
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+    return output_path

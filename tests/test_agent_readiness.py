@@ -1,9 +1,12 @@
+import json
+
 from fabric_ai_meta.analyzer.agent_readiness import (
     _find_ambiguous_names,
     _find_missing_relationships,
     _find_undescribed,
     _find_unreliable_types,
     assess_agent_readiness,
+    write_agent_readiness_report,
 )
 from fabric_ai_meta.analyzer.scorer import SCORING_WEIGHTS, score_model
 from fabric_ai_meta.models.metadata import (
@@ -237,3 +240,17 @@ def test_top_level_shape():
     assert report["version"] == "1.0"
     assert report["model"] == "Test Model"
     assert "generated_at" in report
+
+
+def test_write_agent_readiness_report_writes_valid_json(tmp_path):
+    model = _model([_table("Sales", columns=[_column("Amount")])])
+    out_path = tmp_path / "agent-readiness.json"
+
+    result_path = write_agent_readiness_report(model, str(out_path))
+
+    assert result_path == str(out_path)
+    assert out_path.exists()
+    with open(out_path) as f:
+        data = json.load(f)
+    assert data["model"] == "Test Model"
+    assert "findings" in data
