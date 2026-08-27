@@ -157,9 +157,17 @@ def _find(root: _Node, prefix: str) -> _Node | None:
 def _parse_column(node: _Node) -> ColumnMeta:
     """A `column <name>` block into ColumnMeta. `role` is left UNKNOWN for the
     classifier. Nested `variation` blocks are ignored (they are deeper children
-    and never match a column property key)."""
+    and never match a column property key).
+
+    A calculated column's header is `column <name> = <DAX>`, the same shape as
+    `measure <name> = <DAX>` - split on the first unquoted `=` the same way
+    `_parse_measure` does, so the name doesn't come out with the DAX baked in.
+    The DAX itself isn't modeled here (column-level expressions aren't tracked
+    anywhere else in this file, same as before this fix)."""
     d = node.depth + 1
-    name = _unquote(node.header[len("column ") :].strip())
+    decl = node.header[len("column ") :]
+    name_part, _dax = _split_first_unquoted(decl, "=")
+    name = _unquote(name_part.strip())
     return ColumnMeta(
         name=name,
         # lowercased to match the rest of the codebase: TMDL writes `dateTime`,

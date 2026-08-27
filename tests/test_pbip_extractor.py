@@ -284,22 +284,56 @@ def test_parse_column_reads_sort_by_column():
     t = _parse_table_file(os.path.join(FOOTWEAR_TABLES, tmpl))
     by_sort = {c.name: c.sort_by_column for c in t.columns if c.sort_by_column}
     assert by_sort == {
-        'Month = FORMAT([Date], "MMMM")': "MonthNo",
-        'Quarter = "Qtr " & [QuarterNo]': "QuarterNo",
+        "Month": "MonthNo",
+        "Quarter": "QuarterNo",
     }
     assert _col(t, "Date").sort_by_column is None  # not declared, stays None
 
 
-def test_declared_sort_target_is_defeated_by_calculated_column_names():
-    """Known limitation, pinned so it is not mistaken for working.
+def test_parse_column_splits_calculated_column_name_from_dax():
+    """`_parse_column` must split a calculated column's `Name = DAX` header on
+    the first unquoted `=`, the same way `_parse_measure` already does for
+    measures - not treat the whole header as the column's name."""
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
 
-    Every column in Power BI's auto date tables is calculated, and `--pbip` parses
-    a calculated column's name as the whole `Name = DAX` header. So the declared
-    target "MonthNo" never matches the column actually called
-    `MonthNo = MONTH([Date])`, and the sortByColumn link cannot resolve on this
-    path. The declared lookup does work wherever names are clean (the sempy path,
-    and non-calculated columns). Fixing this means fixing calculated-column name
-    parsing, which is a separate pre-existing defect.
+    t = _parse_table_file(
+        os.path.join(WON_PHO_TABLES, "Shape map for regions.tmdl")
+    )
+    names = {c.name for c in t.columns}
+    assert "Sales amt" in names
+    assert "'Sales amt' = RANDBETWEEN(10,1000)" not in names
+
+
+def test_calculated_column_names_are_clean_across_other_fixtures():
+    """Broader regression coverage for the same fix, on real fixtures not
+    already exercised above: a backtick-fenced calculated column (same DAX
+    form `_parse_measure` handles for measures, though the DAX body itself
+    isn't modeled for columns - only the name needs to come out clean) and a
+    calculated column whose DAX references a table-qualified column."""
+    from fabric_ai_meta.extractor.pbip import _parse_table_file
+
+    financials = _parse_table_file(os.path.join(WON_PHO_TABLES, "Financials.tmdl"))
+    assert "Month Name (clusters)" in {c.name for c in financials.columns}
+
+    date = _parse_table_file(os.path.join(WON_PHO_TABLES, "Date.tmdl"))
+    assert "Monthly" in {c.name for c in date.columns}
+
+    all_items = _parse_table_file(
+        os.path.join(AMAZON_TABLES, "All Items.tmdl")
+    )
+    assert "c_Year" in {c.name for c in all_items.columns}
+
+
+def test_declared_sort_target_now_resolves_for_calculated_columns():
+    """Formerly a pinned known-limitation gap; closed by the `_parse_column`
+    name-splitting fix (see `test_parse_column_splits_calculated_column_name_from_dax`).
+
+    Every column in Power BI's auto date tables is calculated, and `--pbip` used
+    to parse a calculated column's name as the whole `Name = DAX` header, so the
+    declared target "MonthNo" never matched the column actually called
+    `MonthNo = MONTH([Date])`. Now that `_parse_column` splits on the DAX `=`
+    the same way `_parse_measure` already did, the declared sortByColumn targets
+    resolve to real column names here too, same as the sempy path always did.
     """
     from fabric_ai_meta.extractor.pbip import _parse_table_file
 
@@ -309,7 +343,7 @@ def test_declared_sort_target_is_defeated_by_calculated_column_names():
     t = _parse_table_file(os.path.join(FOOTWEAR_TABLES, tmpl))
     names = {c.name for c in t.columns}
     targets = {c.sort_by_column for c in t.columns if c.sort_by_column}
-    assert targets and not (targets & names)  # declared, but unresolvable here
+    assert targets and targets <= names  # declared, and now resolvable
 
 
 def test_pbip_declared_sort_columns_classify_as_sort():
