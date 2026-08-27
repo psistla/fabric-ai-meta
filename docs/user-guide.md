@@ -383,11 +383,14 @@ fabric-ai-meta serve --transport streamable-http --port 8000    # HTTP
 
 The project ships a `.mcp.json` at the repository root so any MCP-aware IDE auto-discovers the server when the working directory is opened.
 
-Seven tools are exposed to agents:
+Eight tools are exposed to agents:
 
 - `list_models`: enumerate the available models
 - `analyze_model`: full per-model analysis
 - `score_model`: AI readiness score
+- `assess_agent_readiness`: ranked findings (undescribed objects, ambiguous names, missing
+  relationships, unreliable column types) with suggested fixes, plus the same score/breakdown
+  as `score_model`
 - `generate_schema`: produce the AI-ready schema
 - `guide_query`: guidance to read before writing a query against a model (correct measure,
   safe join path, ambiguity/refusal flags, semi-additive/ratio/hardcoded-literal/calculation-group
@@ -651,3 +654,35 @@ Writes `<output>/<model-slug>/capability-manifest.json`. Works with `--pbip` for
 exist on multiple tables (both of these are things `guide_query` already flags per-query - see
 section 12). No MCP tool yet; this is a file-based export today, same as `export prep-for-ai`
 and `export copilot`.
+
+## Assessing agent-readiness (`export agent-readiness`)
+
+A per-model critic report: concrete findings - undescribed tables/columns/measures, ambiguous
+names, missing relationships, unreliable column types - each ranked by how much it affects the
+model's AI-readiness score, and paired with a suggested fix. The "fix it first" companion to
+`score`: `score` tells you the number, this tells you exactly what to change to move it.
+
+Four finding types:
+
+- **`undescribed`** - a table, column, or measure with no description.
+- **`ambiguous_name`** - a column or measure name with an underscore, an all-caps abbreviation,
+  or under 3 characters.
+- **`missing_relationship`** - a foreign-key column with no defined relationship.
+- **`unreliable_type`** - a column with no extracted data type. This is a caveat about
+  extraction, not a model defect: known `--pbip` limitation for calculated columns. Its fix
+  text says to verify manually or re-extract via `--mock`/live Fabric, not to edit the model.
+
+```bash
+fabric-ai-meta export agent-readiness "Contoso Sales" --mock --output ./output
+```
+
+Writes `<output>/<model-slug>/agent-readiness.json`. Works with `--pbip` for a local
+`.SemanticModel` folder, same as every other extraction command. Also available as the
+`assess_agent_readiness` MCP tool (section 12, "Expose to AI agents through MCP") for an agent
+to self-check a model's readiness mid-session before trusting `guide_query`'s answers on it.
+
+**What this does not cover (v1):** auto-apply of fixes (no laptop-native writeback path exists
+yet - `apply-descriptions` needs a notebook), duplicate-measure detection within one model
+(structurally a cross-model signal, see `governance --report`), and the `ColumnRole`
+misclassification bugs that some `unreliable_type` columns also happen to trigger - those are
+separate, known `classifier.py` issues this report doesn't second-guess.

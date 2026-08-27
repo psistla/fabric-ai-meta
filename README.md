@@ -3,7 +3,7 @@
 ![CI](https://github.com/psistla/fabric-ai-meta/actions/workflows/ci.yml/badge.svg)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/fabric-ai-meta?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/fabric-ai-meta)
 ![Version](https://img.shields.io/badge/version-1.8.0-238636?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-657%20passing-1a7f37?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-683%20passing-1a7f37?style=flat-square)
 ![Python](https://img.shields.io/badge/python-3.10%2B-0550ae?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)
 
@@ -69,12 +69,12 @@ Every command takes `--pbip <folder>`, `--mock`, or `--workspace <name>`. Worked
 | `scan` | The same across a whole workspace or a Git Integration repo, plus `workspace-summary.json` |
 | `score` | AI readiness score: description coverage, naming consistency, relationship completeness |
 | `governance` | Cross-model naming inconsistencies, duplicate DAX under different names, readiness ranking |
-| `export` | `langchain`, `openai`, `semantic-kernel`, `autogen`, `prep-for-ai`, `copilot`, `capability-manifest`, or [your own plugin](https://github.com/psistla/fabric-ai-meta#custom-exporters) |
+| `export` | `langchain`, `openai`, `semantic-kernel`, `autogen`, `prep-for-ai`, `copilot`, `capability-manifest`, `agent-readiness`, or [your own plugin](https://github.com/psistla/fabric-ai-meta#custom-exporters) |
 | `auth` | `login`, `status`, `logout` for local Entra sign-in (requires `[fabric]`) |
 | `apply-descriptions` | Push generated descriptions to a live model through XMLA / TOM |
 | `apply-copilot` | Push an edited `Copilot/` folder back through the Fabric REST API |
 | `diff` | Compare two workspace scans: score changes, models added or removed, regressions |
-| `serve` | MCP server exposing seven tools, so your IDE agent can answer questions about your models directly |
+| `serve` | MCP server exposing eight tools, so your IDE agent can answer questions about your models directly |
 
 Add `--llm-enrich` to any extraction command to fill in missing descriptions and detect fact-table grain. It is off unless you ask, [cost-capped, and works with 10+ providers](https://github.com/psistla/fabric-ai-meta/blob/master/docs/user-guide.md#7-turn-on-llm-enrichment-fill-in-the-gaps) including a local Ollama.
 
