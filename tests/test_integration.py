@@ -824,7 +824,7 @@ class TestPublicAPIExports:
         # + 6 generators + 4 exporter plugin contract + 4 writeback descriptions
         # + 5 writeback copilot (v1.5.0) = 48 (PbipExtractor added in v1.6.0,
         # assess_graph_necessity added in v1.7.0, guide_query added for F1)
-        assert len(fabric_ai_meta.__all__) == 48
+        assert len(fabric_ai_meta.__all__) == 49
 
 
 # ---------------------------------------------------------------------------

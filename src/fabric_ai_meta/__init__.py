@@ -4,6 +4,7 @@ __version__ = "1.8.0"
 
 # Core data model
 # Analysis
+from fabric_ai_meta.analyzer.capability_manifest import generate_capability_manifest
 from fabric_ai_meta.analyzer.classifier import (
     classify_column_role,
     classify_measure_heuristic,
@@ -97,6 +98,7 @@ __all__ = [
     "build_dependency_graph",
     "parse_measure_dependencies",
     "compare_workspace_summaries",
+    "generate_capability_manifest",
     "generate_governance_report",
     "assess_graph_necessity",
     "guide_query",
