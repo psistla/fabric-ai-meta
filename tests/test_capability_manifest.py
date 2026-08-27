@@ -1,9 +1,12 @@
 import json
+import os
 
 from fabric_ai_meta.analyzer.capability_manifest import (
     generate_capability_manifest,
     write_capability_manifest,
 )
+from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+from fabric_ai_meta.extractor.pbip import PbipExtractor
 from fabric_ai_meta.models.metadata import (
     MeasureCategory,
     MeasureMeta,
@@ -146,11 +149,6 @@ def test_write_capability_manifest_writes_valid_json(tmp_path):
 
 
 # Integration tests against real PBIP fixtures
-
-import os
-
-from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
-from fabric_ai_meta.extractor.pbip import PbipExtractor
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "pbip")
 
