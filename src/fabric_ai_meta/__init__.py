@@ -4,6 +4,10 @@ __version__ = "1.8.0"
 
 # Core data model
 # Analysis
+from fabric_ai_meta.analyzer.agent_readiness import (
+    assess_agent_readiness,
+    write_agent_readiness_report,
+)
 from fabric_ai_meta.analyzer.capability_manifest import generate_capability_manifest
 from fabric_ai_meta.analyzer.classifier import (
     classify_column_role,
@@ -98,6 +102,8 @@ __all__ = [
     "build_dependency_graph",
     "parse_measure_dependencies",
     "compare_workspace_summaries",
+    "assess_agent_readiness",
+    "write_agent_readiness_report",
     "generate_capability_manifest",
     "generate_governance_report",
     "assess_graph_necessity",
