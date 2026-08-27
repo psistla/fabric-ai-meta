@@ -220,6 +220,44 @@ def _find_wrapper_measure(model: SemanticModelMeta, target_dep: str):
     return None
 
 
+def _resolve_dimension(model: SemanticModelMeta, base_table: str | None, dim_name: str) -> dict:
+    """Resolve a dimension column request against the base_table of a measure/column.
+
+    Four outcomes:
+    - 'resolved': exactly one reachable table has this column
+    - 'ambiguous': 2+ reachable tables have this column; all listed
+    - 'unrelated': column exists but nothing connects it to base_table
+    - 'not_found': column does not exist in this model
+    - 'unknown_base_table': base_table could not be determined
+    """
+    if base_table is None:
+        return {
+            "status": "unknown_base_table",
+            "message": "Could not determine which table this measure aggregates; "
+                       "cannot resolve a join path.",
+        }
+    candidates = _find_columns_by_name(model, dim_name)
+    if not candidates:
+        return {"status": "not_found", "message": f"No column named {dim_name!r} in this model."}
+
+    reachable = []
+    for table, col_name in candidates:
+        path = _find_join_path(model.relationships, base_table, table.name)
+        if path is not None:
+            reachable.append({"table": table.name, "column": col_name, "join_path": path})
+
+    if not reachable:
+        return {
+            "status": "unrelated",
+            "message": f"{dim_name!r} exists on {', '.join(t.name for t, _ in candidates)}, "
+                       f"but no relationship connects any of them to {base_table!r}.",
+            "candidates": [t.name for t, _ in candidates],
+        }
+    if len(reachable) == 1:
+        return {"status": "resolved", **reachable[0]}
+    return {"status": "ambiguous", "candidates": reachable}
+
+
 def guide_query(
     model: SemanticModelMeta,
     *,
@@ -253,8 +291,7 @@ def guide_query(
             result["refusal"] = f"No measure named {measure!r} in this model."
             return result
         home_table, resolved_measure = found
-        # base_table will feed Task 5's dimension join-path search; unused until then
-        _base_table = _resolve_base_table(resolved_measure, measures_by_name)  # noqa: F841
+        base_table = _resolve_base_table(resolved_measure, measures_by_name)
     else:
         hits = _find_columns_by_name(model, column)
         if not hits:
@@ -267,8 +304,7 @@ def guide_query(
                 "message": f"{col_name!r} exists on {len(hits)} tables "
                            f"({', '.join(t.name for t, _ in hits)}); using {col_table.name}.",
             })
-        # base_table will feed Task 5's dimension join-path search; unused until then
-        _base_table = col_table.name  # noqa: F841
+        base_table = col_table.name
         home_table = col_table
         target_dep = f"{col_table.name}[{col_name}]"
         found_wrapper = _find_wrapper_measure(model, target_dep)
@@ -303,5 +339,8 @@ def guide_query(
             result["excluded"] = {"reason": "report_plumbing", "detail": reason}
         else:
             result["warnings"].extend(_warnings_for_measure(model, resolved_measure))
+
+    for dim_name in dimensions or []:
+        result["dimensions"][dim_name] = _resolve_dimension(model, base_table, dim_name)
 
     return result

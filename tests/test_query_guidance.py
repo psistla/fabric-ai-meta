@@ -313,3 +313,75 @@ def test_guide_query_wrapper_search_ignores_same_table_decoy_for_different_colum
     result = guide_query(model, column="Sales")
     assert result["redirect"]["to_measure"] == "SalesWrapper"
     assert result["measure"]["table"] == "Calculations"
+
+
+# Task 5: guide_query dimension resolution
+
+
+def test_guide_query_dimension_resolved_no_join_needed():
+    from fabric_ai_meta.models.metadata import ColumnMeta
+
+    sales = _measure("Sales", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    financials = _table("Financials", measures=[sales])
+    financials.columns = [ColumnMeta(
+        name="Segment", data_type="string", description=None, ai_description=None,
+        role=None, is_hidden=False, display_folder=None, format_string=None, sort_by_column=None,
+    )]
+    model = _model([financials])
+
+    result = guide_query(model, measure="Sales", dimensions=["Segment"])
+    assert result["dimensions"]["Segment"]["status"] == "resolved"
+    assert result["dimensions"]["Segment"]["join_path"] == ["Financials"]
+
+
+def test_guide_query_dimension_ambiguous_multiple_reachable():
+    from fabric_ai_meta.models.metadata import ColumnMeta, RelationshipMeta
+
+    def region_col():
+        return ColumnMeta(
+            name="region", data_type="string", description=None, ai_description=None,
+            role=None, is_hidden=False, display_folder=None, format_string=None, sort_by_column=None,
+        )
+
+    fact = _table("fact_order_line", measures=[
+        _measure("Revenue", "SUM('fact_order_line'[line_revenue])", depends_on_columns=["fact_order_line[line_revenue]"])
+    ])
+    dim_customer = _table("dim_customer")
+    dim_customer.columns = [region_col()]
+    dim_supplier = _table("dim_supplier")
+    dim_supplier.columns = [region_col()]
+    rels = [
+        RelationshipMeta("fact_order_line", "dim_customer_id", "dim_customer", "id", "many-to-one", "single", True),
+        RelationshipMeta("fact_order_line", "dim_supplier_id", "dim_supplier", "id", "many-to-one", "single", True),
+    ]
+    model = _model([fact, dim_customer, dim_supplier], relationships=rels)
+
+    result = guide_query(model, measure="Revenue", dimensions=["region"])
+    assert result["dimensions"]["region"]["status"] == "ambiguous"
+    assert len(result["dimensions"]["region"]["candidates"]) == 2
+
+
+def test_guide_query_dimension_unrelated():
+    from fabric_ai_meta.models.metadata import ColumnMeta, RelationshipMeta
+
+    fact = _table("Financials", measures=[
+        _measure("Sales", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    ])
+    date_table = _table("Date")
+    shape_map = _table("Shape map for regions")
+    shape_map.columns = [ColumnMeta(
+        name="Region", data_type="string", description=None, ai_description=None,
+        role=None, is_hidden=False, display_folder=None, format_string=None, sort_by_column=None,
+    )]
+    rels = [RelationshipMeta("Financials", "Date", "Date", "Date", "many-to-one", "single", True)]
+    model = _model([fact, date_table, shape_map], relationships=rels)
+
+    result = guide_query(model, measure="Sales", dimensions=["Region"])
+    assert result["dimensions"]["Region"]["status"] == "unrelated"
+
+
+def test_guide_query_dimension_not_found():
+    sales = _measure("Sales", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    model = _model([_table("Financials", measures=[sales])])
+    result = guide_query(model, measure="Sales", dimensions=["Nonexistent"])
+    assert result["dimensions"]["Nonexistent"]["status"] == "not_found"
