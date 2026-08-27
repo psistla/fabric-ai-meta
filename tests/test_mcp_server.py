@@ -35,8 +35,8 @@ def test_module_imports_without_mcp_installed():
     assert callable(mcp_server.run)
 
 
-def test_tools_tuple_lists_six_callables():
-    assert len(TOOLS) == 6
+def test_tools_tuple_lists_seven_callables():
+    assert len(TOOLS) == 7
     for fn in TOOLS:
         assert callable(fn)
 
@@ -107,6 +107,34 @@ def test_generate_schema_returns_ai_ready_dict():
     assert "measures" in schema
     assert "scoring" in schema
     assert isinstance(schema["tables"], list)
+
+
+# ---------------------------------------------------------------------------
+# guide_query
+# ---------------------------------------------------------------------------
+
+def test_guide_query_tool_over_pbip_fixture():
+    from fabric_ai_meta.mcp_server import guide_query
+
+    result = guide_query(
+        "footwear-sustainability",
+        pbip=f"{PBIP_DIR}/footwear-sustainability.SemanticModel",
+        measure="Revenue",
+        dimensions=["region"],
+    )
+    assert result["dimensions"]["region"]["status"] == "ambiguous"
+
+
+def test_guide_query_tool_unknown_model_is_an_error():
+    from fabric_ai_meta.mcp_server import guide_query
+
+    result = guide_query("Nonexistent", pbip=f"{PBIP_DIR}/footwear-sustainability.SemanticModel")
+    assert "error" in result
+
+
+def test_guide_query_registered_in_tools_tuple():
+    from fabric_ai_meta.mcp_server import TOOLS, guide_query
+    assert guide_query in TOOLS
 
 
 # ---------------------------------------------------------------------------

@@ -119,6 +119,40 @@ def generate_schema(model_name: str, workspace: str = "", pbip: str | None = Non
         return _error(str(exc))
 
 
+def guide_query(
+    model_name: str,
+    workspace: str = "",
+    pbip: str | None = None,
+    measure: str | None = None,
+    column: str | None = None,
+    dimensions: list[str] | None = None,
+) -> dict:
+    """Guidance to read before writing a query against this model (F1).
+
+    Pass exactly one of `measure` (a measure name) or `column` (a raw column
+    you were about to aggregate directly), plus an optional `dimensions` list
+    of column names to group or filter by. Returns the verified measure and
+    its DAX, warnings (semi-additive, ratio, hardcoded literal, opaque
+    calculation group, report plumbing), a redirect when a raw column is
+    already wrapped by a real measure, and for each dimension: a resolved
+    join path, an `ambiguous` flag listing every reachable candidate, an
+    `unrelated` flag when the column exists but no relationship reaches it,
+    or `not_found`. Never ranks ambiguous candidates; always asks. Omit
+    `pbip` to read a bundled sample model; pass a *.SemanticModel folder to
+    read a real one.
+    """
+    try:
+        from fabric_ai_meta.analyzer.query_guidance import guide_query as _guide_query
+        extractor = _build_extractor(
+            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
+        )
+        model = extractor.extract(model_name, workspace)
+        classify_model_in_place(model)
+        return _guide_query(model, measure=measure, column=column, dimensions=dimensions)
+    except Exception as exc:
+        return _error(str(exc))
+
+
 def governance_report(
     workspace: str = "",
     pbip: str | None = None,
@@ -178,6 +212,7 @@ TOOLS: tuple[Any, ...] = (
     analyze_model,
     score_model,
     generate_schema,
+    guide_query,
     governance_report,
     diff_summaries,
 )
