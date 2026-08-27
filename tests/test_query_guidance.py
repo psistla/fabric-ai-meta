@@ -212,3 +212,56 @@ def test_guide_query_excludes_report_plumbing_measure():
     assert result["measure"]["name"] == "COGS icon"
     assert result["excluded"]["reason"] == "report_plumbing"
     assert result["warnings"] == []
+
+
+# Task 4: guide_query column path and redirect
+
+
+def test_guide_query_column_not_found():
+    model = _model([_table("Financials")])
+    result = guide_query(model, column="Nonexistent")
+    assert result["refusal"] == "No column named 'Nonexistent' in this model."
+
+
+def test_guide_query_redirects_wrapped_column_to_its_measure_on_another_table():
+    """The wrapper measure deliberately lives on a DIFFERENT table than the
+    column - the `_Measures`/`Calculations` pattern both real fixtures use.
+    A version of this test that puts the column and its wrapper measure on
+    the same table would pass even if the wrapper search were wrongly scoped
+    to only that one table - exactly the bug review caught. Do not
+    'simplify' this back to a single-table fixture."""
+    from fabric_ai_meta.models.metadata import ColumnMeta
+
+    sales_col = ColumnMeta(
+        name="Sales", data_type="", description=None, ai_description=None,
+        role=None, is_hidden=True, display_folder=None, format_string=None,
+        sort_by_column=None,
+    )
+    financials = _table("Financials")
+    financials.columns = [sales_col]
+    sales_measure = _measure("Sales", "SUM('Financials'[Sales])", depends_on_columns=["Financials[Sales]"])
+    sales_measure.category = MeasureCategory.ADDITIVE
+    calculations = _table("Calculations", measures=[sales_measure])
+    model = _model([financials, calculations])
+
+    result = guide_query(model, column="Sales")
+    assert result["redirect"]["to_measure"] == "Sales"
+    assert result["measure"]["name"] == "Sales"
+    assert result["measure"]["table"] == "Calculations"  # the MEASURE's table, not the column's
+
+
+def test_guide_query_column_with_no_wrapper_measure_warns_instead_of_guessing():
+    from fabric_ai_meta.models.metadata import ColumnMeta
+
+    ratio_col = ColumnMeta(
+        name="co2e_per_revenue_dollar", data_type="double", description=None,
+        ai_description=None, role=None, is_hidden=False, display_folder=None,
+        format_string=None, sort_by_column=None,
+    )
+    fact = _table("fact_order_line")
+    fact.columns = [ratio_col]
+    model = _model([fact])
+
+    result = guide_query(model, column="co2e_per_revenue_dollar")
+    assert result["redirect"] is None
+    assert any(w["type"] == "unwrapped_column" for w in result["warnings"])

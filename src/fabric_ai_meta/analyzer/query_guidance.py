@@ -185,6 +185,17 @@ def _all_measures_by_name(model: SemanticModelMeta) -> dict[str, MeasureMeta]:
     return {m.name: m for t in model.tables for m in t.measures}
 
 
+def _find_columns_by_name(model: SemanticModelMeta, name: str):
+    """Lookup a column by name, case-insensitive. Returns list of (table, column_name) tuples."""
+    target = name.strip().lower()
+    hits = []
+    for table in model.tables:
+        for column in table.columns:
+            if column.name.lower() == target:
+                hits.append((table, column.name))
+    return hits
+
+
 def guide_query(
     model: SemanticModelMeta,
     *,
@@ -220,6 +231,59 @@ def guide_query(
         home_table, resolved_measure = found
         # base_table will feed Task 5's dimension join-path search; unused until then
         _base_table = _resolve_base_table(resolved_measure, measures_by_name)  # noqa: F841
+    else:
+        hits = _find_columns_by_name(model, column)
+        if not hits:
+            result["refusal"] = f"No column named {column!r} in this model."
+            return result
+        col_table, col_name = hits[0]
+        if len(hits) > 1:
+            result["warnings"].append({
+                "type": "ambiguous_column_name",
+                "message": f"{col_name!r} exists on {len(hits)} tables "
+                           f"({', '.join(t.name for t, _ in hits)}); using {col_table.name}.",
+            })
+        # base_table will feed Task 5's dimension join-path search; unused until then
+        _base_table = col_table.name  # noqa: F841
+        home_table = col_table
+        # Search EVERY table's measures, not just col_table's own. Both real
+        # fixtures this plan is grounded on put measures in a separate table
+        # from the data (footwear's `_Measures`, won-pho's `Calculations`),
+        # so a wrapper for a fact-table column almost never lives on the fact
+        # table itself. Scoping this search to col_table was caught in review
+        # as dead code on exactly the model shape the plan cites as its
+        # grounding - do not narrow it back to col_table.measures.
+        target_dep = f"{col_table.name}[{col_name}]"
+        wrapper = None
+        wrapper_table = None
+        for table in model.tables:
+            for m in table.measures:
+                # ADDITIVE + this exact sole column dependency is a proxy for
+                # "is a plain SUM(...) around this column" - true in practice
+                # for every ADDITIVE measure in this project's fixtures, but
+                # not literally re-parsed from the DAX text here.
+                if m.depends_on_columns == [target_dep] and m.category == MeasureCategory.ADDITIVE:
+                    wrapper, wrapper_table = m, table
+                    break
+            if wrapper is not None:
+                break
+        if wrapper is not None:
+            result["redirect"] = {
+                "from_column": target_dep,
+                "to_measure": wrapper.name,
+                "message": f"Use measure [{wrapper.name}] instead of aggregating "
+                           f"{target_dep} directly.",
+            }
+            resolved_measure = wrapper
+            home_table = wrapper_table  # report the MEASURE's home table, not the column's
+        else:
+            result["warnings"].append({
+                "type": "unwrapped_column",
+                "message": f"No measure wraps {target_dep}; this model "
+                           "does not verify how it should be aggregated. See design "
+                           "decision 4: v1 does not attempt to detect a per-row ratio "
+                           "column trap here.",
+            })
 
     if resolved_measure is not None:
         reason = _report_plumbing_reason(resolved_measure.dax_expression)
