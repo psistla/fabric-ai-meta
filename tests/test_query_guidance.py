@@ -1,3 +1,6 @@
+import pytest
+
+from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
 from fabric_ai_meta.analyzer.query_guidance import (
     _calc_group_reference,
     _find_join_path,
@@ -6,6 +9,7 @@ from fabric_ai_meta.analyzer.query_guidance import (
     _warnings_for_measure,
     guide_query,
 )
+from fabric_ai_meta.extractor.pbip import PbipExtractor
 from fabric_ai_meta.models.metadata import (
     MeasureCategory,
     MeasureMeta,
@@ -392,3 +396,116 @@ def test_guide_query_dimension_unknown_base_table():
     model = _model([_table("Financials", measures=[orphan])])
     result = guide_query(model, measure="Mystery", dimensions=["Segment"])
     assert result["dimensions"]["Segment"]["status"] == "unknown_base_table"
+
+
+# Task 6: Integration against the real fixtures
+
+FIXTURES = "tests/fixtures/pbip"
+
+
+def _load(folder):
+    ex = PbipExtractor(f"{FIXTURES}/{folder}.SemanticModel")
+    model = ex.extract(ex.list_models("")[0], "")
+    classify_model_in_place(model)
+    return model
+
+
+@pytest.fixture(scope="module")
+def footwear():
+    return _load("footwear-sustainability")
+
+
+@pytest.fixture(scope="module")
+def won_pho():
+    return _load("power-bi-stix-won-pho")
+
+
+# --- footwear-sustainability.md worked examples ---
+
+
+def test_footwear_q2_ambiguous_join_three_candidates(footwear):
+    result = guide_query(footwear, measure="Revenue", dimensions=["region"])
+    dim = result["dimensions"]["region"]
+    assert dim["status"] == "ambiguous"
+    tables = {c["table"] for c in dim["candidates"]}
+    assert tables == {"dim_customer", "dim_supplier", "dim_factory"}
+
+
+def test_footwear_q3_semi_additive_warning(footwear):
+    result = guide_query(footwear, measure="Revenue Month End")
+    assert any(w["type"] == "semi_additive" for w in result["warnings"])
+
+
+def test_footwear_q4_hardcoded_literal_target(footwear):
+    result = guide_query(footwear, measure="Carbon Intensity Target")
+    assert any(w["type"] == "hardcoded_literal" for w in result["warnings"])
+
+
+def test_footwear_q1_ratio_measure_warns(footwear):
+    result = guide_query(footwear, measure="Carbon Intensity")
+    assert any(w["type"] == "ratio" for w in result["warnings"])
+
+
+def test_footwear_q1_column_redirect_fires_across_tables(footwear):
+    """The redirect leg's real proving ground: [Revenue] lives in `_Measures`,
+    not on `fact_order_line` where `line_revenue` lives. Review flagged that
+    Task 4's synthetic test alone would not have caught a wrapper-search
+    scoped to only the column's own table - this is that regression guard,
+    against the real fixture the plan is grounded on."""
+    result = guide_query(footwear, column="line_revenue")
+    assert result["redirect"]["to_measure"] == "Revenue"
+    assert result["measure"]["table"] == "_Measures"
+
+
+def test_footwear_q1_ratio_column_has_no_wrapper(footwear):
+    """The contract doc's sharpest case (design decision 4's named limit):
+    `co2e_per_revenue_dollar` is a per-row ratio column no measure wraps with
+    a plain SUM, so v1 honestly warns instead of guessing a redirect."""
+    result = guide_query(footwear, column="co2e_per_revenue_dollar")
+    assert result["redirect"] is None
+    assert any(w["type"] == "unwrapped_column" for w in result["warnings"])
+
+
+# --- won-pho.md worked examples ---
+
+
+def test_won_pho_q2_gross_margin_ratio_warning(won_pho):
+    result = guide_query(won_pho, measure="Gross Margin %")
+    assert any(w["type"] == "ratio" for w in result["warnings"])
+
+
+def test_won_pho_q4_calculation_group_opacity(won_pho):
+    result = guide_query(won_pho, measure="Sales MoM")
+    assert any(w["type"] == "opaque_calculation_group" for w in result["warnings"])
+
+
+def test_won_pho_q5_unrelated_dimension(won_pho):
+    result = guide_query(won_pho, measure="Sales", dimensions=["Region"])
+    assert result["dimensions"]["Region"]["status"] == "unrelated"
+
+
+def test_won_pho_q6_report_plumbing_excluded(won_pho):
+    result = guide_query(won_pho, measure="COGS icon")
+    assert result["excluded"]["reason"] == "report_plumbing"
+
+
+def test_won_pho_q1_direct_attribute_no_join_needed(won_pho):
+    result = guide_query(won_pho, measure="Sales", dimensions=["Segment"])
+    assert result["dimensions"]["Segment"]["status"] == "resolved"
+    assert result["dimensions"]["Segment"]["join_path"] == ["Financials"]
+
+
+# --- pinned known limitation (design decision 5) ---
+
+
+def test_KNOWN_GAP_title_total_sales_not_excluded_as_plumbing(won_pho):
+    """Pinned, not silently fixed: `[Title total sales]` concatenates a
+    string literal with a FORMAT([Sales], ...) call. Neither the data:image
+    check, the whole-string check, nor the leading-FORMAT( check catches a
+    concatenation, so it still surfaces as an ordinary CALCULATED measure.
+    A broader fix is real, separate scope (won-pho contract doc, finding 2).
+    This test fails - on purpose - the day someone widens the heuristic
+    enough to catch it; when that happens, delete this test and add a
+    positive one instead."""
+    result = guide_query(won_pho, measure="Title total sales")
+    assert result["excluded"] is None
