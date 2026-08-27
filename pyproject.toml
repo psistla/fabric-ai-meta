@@ -1,7 +1,7 @@
 [project]
 name = "fabric-ai-meta"
-version = "1.8.0"
-description = "Turn Microsoft Fabric and Power BI semantic models into AI-ready metadata from your laptop. Reads local .pbip/TMDL folders with no tenant or sign-in. Exports to LangChain, OpenAI, Semantic Kernel, and AutoGen, with cross-model governance, an MCP server, and a graph-necessity advisor."
+version = "2.0.0"
+description = "Turn Microsoft Fabric and Power BI semantic models into AI-ready metadata from your laptop, with query guidance and an agent-readiness score so an AI agent can query them safely. Reads local .pbip/TMDL folders with no tenant or sign-in. Exports to LangChain, OpenAI, Semantic Kernel, and AutoGen, with cross-model governance, an MCP server, and a graph-necessity advisor."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
