@@ -918,6 +918,24 @@ class TestSchemaValidation:
 
         jsonschema.validate(manifest, schema)
 
+    def test_agent_readiness_validates(self):
+        """Report output validates against schemas/agent-readiness/v1.json."""
+        import jsonschema
+
+        from fabric_ai_meta.analyzer.agent_readiness import assess_agent_readiness
+        from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
+        from fabric_ai_meta.extractor.pbip import PbipExtractor
+
+        ex = PbipExtractor("tests/fixtures/pbip/power-bi-stix-won-pho.SemanticModel")
+        model = ex.extract(ex.list_models("")[0], "")
+        classify_model_in_place(model)
+        report = assess_agent_readiness(model)
+
+        with open(os.path.join(SCHEMAS_DIR, "agent-readiness", "v1.json")) as f:
+            schema = json.load(f)
+
+        jsonschema.validate(report, schema)
+
     def test_schema_files_are_valid_json_schema(self):
         """All schema files are syntactically valid JSON Schema Draft 2020-12."""
         schema_paths = [

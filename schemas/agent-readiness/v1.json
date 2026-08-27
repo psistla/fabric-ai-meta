@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/agent-readiness/v1.json",
+  "title": "Agent Readiness Report",
+  "description": "Output schema for fabric-ai-meta assess_agent_readiness(). A per-model critic report: concrete findings (undescribed objects, ambiguous names, missing relationships, unreliable column types), each ranked and paired with a suggested fix.",
+  "type": "object",
+  "required": ["$schema", "version", "model", "generated_at", "score", "breakdown", "summary", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/schemas/agent-readiness/v1.json"
+    },
+    "version": { "type": "string" },
+    "model": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "breakdown": { "$ref": "#/$defs/breakdown" },
+    "summary": { "$ref": "#/$defs/summary" },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "breakdown": {
+      "type": "object",
+      "required": [
+        "description_coverage",
+        "measure_documentation",
+        "relationship_completeness",
+        "naming_consistency",
+        "sample_values_available",
+        "business_rules_documented"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "description_coverage": { "type": "number" },
+        "measure_documentation": { "type": "number" },
+        "relationship_completeness": { "type": "number" },
+        "naming_consistency": { "type": "number" },
+        "sample_values_available": { "type": "number" },
+        "business_rules_documented": { "type": "number" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_findings", "undescribed", "ambiguous_name", "missing_relationship", "unreliable_type"],
+      "additionalProperties": false,
+      "properties": {
+        "total_findings": { "type": "integer" },
+        "undescribed": { "type": "integer" },
+        "ambiguous_name": { "type": "integer" },
+        "missing_relationship": { "type": "integer" },
+        "unreliable_type": { "type": "integer" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": ["type", "weight", "table", "column", "measure", "message", "fix"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["undescribed", "ambiguous_name", "missing_relationship", "unreliable_type"] },
+        "weight": { "type": "number" },
+        "table": { "type": "string" },
+        "column": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+        "measure": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+        "message": { "type": "string" },
+        "fix": { "type": "string" }
+      }
+    }
+  }
+}
