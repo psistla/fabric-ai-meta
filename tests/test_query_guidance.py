@@ -385,3 +385,10 @@ def test_guide_query_dimension_not_found():
     model = _model([_table("Financials", measures=[sales])])
     result = guide_query(model, measure="Sales", dimensions=["Nonexistent"])
     assert result["dimensions"]["Nonexistent"]["status"] == "not_found"
+
+
+def test_guide_query_dimension_unknown_base_table():
+    orphan = _measure("Mystery", "1 + 1")
+    model = _model([_table("Financials", measures=[orphan])])
+    result = guide_query(model, measure="Mystery", dimensions=["Segment"])
+    assert result["dimensions"]["Segment"]["status"] == "unknown_base_table"

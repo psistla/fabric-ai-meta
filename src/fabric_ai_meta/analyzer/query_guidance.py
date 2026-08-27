@@ -223,12 +223,12 @@ def _find_wrapper_measure(model: SemanticModelMeta, target_dep: str):
 def _resolve_dimension(model: SemanticModelMeta, base_table: str | None, dim_name: str) -> dict:
     """Resolve a dimension column request against the base_table of a measure/column.
 
-    Four outcomes:
+    Five outcomes (in check order):
+    - 'unknown_base_table': base_table is None (measure/column DAX unresolvable)
+    - 'not_found': column does not exist in this model
+    - 'unrelated': column exists but nothing connects it to base_table
     - 'resolved': exactly one reachable table has this column
     - 'ambiguous': 2+ reachable tables have this column; all listed
-    - 'unrelated': column exists but nothing connects it to base_table
-    - 'not_found': column does not exist in this model
-    - 'unknown_base_table': base_table could not be determined
     """
     if base_table is None:
         return {
@@ -251,7 +251,7 @@ def _resolve_dimension(model: SemanticModelMeta, base_table: str | None, dim_nam
             "status": "unrelated",
             "message": f"{dim_name!r} exists on {', '.join(t.name for t, _ in candidates)}, "
                        f"but no relationship connects any of them to {base_table!r}.",
-            "candidates": [t.name for t, _ in candidates],
+            "candidates": [{"table": t.name, "column": c} for t, c in candidates],
         }
     if len(reachable) == 1:
         return {"status": "resolved", **reachable[0]}
