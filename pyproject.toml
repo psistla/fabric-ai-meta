@@ -61,7 +61,7 @@ fabric = [
     "azure-identity>=1.15",            # Entra ID authentication
 ]
 llm = [
-    "litellm>=1.50",                   # Multi-provider LLM router (100+ providers)
+    "litellm>=1.50,<1.98",              # Multi-provider LLM router (100+ providers). Upper bound: 1.98.0's Rust-backed build fails to import on Python 3.10 (BerriAI/litellm#31261).
 ]
 mcp = [
     "mcp[cli]>=1.0,<2.0",              # MCP server; 2.0 will rework FastMCP, transport, auth
@@ -73,7 +73,7 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "jsonschema>=4.20",
-    "litellm>=1.50",                   # Required for LiteLLMBackend tests
+    "litellm>=1.50,<1.98",              # Required for LiteLLMBackend tests. Upper bound: 1.98.0's Rust-backed build fails to import on Python 3.10 (BerriAI/litellm#31261).
     "azure-identity>=1.15",            # Required: test_integration.py string-patches azure.identity
     "pandas>=2.0",                     # Required: 5 tests build DataFrames to stand in for sempy
     "build",                           # Required for the sdist content check
