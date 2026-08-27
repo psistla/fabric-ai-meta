@@ -1,12 +1,12 @@
-"""F1: query guidance.
+"""Query guidance: what to check before writing a query against a model.
 
 An MCP tool an agent calls before it writes a query, so it is told the correct
 measure, the safe join path, and this specific model's traps, instead of
 guessing. Every output here traces to a fact already in SemanticModelMeta - a
 relationship, a measure's DAX, or its parsed dependencies from
-analyzer.dax_parser - never an inference. Where the metadata does not say,
-this refuses (grain, calculation-group internals, synonyms) rather than
-guessing; see planning/decisions/f1-narrowed-to-verified-metadata.md.
+analyzer.dax_parser - never an inference. Where the metadata does not say
+(grain, calculation-group internals, synonyms), this refuses rather than
+guessing.
 """
 
 from __future__ import annotations
@@ -104,11 +104,11 @@ def _find_join_path(
 
 
 def _report_plumbing_reason(dax: str) -> str | None:
-    """A narrow, cheap heuristic (design decision 5): catches icons, swatches,
-    and pure display strings. Does NOT catch a string-concatenation measure
-    with FORMAT() embedded mid-expression (e.g. won-pho's
-    `"Total sales: " & FORMAT([Sales], ...)`) - see Task 6's pinned
-    characterization test."""
+    """A narrow, cheap heuristic: catches icons, color swatches, and pure
+    display strings. Does NOT catch a string-concatenation measure with
+    FORMAT() embedded mid-expression (e.g. `"Total sales: " &
+    FORMAT([Sales], ...)`) - a known, deliberately unfixed gap, pinned by a
+    characterization test in the test suite."""
     stripped = dax.strip()
     if "data:image" in dax:
         return "returns an embedded image (data URI)"
@@ -122,7 +122,8 @@ def _report_plumbing_reason(dax: str) -> str | None:
 def _calc_group_reference(model: SemanticModelMeta, dax: str) -> str | None:
     """Name of a table referenced in an equality filter whose own TMDL has no
     partition block - the structural signature of a calculation-group item
-    selector (design decision 6). Returns the table name, or None."""
+    selector (a calculation group holds no rows, so Power BI never emits a
+    partition for it). Returns the table name, or None."""
     tables_by_name = {t.name: t for t in model.tables}
     for table_name, _column_name in _CALC_GROUP_FILTER_RE.findall(dax):
         table = tables_by_name.get(table_name)
@@ -269,9 +270,8 @@ def guide_query(
 
     Pass exactly one of `measure` (a measure name) or `column` (a raw column
     the caller was about to aggregate directly). `dimensions` is an optional
-    list of column names to group or filter by. See module docstring and
-    planning/decisions/f1-narrowed-to-verified-metadata.md for what this
-    does and refuses to answer.
+    list of column names to group or filter by. See the module docstring for
+    what this does and refuses to answer.
     """
     result: dict = {
         "measure": None, "redirect": None, "excluded": None,
