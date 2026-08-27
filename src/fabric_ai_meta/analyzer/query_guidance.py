@@ -208,6 +208,7 @@ def guide_query(
         result["refusal"] = "Pass exactly one of `measure` or `column`."
         return result
 
+    measures_by_name = _all_measures_by_name(model)
     resolved_measure: MeasureMeta | None = None
     home_table = None
 
@@ -217,6 +218,8 @@ def guide_query(
             result["refusal"] = f"No measure named {measure!r} in this model."
             return result
         home_table, resolved_measure = found
+        # base_table will feed Task 5's dimension join-path search; unused until then
+        _base_table = _resolve_base_table(resolved_measure, measures_by_name)  # noqa: F841
 
     if resolved_measure is not None:
         reason = _report_plumbing_reason(resolved_measure.dax_expression)
