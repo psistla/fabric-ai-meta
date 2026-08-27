@@ -137,6 +137,18 @@ def test_guide_query_registered_in_tools_tuple():
     assert guide_query in TOOLS
 
 
+def test_guide_query_tool_unknown_measure_is_a_refusal_not_an_error():
+    from fabric_ai_meta.mcp_server import guide_query
+
+    result = guide_query(
+        "footwear-sustainability",
+        pbip=f"{PBIP_DIR}/footwear-sustainability.SemanticModel",
+        measure="Nonexistent Measure",
+    )
+    assert "error" not in result
+    assert result["refusal"] is not None
+
+
 # ---------------------------------------------------------------------------
 # governance_report
 # ---------------------------------------------------------------------------

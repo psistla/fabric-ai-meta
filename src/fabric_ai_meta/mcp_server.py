@@ -127,19 +127,35 @@ def guide_query(
     column: str | None = None,
     dimensions: list[str] | None = None,
 ) -> dict:
-    """Guidance to read before writing a query against this model (F1).
+    """Guidance to read before writing a query against this model.
 
     Pass exactly one of `measure` (a measure name) or `column` (a raw column
     you were about to aggregate directly), plus an optional `dimensions` list
-    of column names to group or filter by. Returns the verified measure and
-    its DAX, warnings (semi-additive, ratio, hardcoded literal, opaque
-    calculation group, report plumbing), a redirect when a raw column is
-    already wrapped by a real measure, and for each dimension: a resolved
-    join path, an `ambiguous` flag listing every reachable candidate, an
-    `unrelated` flag when the column exists but no relationship reaches it,
-    or `not_found`. Never ranks ambiguous candidates; always asks. Omit
-    `pbip` to read a bundled sample model; pass a *.SemanticModel folder to
-    read a real one.
+    of column names to group or filter by.
+
+    Check `result["refusal"]` first: unlike the other tools, an unknown
+    measure or column name here does NOT set `error` - it returns a normal
+    dict with `refusal` set to a message and everything else empty
+    (`measure: None`, `warnings: []`, `dimensions: {}`). Only a genuinely
+    unrecognised MODEL name (or a missing `pbip` file) sets `error`, matching
+    the other tools' convention.
+
+    When `refusal` is `None`: `measure` carries the resolved measure's table,
+    name, DAX and category, or `redirect` names a real measure to use instead
+    of a raw column you asked about. `excluded` is set (instead of
+    `warnings`) when the resolved measure is report plumbing (an icon, a
+    color swatch, a formatted display string) rather than a business
+    measure - the DAX is still returned so you can judge for yourself, but
+    nothing else is computed for it. Otherwise `warnings` lists any traps
+    found (semi-additive, ratio, hardcoded literal, opaque calculation
+    group). Each requested dimension resolves to a `status` of `resolved`
+    (with a `join_path`), `ambiguous` (every reachable candidate is listed;
+    none is picked for you - ask which one is meant), `unrelated` (the
+    column exists but nothing connects it to this measure's table), or
+    `not_found`.
+
+    Omit `pbip` to read a bundled sample model; pass a *.SemanticModel
+    folder to read a real one.
     """
     try:
         from fabric_ai_meta.analyzer.query_guidance import guide_query as _guide_query
