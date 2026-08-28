@@ -104,6 +104,40 @@ Ambient Entra credentials are picked up automatically. The CLI detects the noteb
 fabric-ai-meta analyze "Sales Model" --pbip path/to/Sales.SemanticModel
 ```
 
+**Which commands accept which source.** Anything that only *reads* a model supports all three. Anything that *writes back* to Fabric drops `--pbip` — there's nothing on disk to write to.
+
+| Command | `--mock` | `--pbip` | `--workspace` |
+|---|:---:|:---:|:---:|
+| `analyze` | ✅ | ✅ | ✅ |
+| `scan` | ✅ | ✅ | ✅ |
+| `governance` | ✅ | ✅ | ✅ |
+| `score` | ✅ | ✅ | ✅ |
+| `export langchain / openai / semantic-kernel / autogen` | ✅ | ✅ | ✅ |
+| `export copilot` | ✅ | ✅ | ✅ |
+| `export capability-manifest` | ✅ | ✅ | ✅ |
+| `export agent-readiness` | ✅ | ✅ | ✅ |
+| `export prep-for-ai` | ✅ | ❌ | ✅ |
+| `apply-descriptions` | ✅ | ❌ | ✅ (required) |
+| `apply-copilot` | ✅ | ❌ | ✅ (required) |
+| `diff` | — takes two `workspace-summary.json` files, not a live source | | |
+| `serve` (MCP) | — no startup mode; each tool call passes its own `pbip=` / `mock=` | | |
+
+**What to expect from each mode**, one command at a time:
+
+| Command | `--mock` | `--pbip` | `--workspace` |
+|---|---|---|---|
+| `analyze` | Extracts one bundled sample model, writes AI-ready exports and a readiness score. | Extracts your local `.SemanticModel` folder, writes the same exports. | Extracts a live model from Fabric (notebook only), writes the same exports. |
+| `scan` | Analyzes every bundled sample model, writes one ranked `workspace-summary.json`. | Analyzes every `.SemanticModel` folder under the directory given, same summary. | Analyzes every model in a live workspace, same summary. |
+| `governance` | Runs naming/duplicate/graph-necessity checks across all bundled samples. | Runs the same checks across your local `.SemanticModel` folders. | Runs the same checks across every model in a live workspace. |
+| `score` | Computes the readiness score for a bundled sample model (`--all` scores every sample). | Computes the score for your local model on disk. | Computes the score for a live model in Fabric. |
+| `export langchain/openai/semantic-kernel/autogen` | Builds the tool definition from a bundled sample model. | Builds it from your local `.SemanticModel` folder. | Builds it from a live Fabric model. |
+| `export copilot` | Mirrors `Copilot/` from a sample's `.copilot.json` sidecar (empty if that sample has none). | Mirrors the real `Copilot/` folder shipped inside your local model. | Mirrors `Copilot/` fetched live via Fabric REST `getDefinition`. |
+| `export capability-manifest` | Lists measures a bundled sample model can answer. | Lists measures your local model can answer. | Lists measures a live Fabric model can answer. |
+| `export agent-readiness` | Ranks fixes needed on a bundled sample model. | Ranks fixes needed on your local model. | Ranks fixes needed on a live Fabric model. |
+| `export prep-for-ai` | Generates a Prep-for-AI config from a bundled sample model. | Not supported — no `--pbip` flag on this command. | Generates the config from a live Fabric model. |
+| `apply-descriptions` | Simulates a writeback; no real change is made. | Not supported — writeback needs a real Fabric target. | Writes descriptions to a live model via XMLA/TOM. |
+| `apply-copilot` | Simulates applying a `Copilot/` folder; no real change is made. | Not supported — same reason. | Applies the `Copilot/` folder to a live model via REST `updateDefinition`. |
+
 ---
 
 ## 4. Configure your project (optional)
