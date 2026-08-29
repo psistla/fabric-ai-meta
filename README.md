@@ -11,6 +11,8 @@
 
 Point it at a `.pbip` folder and you get a classified schema, an AI readiness score, and framework-native exports for LangChain, OpenAI, Semantic Kernel, and AutoGen. No Fabric tenant, no notebook, no sign-in.
 
+![pip install fabric-ai-meta, analyze a model, and get a scored, classified, AI-ready schema in 30 seconds](https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/demo-core.gif)
+
 ![Install, pick a source, run a command, and feed the output to AI frameworks, writeback, or the new agent tools](https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/developer-flow.svg)
 
 ## Who it's for
@@ -98,6 +100,8 @@ An agent writing DAX against your model can't see the traps an analyst would cat
 - **`guide_query` (MCP).** Guidance to read before writing one query: the correct measure, a safe join path, and warnings for semi-additive, ratio, hardcoded-literal, or calculation-group traps.
 - **`export capability-manifest`.** The same warnings for the whole model, read once instead of discovered query by query. Every measure comes back `answerable`, `answerable_with_caveats`, or `refused`.
 - **`export agent-readiness`.** A ranked list of what's currently blocking clean answers, undescribed objects, ambiguous names, missing relationships, each paired with a fix.
+
+![capability-manifest flags a semi-additive balance measure that must not be summed across time, then agent-readiness ranks what blocks clean answers](https://raw.githubusercontent.com/psistla/fabric-ai-meta/master/docs/assets/demo-agent-safety.gif)
 
 ```bash
 fabric-ai-meta export agent-readiness "Contoso Sales" --mock --output ./output
