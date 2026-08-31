@@ -30,7 +30,7 @@ def _iter_plugin_exporter_classes() -> Iterable[tuple[str, type[BaseExporter]]]:
         eps = entry_points(group=ENTRY_POINT_GROUP)
     except TypeError:
         # Python 3.9 compatibility shim; we target 3.10+ so this is defensive.
-        eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[attr-defined]
+        eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[attr-defined,arg-type]
 
     for ep in eps:
         try:

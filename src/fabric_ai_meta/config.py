@@ -87,7 +87,7 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
         import tomllib
     else:
         try:
-            import tomllib
+            import tomllib  # type: ignore[import-not-found]
         except ImportError:
             import tomli as tomllib  # type: ignore[no-redef]
 
