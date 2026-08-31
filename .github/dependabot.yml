@@ -1,0 +1,15 @@
+version: 2
+
+updates:
+  # Keeps the action pins in ci.yml and publish.yml current. Without this they
+  # drift until a runtime deprecation (Node 20 -> 24) turns into a hard failure.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
