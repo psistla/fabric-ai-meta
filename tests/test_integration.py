@@ -8,6 +8,8 @@ Covers:
 import dataclasses
 import json
 import os
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
@@ -812,10 +814,36 @@ class TestPublicAPIExports:
             to_openai_function,
         )
 
-        assert __version__ == "2.0.1"
+        assert isinstance(__version__, str)
         assert callable(score_model)
         assert callable(generate_ai_ready_schema)
         assert callable(to_openai_function)
+
+    def test_version_matches_pyproject(self):
+        """__version__ must track pyproject.toml.
+
+        These are two separate literals, and a release that bumps only
+        pyproject.toml ships a wheel whose ``--version`` reports the previous
+        release. That happened to 2.0.0, which reported 1.8.0.
+        """
+        import fabric_ai_meta
+
+        if sys.version_info >= (3, 11):
+            import tomllib
+        else:
+            try:
+                import tomllib
+            except ImportError:
+                import tomli as tomllib  # type: ignore[no-redef]
+
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        with open(pyproject, "rb") as fh:
+            declared = tomllib.load(fh)["project"]["version"]
+
+        assert fabric_ai_meta.__version__ == declared, (
+            f"__init__.py says {fabric_ai_meta.__version__}, "
+            f"pyproject.toml says {declared}"
+        )
 
     def test_all_count(self):
         import fabric_ai_meta
