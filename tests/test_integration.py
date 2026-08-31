@@ -812,7 +812,7 @@ class TestPublicAPIExports:
             to_openai_function,
         )
 
-        assert __version__ == "2.0.0"
+        assert __version__ == "2.0.1"
         assert callable(score_model)
         assert callable(generate_ai_ready_schema)
         assert callable(to_openai_function)

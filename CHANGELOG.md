@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-08-31
+
+Patch release. The published 2.0.0 wheel reported its own version as 1.8.0. This ships the corrected version string and republishes the project page with the documentation written after the 2.0.0 tag.
+
+### Fixed
+- `fabric-ai-meta --version` and `fabric_ai_meta.__version__` now report the installed version. `__init__.py` was still on `1.8.0` when 2.0.0 was tagged, because the release bump touched only `pyproject.toml`, so the published 2.0.0 wheel identified itself as 1.8.0.
+
+### Changed
+- The project page now carries the two recorded terminal demos, the per-command mode support matrix in `docs/user-guide.md`, and a quickstart notebook covering the three tools added in 2.0.0. All three landed after the 2.0.0 tag and so never reached PyPI.
+
 ## [2.0.0] - 2026-08-27
 
 Built for an AI agent to query a model safely, not just export it. Three new tools sit between a model and an agent about to write DAX against it: query-time guidance, a whole-model capability manifest, and an agent-readiness critic report.
