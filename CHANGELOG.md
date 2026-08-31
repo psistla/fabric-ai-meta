@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- CI now type-checks `src/fabric_ai_meta` with mypy on every supported Python version, alongside the existing ruff and pytest gates. Configuration lives in `[tool.mypy]` in `pyproject.toml`.
+
+### Changed
+- `get_credential(method="service_principal", ...)` now raises `ValueError` when any of `tenant_id`, `client_id` or `client_secret` is missing. It previously passed `None` straight into `ClientSecretCredential`, which failed further down with a less obvious message.
+- `SemanticModelMeta.workspace` and `SemanticLinkExtractor(workspace=...)` are now typed `Optional[str]`. Every command's `--workspace` already defaults to `None`, meaning "use the notebook's current workspace", so the previous `str` annotation did not describe what the code accepts. No runtime behaviour changed.
+
 ## [2.0.1] - 2026-08-31
 
 Patch release. The published 2.0.0 wheel reported its own version as 1.8.0. This ships the corrected version string and republishes the project page with the documentation written after the 2.0.0 tag.

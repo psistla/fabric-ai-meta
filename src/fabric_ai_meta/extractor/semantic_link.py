@@ -36,11 +36,12 @@ class SemanticLinkExtractor(BaseExtractor):
     Raises FabricEnvironmentError on instantiation if not running in Fabric.
     """
 
-    def __init__(self, workspace: str, credential=None):
+    def __init__(self, workspace: str | None, credential=None):
         """Initialize the extractor.
 
         Args:
-            workspace: Default Fabric workspace name.
+            workspace: Default Fabric workspace name, or None to use the
+                notebook's current workspace.
             credential: Optional azure.identity credential (unused by sempy in
                 notebook mode: Fabric ambient credential is used automatically).
 
@@ -173,7 +174,7 @@ class SemanticLinkExtractor(BaseExtractor):
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _extract_copilot(self, model_name: str, workspace: str):
+    def _extract_copilot(self, model_name: str, workspace: str | None):
         """Fetch and parse the Copilot/ folder. Returns CopilotBundle or None.
 
         Resolution failures (workspace or model not found by sempy) log a
@@ -225,7 +226,7 @@ class SemanticLinkExtractor(BaseExtractor):
         return notebookutils.credentials.getToken("pbi")
 
     def _parse_column(
-        self, row, model_name: str, table_name: str, workspace: str
+        self, row, model_name: str, table_name: str, workspace: str | None
     ) -> ColumnMeta:
         """Normalize a sempy columns DataFrame row to ColumnMeta."""
         col_name = str(

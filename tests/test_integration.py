@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from click.testing import CliRunner
 
 from fabric_ai_meta.analyzer.classifier import (
@@ -157,6 +158,12 @@ def test_auth01_get_credential_service_principal(mock_completion):
         client_id="client-id",
         client_secret="client-secret",
     )
+
+
+def test_auth01_get_credential_service_principal_requires_all_three():
+    """service_principal without credentials fails here, not inside azure."""
+    with pytest.raises(ValueError, match="tenant_id, client_id and client_secret"):
+        get_credential(method="service_principal", tenant_id="tenant-id")
 
 
 # ---------------------------------------------------------------------------

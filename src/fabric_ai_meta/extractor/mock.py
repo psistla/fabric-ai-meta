@@ -27,6 +27,8 @@ class MockExtractor(BaseExtractor):
         fixture_path: str | None = None,
         fixture_dir: str | None = None,
     ) -> None:
+        self.fixture_path: str | None
+        self.fixture_dir: str | None
         if fixture_path is not None:
             self.fixture_path = fixture_path
             self.fixture_dir = None
@@ -54,6 +56,7 @@ class MockExtractor(BaseExtractor):
             return [data.get("name", os.path.basename(self.fixture_path)[:-5])]
 
         names = []
+        assert self.fixture_dir is not None  # set whenever fixture_path is not
         for fname in sorted(os.listdir(self.fixture_dir)):
             if not fname.endswith(".json"):
                 continue
@@ -93,6 +96,7 @@ class MockExtractor(BaseExtractor):
             return model
 
         target_slug = _slugify(model_name)
+        assert self.fixture_dir is not None  # set whenever fixture_path is not
         for fname in sorted(os.listdir(self.fixture_dir)):
             if not fname.endswith(".json"):
                 continue

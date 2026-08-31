@@ -29,6 +29,9 @@ jobs:
       - name: Lint with ruff
         run: ruff check .
 
+      - name: Type-check with mypy
+        run: mypy
+
       - name: Run tests
         run: pytest tests/ -q --cov=fabric_ai_meta --cov-report=term-missing --cov-fail-under=85
 

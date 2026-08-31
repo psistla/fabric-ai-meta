@@ -107,3 +107,26 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501"]
+
+[tool.mypy]
+files = ["src/fabric_ai_meta"]
+warn_redundant_casts = true
+# warn_unused_ignores stays off on purpose: whether an ignore on an optional
+# import is redundant depends on whether that extra happens to be installed,
+# so it fails in one environment and passes in another.
+
+# Optional dependencies. None ship stubs, and most are absent from the base
+# install that CI type-checks against, so both "no stubs" and "not installed"
+# have to be tolerated for the same modules.
+[[tool.mypy.overrides]]
+module = [
+    "anthropic.*",
+    "azure.*",
+    "litellm.*",
+    "mcp.*",
+    "notebookutils.*",
+    "sempy.*",
+    "sempy_labs.*",
+    "tomli.*",
+]
+ignore_missing_imports = true

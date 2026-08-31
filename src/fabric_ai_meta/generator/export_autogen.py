@@ -1,6 +1,7 @@
 """AutoGen tool definition export format for autogen-agentchat v0.4+."""
 
 import re
+from typing import Any
 
 from fabric_ai_meta.models.metadata import MeasureCategory, SemanticModelMeta
 
@@ -21,7 +22,7 @@ def to_autogen_tool(model: SemanticModelMeta) -> dict:
     description_text = model.description or f"Semantic model: {model.name}"
 
     # Build table schemas
-    tables = []
+    tables: list[dict[str, Any]] = []
     for table in model.tables:
         if table.is_hidden:
             continue

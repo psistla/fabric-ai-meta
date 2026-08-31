@@ -293,6 +293,7 @@ def guide_query(
         home_table, resolved_measure = found
         base_table = _resolve_base_table(resolved_measure, measures_by_name)
     else:
+        assert column is not None  # guaranteed by the exactly-one guard above
         hits = _find_columns_by_name(model, column)
         if not hits:
             result["refusal"] = f"No column named {column!r} in this model."

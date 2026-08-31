@@ -142,11 +142,10 @@ def find_copilot_completeness(models: list[SemanticModelMeta]) -> dict | None:
     not run extraction with ``with_copilot=True``). Otherwise returns a dict
     with per-model signals plus workspace-level rollup counters.
     """
-    with_copilot = [m for m in models if m.copilot is not None]
-    if not with_copilot:
+    pairs = [(m.name, m.copilot.signals()) for m in models if m.copilot is not None]
+    if not pairs:
         return None
 
-    pairs = [(m.name, m.copilot.signals()) for m in with_copilot]
     per_model = [{"name": name, **sig} for name, sig in pairs]
     rollup = aggregate_copilot_signals(pairs)
     return {**rollup, "per_model_signals": per_model}

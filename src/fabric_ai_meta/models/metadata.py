@@ -142,7 +142,7 @@ class TableMeta:
 @dataclass
 class SemanticModelMeta:
     name: str
-    workspace: str
+    workspace: Optional[str]
     description: Optional[str]
     tables: list[TableMeta] = field(default_factory=list)
     relationships: list[RelationshipMeta] = field(default_factory=list)

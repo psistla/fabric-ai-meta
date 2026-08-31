@@ -74,6 +74,10 @@ def get_credential(
         client_id: Required for service_principal.
         client_secret: Required for service_principal.
 
+    Raises:
+        ValueError: If service_principal is requested without all three of
+            tenant_id, client_id and client_secret.
+
     Returns:
         An azure.identity credential object, or None for notebook mode
         (sempy.fabric picks up the ambient Fabric credential automatically).
@@ -83,6 +87,10 @@ def get_credential(
         # no explicit credential object is needed.
         return None
     elif method == "service_principal":
+        if not (tenant_id and client_id and client_secret):
+            raise ValueError(
+                "service_principal requires tenant_id, client_id and client_secret."
+            )
         try:
             from azure.identity import ClientSecretCredential
         except ImportError as exc:
