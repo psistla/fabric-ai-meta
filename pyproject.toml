@@ -72,7 +72,7 @@ dev = [
     "mypy>=1.10",
     "jsonschema>=4.20",
     "litellm>=1.50,<1.98",              # Required for LiteLLMBackend tests. Upper bound: 1.98.0's Rust-backed build fails to import on Python 3.10 (BerriAI/litellm#31261).
-    "pandas>=2.0",                     # Required: 5 tests build DataFrames to stand in for sempy
+    "pandas>=2.0",                     # Required: 6 tests build DataFrames to stand in for sempy
     "build",                           # Required for the sdist content check
 ]
 

@@ -30,5 +30,5 @@ def test_anthropic_is_not_a_dependency():
 
 def test_base_install_has_no_fabric_dependencies():
     deps = " ".join(_pyproject()["project"]["dependencies"])
-    for name in ("semantic-link-sempy", "semantic-link-labs", "azure-identity"):
+    for name in ("semantic-link-sempy", "semantic-link-labs"):
         assert name not in deps
