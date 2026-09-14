@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-14
+
+Sample values on live extraction are now opt-in, as the documentation always said; the flag had been accepted and ignored while every run sampled every column. The hollow `auth` command group is gone. A repo-wide audit removed about 590 lines of dead code and two dependencies without changing any output file, and every exporter now accepts `--output`.
+
 ### Added
 - CI now type-checks `src/fabric_ai_meta` with mypy on every supported Python version, alongside the existing ruff and pytest gates. Configuration lives in `[tool.mypy]` in `pyproject.toml`.
 - Every `export` subcommand, plugins included, accepts `--output/-o`. Previously only `prep-for-ai`, `copilot`, `capability-manifest`, and `agent-readiness` did.
