@@ -19,7 +19,13 @@ class ExporterError(Exception):
 
 
 def _slugify(name: str) -> str:
+    """Filesystem-safe slug: `Contoso Sales` -> `contoso-sales`."""
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def _sanitize(name: str) -> str:
+    """Identifier-safe name for tool/function names: `Total Sales` -> `total_sales`."""
+    return re.sub(r"[^a-z0-9_]", "_", name.lower()).strip("_")
 
 
 class BaseExporter(ABC):

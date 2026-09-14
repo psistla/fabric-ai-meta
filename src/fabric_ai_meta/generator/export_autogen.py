@@ -1,14 +1,9 @@
 """AutoGen tool definition export format for autogen-agentchat v0.4+."""
 
-import re
 from typing import Any
 
+from fabric_ai_meta.generator.base import _sanitize
 from fabric_ai_meta.models.metadata import MeasureCategory, SemanticModelMeta
-
-
-def _sanitize(name: str) -> str:
-    """Replace spaces and special chars with underscores, lowercase."""
-    return re.sub(r"[^a-z0-9_]", "_", name.lower()).strip("_")
 
 
 def to_autogen_tool(model: SemanticModelMeta) -> dict:

@@ -18,9 +18,6 @@ class AuthConfig:
 @dataclass
 class ExtractionConfig:
     default_workspace: str = "Production Analytics"
-    include_sample_values: bool = True
-    sample_value_count: int = 10
-    extraction_method: str = "semantic_link"   # "semantic_link" or "pbip"
 
 
 @dataclass
@@ -41,24 +38,7 @@ class LLMConfig:
 
 @dataclass
 class OutputConfig:
-    default_format: str = "json"
     output_dir: str = "./output"
-    include_raw_extraction: bool = False
-
-
-@dataclass
-class ScoringWeightsConfig:
-    description_coverage: float = 0.25
-    measure_documentation: float = 0.20
-    relationship_completeness: float = 0.15
-    naming_consistency: float = 0.15
-    sample_values_available: float = 0.10
-    business_rules_documented: float = 0.15
-
-
-@dataclass
-class ScoringConfig:
-    weights: ScoringWeightsConfig = field(default_factory=ScoringWeightsConfig)
 
 
 @dataclass
@@ -67,7 +47,6 @@ class Config:
     extraction: ExtractionConfig = field(default_factory=ExtractionConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
-    scoring: ScoringConfig = field(default_factory=ScoringConfig)
 
 
 def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
@@ -97,8 +76,6 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
     ext_data = data.get("extraction", {})
     llm_data = data.get("llm", {})
     out_data = data.get("output", {})
-    scoring_data = data.get("scoring", {})
-    weights_data = scoring_data.get("weights", {})
 
     return Config(
         auth=AuthConfig(
@@ -109,9 +86,6 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
         ),
         extraction=ExtractionConfig(
             default_workspace=ext_data.get("default_workspace", "Production Analytics"),
-            include_sample_values=ext_data.get("include_sample_values", True),
-            sample_value_count=ext_data.get("sample_value_count", 10),
-            extraction_method=ext_data.get("extraction_method", "semantic_link"),
         ),
         llm=LLMConfig(
             provider=llm_data.get("provider", "anthropic"),
@@ -127,18 +101,6 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
             vertex_location=llm_data.get("vertex_location"),
         ),
         output=OutputConfig(
-            default_format=out_data.get("default_format", "json"),
             output_dir=out_data.get("output_dir", "./output"),
-            include_raw_extraction=out_data.get("include_raw_extraction", False),
-        ),
-        scoring=ScoringConfig(
-            weights=ScoringWeightsConfig(
-                description_coverage=weights_data.get("description_coverage", 0.25),
-                measure_documentation=weights_data.get("measure_documentation", 0.20),
-                relationship_completeness=weights_data.get("relationship_completeness", 0.15),
-                naming_consistency=weights_data.get("naming_consistency", 0.15),
-                sample_values_available=weights_data.get("sample_values_available", 0.10),
-                business_rules_documented=weights_data.get("business_rules_documented", 0.15),
-            )
         ),
     )

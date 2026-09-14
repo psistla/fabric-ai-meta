@@ -25,9 +25,10 @@ from typing import Any
 from fabric_ai_meta.auth.entra import (
     FabricEnvironmentError,
     detect_notebook_environment,
+    fabric_bearer_token,
 )
 from fabric_ai_meta.models.copilot import CopilotBundle
-from fabric_ai_meta.writeback.tmdl_client import TMDLClient
+from fabric_ai_meta.writeback.tmdl_client import TMDLClient, primitive_for_path
 
 logger = logging.getLogger(__name__)
 
@@ -157,14 +158,7 @@ def _bundle_to_copilot_parts(bundle: CopilotBundle) -> list[dict]:
 
 
 def _primitive_for_path(path: str) -> str:
-    from fabric_ai_meta.writeback.tmdl_client import (
-        COPILOT_PATH_PREFIXES,
-        PRIMITIVE_BY_PREFIX,
-    )
-    for prefix in COPILOT_PATH_PREFIXES:
-        if path.startswith(prefix):
-            return PRIMITIVE_BY_PREFIX[prefix]
-    return "unknown"
+    return primitive_for_path(path) or "unknown"
 
 
 def splice_copilot_into_envelope(
@@ -280,12 +274,6 @@ def _load_sempy_fabric():
     return fabric
 
 
-def _fabric_bearer_token() -> str:
-    """Obtain a Power BI / Fabric bearer token from the Fabric notebook runtime."""
-    import notebookutils  # type: ignore[import-not-found]  # noqa: PLC0415
-    return notebookutils.credentials.getToken("pbi")
-
-
 class SemanticLinkCopilotWriter(CopilotWriter):
     """Fabric-runtime writer that applies a CopilotBundle through the REST API.
 
@@ -326,7 +314,7 @@ class SemanticLinkCopilotWriter(CopilotWriter):
                 f"{workspace!r}; verify the model name."
             )
 
-        token = _fabric_bearer_token()
+        token = fabric_bearer_token()
         client = TMDLClient(token, workspace_id)
         existing_envelope = client.get_definition(model_id)
         new_envelope, changes = splice_copilot_into_envelope(

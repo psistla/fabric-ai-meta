@@ -28,7 +28,7 @@ from fabric_ai_meta.models.copilot import (
     ExamplePrompts,
     VerifiedAnswer,
 )
-from fabric_ai_meta.writeback.tmdl_client import COPILOT_PATH_PREFIXES, PRIMITIVE_BY_PREFIX
+from fabric_ai_meta.writeback.tmdl_client import primitive_for_path
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class CopilotReader:
 
         for part in _iter_parts(definition):
             path = str(part.get("path") or "")
-            primitive = _primitive_for_path(path)
+            primitive = primitive_for_path(path)
             if primitive is None:
                 continue
             try:
@@ -185,13 +185,6 @@ class CopilotReader:
 
 def _iter_parts(definition: dict):
     return ((definition or {}).get("definition") or {}).get("parts") or []
-
-
-def _primitive_for_path(path: str) -> str | None:
-    for prefix in COPILOT_PATH_PREFIXES:
-        if path.startswith(prefix):
-            return PRIMITIVE_BY_PREFIX[prefix]
-    return None
 
 
 def _decode_part_bytes(part: dict) -> bytes:

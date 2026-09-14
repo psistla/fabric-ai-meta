@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment
+from fabric_ai_meta.auth.entra import FabricEnvironmentError, detect_notebook_environment, fabric_bearer_token
 from fabric_ai_meta.extractor.base import BaseExtractor
 from fabric_ai_meta.models.metadata import (
     ColumnMeta,
@@ -215,15 +215,10 @@ class SemanticLinkExtractor(BaseExtractor):
             )
             return None
 
-        token = self._fabric_bearer_token()
+        token = fabric_bearer_token()
         client = TMDLClient(token, workspace_id)
         envelope = client.get_definition(model_id)
         return CopilotReader.from_definition(envelope)
-
-    def _fabric_bearer_token(self) -> str:
-        """Obtain a Power BI / Fabric bearer token from the Fabric notebook runtime."""
-        import notebookutils  # type: ignore[import-not-found]
-        return notebookutils.credentials.getToken("pbi")
 
     def _parse_column(
         self, row, model_name: str, table_name: str, workspace: str | None

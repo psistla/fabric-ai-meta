@@ -37,6 +37,14 @@ PRIMITIVE_BY_PREFIX: dict[str, str] = {
 COPILOT_PATH_PREFIXES: tuple[str, ...] = tuple(PRIMITIVE_BY_PREFIX)
 
 
+def primitive_for_path(path: str) -> str | None:
+    """Prep for AI primitive a definition part belongs to, or None if not a Copilot part."""
+    for prefix, primitive in PRIMITIVE_BY_PREFIX.items():
+        if path.startswith(prefix):
+            return primitive
+    return None
+
+
 class TMDLClient:
     """Client for ``getDefinition`` and ``updateDefinition``.
 

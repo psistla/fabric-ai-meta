@@ -147,7 +147,6 @@ Drop a `.fabric-ai-meta.toml` in your working directory:
 ```toml
 [extraction]
 default_workspace = "Production Analytics"
-include_sample_values = false
 
 [llm]
 provider = "anthropic"

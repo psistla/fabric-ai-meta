@@ -41,6 +41,12 @@ class FabricEnvironmentError(Exception):
         super().__init__(message or self.DEFAULT_MESSAGE)
 
 
+def fabric_bearer_token() -> str:
+    """Power BI / Fabric bearer token from the notebook runtime's ambient credential."""
+    import notebookutils  # type: ignore[import-not-found]
+    return notebookutils.credentials.getToken("pbi")
+
+
 class MissingFabricDependencyError(ImportError):
     """Raised inside a Fabric runtime when an optional dependency is absent.
 

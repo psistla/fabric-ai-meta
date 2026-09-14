@@ -368,7 +368,7 @@ def test_semanticlink_writer_dry_run_does_not_call_update():
               return_value=True),
         patch("fabric_ai_meta.writeback.copilot_writer._load_sempy_fabric",
               return_value=fabric_mock),
-        patch("fabric_ai_meta.writeback.copilot_writer._fabric_bearer_token",
+        patch("fabric_ai_meta.writeback.copilot_writer.fabric_bearer_token",
               return_value="tok"),
         patch("fabric_ai_meta.writeback.copilot_writer.TMDLClient") as TMDLMock,
     ):
@@ -393,7 +393,7 @@ def test_semanticlink_writer_apply_calls_update_definition():
               return_value=True),
         patch("fabric_ai_meta.writeback.copilot_writer._load_sempy_fabric",
               return_value=fabric_mock),
-        patch("fabric_ai_meta.writeback.copilot_writer._fabric_bearer_token",
+        patch("fabric_ai_meta.writeback.copilot_writer.fabric_bearer_token",
               return_value="tok"),
         patch("fabric_ai_meta.writeback.copilot_writer.TMDLClient") as TMDLMock,
     ):
@@ -423,7 +423,7 @@ def test_semanticlink_writer_lro_failure_populates_errors():
               return_value=True),
         patch("fabric_ai_meta.writeback.copilot_writer._load_sempy_fabric",
               return_value=fabric_mock),
-        patch("fabric_ai_meta.writeback.copilot_writer._fabric_bearer_token",
+        patch("fabric_ai_meta.writeback.copilot_writer.fabric_bearer_token",
               return_value="tok"),
         patch("fabric_ai_meta.writeback.copilot_writer.TMDLClient") as TMDLMock,
     ):
@@ -447,7 +447,7 @@ def test_semanticlink_writer_succeeded_true_on_clean_apply():
               return_value=True),
         patch("fabric_ai_meta.writeback.copilot_writer._load_sempy_fabric",
               return_value=fabric_mock),
-        patch("fabric_ai_meta.writeback.copilot_writer._fabric_bearer_token",
+        patch("fabric_ai_meta.writeback.copilot_writer.fabric_bearer_token",
               return_value="tok"),
         patch("fabric_ai_meta.writeback.copilot_writer.TMDLClient") as TMDLMock,
     ):

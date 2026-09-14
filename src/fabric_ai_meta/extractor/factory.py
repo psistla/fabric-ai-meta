@@ -8,15 +8,11 @@ import os
 from importlib.resources import files
 
 from fabric_ai_meta.extractor.base import BaseExtractor
+from fabric_ai_meta.generator.base import _slugify
 
 # Bundled sample models, shipped as package data. Product data, not test data:
 # `--mock` and the MCP server's default path both read from here.
 FIXTURES_DIR = str(files("fabric_ai_meta") / "fixtures")
-
-
-def _slugify(name: str) -> str:
-    import re
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
 def _available_sample_models() -> list[str]:

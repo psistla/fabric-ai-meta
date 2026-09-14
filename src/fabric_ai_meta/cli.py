@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 import sys
 
 import click
@@ -15,6 +14,7 @@ from fabric_ai_meta import __version__
 from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
 from fabric_ai_meta.config import load_config
 from fabric_ai_meta.extractor.factory import _build_extractor
+from fabric_ai_meta.generator.base import _slugify
 
 # Ensure stdout/stderr use UTF-8 on Windows (default is cp1252), so Rich's
 # spinner glyphs and other Unicode output don't raise UnicodeEncodeError.
@@ -24,11 +24,6 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 console = Console(legacy_windows=False)
-
-
-def _slugify(name: str) -> str:
-    """Convert a model name to a filesystem-safe slug."""
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
 def _ensure_dir(path: str) -> None:

@@ -2,15 +2,11 @@
 
 import json
 import os
-import re
 
 from fabric_ai_meta.extractor.base import BaseExtractor
+from fabric_ai_meta.generator.base import _slugify
 from fabric_ai_meta.generator.copilot_reader import CopilotReader
 from fabric_ai_meta.models.metadata import SemanticModelMeta, from_dict
-
-
-def _slugify(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
 class MockExtractor(BaseExtractor):
