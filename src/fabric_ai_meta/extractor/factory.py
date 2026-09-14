@@ -53,10 +53,13 @@ def _build_extractor(
     mock: bool = False,
     pbip: str | None = None,
     model_name: str | None = None,
+    include_sample_values: bool = False,
 ) -> BaseExtractor:
     """Construct the right extractor for the requested mode.
 
     `model_name is None` selects multi-model (fixture_dir) mode for mock.
+    `include_sample_values` only affects live extraction; mock and pbip have
+    no query surface to sample from.
     """
     if mock and pbip:
         raise ValueError("--mock and --pbip are mutually exclusive")
@@ -72,4 +75,4 @@ def _build_extractor(
         return MockExtractor(fixture_path=_fixture_path_for(model_name))
 
     from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
-    return SemanticLinkExtractor(workspace=workspace)
+    return SemanticLinkExtractor(workspace=workspace, include_sample_values=include_sample_values)

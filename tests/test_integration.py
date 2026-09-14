@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from fabric_ai_meta.analyzer.classifier import (
@@ -23,7 +22,6 @@ from fabric_ai_meta.analyzer.scorer import score_model
 from fabric_ai_meta.auth.entra import (
     FabricEnvironmentError,
     detect_notebook_environment,
-    get_credential,
 )
 from fabric_ai_meta.cli import main
 from fabric_ai_meta.generator.export_langchain import to_langchain_tool_definition
@@ -123,47 +121,6 @@ def test_full_pipeline_output_files_exist_and_are_valid_json(tmp_path):
 # ---------------------------------------------------------------------------
 # AUTH-01: authenticate via interactive browser login (mocked)
 # ---------------------------------------------------------------------------
-
-
-def test_auth01_get_credential_notebook_returns_none():
-    """AUTH-01 / AUTH-02: notebook mode returns None (Fabric ambient credential)."""
-    cred = get_credential(method="notebook")
-    assert cred is None
-
-
-@patch("azure.identity.InteractiveBrowserCredential")
-def test_auth01_get_credential_interactive_returns_credential(mock_completion):
-    """AUTH-01: interactive mode returns an InteractiveBrowserCredential."""
-    mock_cred = MagicMock()
-    mock_completion.return_value = mock_cred
-    cred = get_credential(method="interactive")
-    assert cred is mock_cred
-    mock_completion.assert_called_once()
-
-
-@patch("azure.identity.ClientSecretCredential")
-def test_auth01_get_credential_service_principal(mock_completion):
-    """AUTH-01: service_principal mode returns a ClientSecretCredential."""
-    mock_cred = MagicMock()
-    mock_completion.return_value = mock_cred
-    cred = get_credential(
-        method="service_principal",
-        tenant_id="tenant-id",
-        client_id="client-id",
-        client_secret="client-secret",
-    )
-    assert cred is mock_cred
-    mock_completion.assert_called_once_with(
-        tenant_id="tenant-id",
-        client_id="client-id",
-        client_secret="client-secret",
-    )
-
-
-def test_auth01_get_credential_service_principal_requires_all_three():
-    """service_principal without credentials fails here, not inside azure."""
-    with pytest.raises(ValueError, match="tenant_id, client_id and client_secret"):
-        get_credential(method="service_principal", tenant_id="tenant-id")
 
 
 # ---------------------------------------------------------------------------
@@ -1095,8 +1052,8 @@ def test_pbip_full_pipeline(tmp_path, monkeypatch):
 
 def test_missing_fabric_dependency_error_names_the_extra():
     from fabric_ai_meta.auth.entra import MissingFabricDependencyError
-    msg = str(MissingFabricDependencyError("azure-identity"))
-    assert "azure-identity" in msg
+    msg = str(MissingFabricDependencyError("semantic-link-labs"))
+    assert "semantic-link-labs" in msg
     assert "fabric-ai-meta[fabric]" in msg
 
 

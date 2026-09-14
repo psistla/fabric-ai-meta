@@ -9,14 +9,6 @@ from typing import TypeVar
 
 
 @dataclass
-class AuthConfig:
-    method: str = "interactive"          # "interactive", "service_principal", "notebook"
-    tenant_id: str | None = None         # Required for service_principal
-    client_id: str | None = None         # Required for service_principal
-    client_secret: str | None = None     # Required for service_principal
-
-
-@dataclass
 class ExtractionConfig:
     default_workspace: str = "Production Analytics"
 
@@ -42,12 +34,11 @@ class OutputConfig:
     output_dir: str = "./output"
 
 
-_Section = TypeVar("_Section", AuthConfig, ExtractionConfig, LLMConfig, OutputConfig)
+_Section = TypeVar("_Section", ExtractionConfig, LLMConfig, OutputConfig)
 
 
 @dataclass
 class Config:
-    auth: AuthConfig = field(default_factory=AuthConfig)
     extraction: ExtractionConfig = field(default_factory=ExtractionConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
@@ -77,7 +68,6 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
         return Config()
 
     return Config(
-        auth=_section(AuthConfig, data.get("auth", {})),
         extraction=_section(ExtractionConfig, data.get("extraction", {})),
         llm=_section(LLMConfig, data.get("llm", {})),
         output=_section(OutputConfig, data.get("output", {})),

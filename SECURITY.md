@@ -24,9 +24,9 @@ disclosure.
 These are the parts of the tool that touch credentials or live systems. Keep
 them in mind when configuring and when reporting issues.
 
-- **Entra credentials.** `auth login` and live extraction authenticate against
-  Microsoft Entra. Credentials are handled by `azure-identity`; the tool stores
-  no tokens of its own.
+- **Entra credentials.** Live extraction and writeback run under the Fabric
+  notebook's ambient Entra credential (`sempy` and `notebookutils`); the tool
+  never prompts for, stores, or forwards a token of its own.
 - **LLM API keys.** Enrichment reads a provider key from the environment variable
   named in your config. The config stores the *name* of the variable, never the
   value; no key is written to disk or logged.

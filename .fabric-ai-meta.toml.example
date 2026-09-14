@@ -1,10 +1,5 @@
 # .fabric-ai-meta.toml
 
-[auth]
-method = "interactive"  # "interactive", "service_principal", "notebook"
-tenant_id = "your-tenant-id"  # Required for service_principal
-client_id = "your-client-id"  # Required for service_principal
-
 [extraction]
 default_workspace = "Production Analytics"
 

@@ -73,7 +73,7 @@ def _resolve_source(mock: bool, pbip: str | None, workspace: str | None,
         )
 
 
-def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
+def _run_analysis(model_name: str, workspace: str, output: str,
                   include_sample_values: bool, llm_enrich: bool, mock: bool,
                   *, with_copilot: bool = False, pbip: str | None = None) -> tuple:
     """Core analysis flow shared by analyze and scan commands."""
@@ -93,7 +93,8 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
         # Step 1: Extract
         task = progress.add_task(f"Extracting '{model_name}'...", total=None)
         extractor = _build_extractor(
-            workspace=workspace, mock=mock, pbip=pbip, model_name=model_name
+            workspace=workspace, mock=mock, pbip=pbip, model_name=model_name,
+            include_sample_values=include_sample_values,
         )
 
         model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
@@ -184,60 +185,6 @@ def main():
 
 
 # ---------------------------------------------------------------------------
-# auth commands
-# ---------------------------------------------------------------------------
-
-@main.group()
-def auth():
-    """Authentication commands."""
-    pass
-
-
-@auth.command("login")
-def auth_login():
-    """Interactive browser login to Microsoft Fabric."""
-    console.print(Panel("[bold]auth login[/bold]", title="fabric-ai-meta"))
-    cfg = load_config()
-    console.print(f"Auth method: [cyan]{cfg.auth.method}[/cyan]")
-    try:
-        from fabric_ai_meta.auth.entra import get_credential
-        credential = get_credential(
-            method=cfg.auth.method,
-            tenant_id=cfg.auth.tenant_id,
-            client_id=cfg.auth.client_id,
-            client_secret=cfg.auth.client_secret,
-        )
-        if credential is not None:
-            console.print("[green]Login successful.[/green]")
-        else:
-            console.print("[yellow]Notebook mode, using ambient Fabric credential.[/yellow]")
-    except Exception as e:
-        console.print(f"[red]Login failed: {e}[/red]")
-        sys.exit(1)
-
-
-@auth.command("status")
-def auth_status():
-    """Show current authentication state."""
-    console.print(Panel("[bold]auth status[/bold]", title="fabric-ai-meta"))
-    from fabric_ai_meta.auth.entra import detect_notebook_environment
-    in_fabric = detect_notebook_environment()
-    if in_fabric:
-        console.print("[green]Running inside Fabric notebook runtime.[/green]")
-    else:
-        console.print("[yellow]Running in local environment (mock/dev mode).[/yellow]")
-    cfg = load_config()
-    console.print(f"Configured auth method: [cyan]{cfg.auth.method}[/cyan]")
-
-
-@auth.command("logout")
-def auth_logout():
-    """Log out and clear stored credentials."""
-    console.print(Panel("[bold]auth logout[/bold]", title="fabric-ai-meta"))
-    console.print("[green]Logged out. (No persistent token store in v1.)[/green]")
-
-
-# ---------------------------------------------------------------------------
 # analyze command
 # ---------------------------------------------------------------------------
 
@@ -245,15 +192,15 @@ def auth_logout():
 @click.argument("model_name")
 @click.option("--workspace", "-w", default=None, help="Fabric workspace name.")
 @click.option("--output", "-o", default=None, help="Output directory.")
-@click.option("--format", "fmt", default="json", type=click.Choice(["json"]), help="Output format.")
-@click.option("--include-sample-values", is_flag=True, default=False)
+@click.option("--include-sample-values", is_flag=True, default=False,
+              help="Live extraction only: sample values cost one DAX query per column.")
 @click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM-assisted classification.")
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
 @click.option("--with-copilot", is_flag=True, default=False,
               help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
 @click.option("--pbip", default=None, type=click.Path(exists=True),
               help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
-def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock, with_copilot, pbip):
+def analyze(model_name, workspace, output, include_sample_values, llm_enrich, mock, with_copilot, pbip):
     """Analyze a semantic model and generate AI-ready metadata exports."""
     _resolve_source(mock, pbip, workspace)
     cfg = load_config()
@@ -269,7 +216,7 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
     ))
 
     try:
-        _run_analysis(model_name, workspace, output, fmt, include_sample_values, llm_enrich, mock,
+        _run_analysis(model_name, workspace, output, include_sample_values, llm_enrich, mock,
                       with_copilot=with_copilot or bool(pbip), pbip=pbip)
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -283,14 +230,15 @@ def analyze(model_name, workspace, output, fmt, include_sample_values, llm_enric
 @main.command("scan")
 @click.option("--workspace", "-w", default=None, help="Fabric workspace name.")
 @click.option("--output", "-o", default=None, help="Output directory.")
-@click.option("--format", "fmt", default="json", type=click.Choice(["json"]))
+@click.option("--include-sample-values", is_flag=True, default=False,
+              help="Live extraction only: sample values cost one DAX query per column.")
 @click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data (for local dev/testing).")
 @click.option("--llm-enrich", is_flag=True, default=False, help="Enable LLM-assisted enrichment for each model.")
 @click.option("--with-copilot", is_flag=True, default=False,
               help="Also fetch the Copilot/ folder via Fabric REST getDefinition.")
 @click.option("--pbip", default=None, type=click.Path(exists=True),
               help="Scan a local directory of *.SemanticModel folders (no Fabric, no workspace).")
-def scan(workspace, output, fmt, mock, llm_enrich, with_copilot, pbip):
+def scan(workspace, output, include_sample_values, mock, llm_enrich, with_copilot, pbip):
     """Scan all models in a workspace and generate AI-ready exports."""
     from datetime import datetime, timezone
 
@@ -317,7 +265,7 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot, pbip):
         for name in model_names:
             task = progress.add_task(f"Analyzing {name}...", total=None)
             try:
-                result = _run_analysis(name, workspace, output, fmt, False, llm_enrich, mock,
+                result = _run_analysis(name, workspace, output, include_sample_values, llm_enrich, mock,
                                         with_copilot=with_copilot, pbip=pbip)
                 model, score = result
                 slug = _slugify(name)

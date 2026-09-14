@@ -33,11 +33,6 @@ def test_analyze_help_exits_0(runner):
     assert "model_name" in result.output.lower() or "--workspace" in result.output
 
 
-def test_auth_help_exits_0(runner):
-    result = runner.invoke(main, ["auth", "--help"])
-    assert result.exit_code == 0
-
-
 def test_export_help_exits_0(runner):
     result = runner.invoke(main, ["export", "--help"])
     assert result.exit_code == 0
@@ -61,16 +56,6 @@ def test_governance_help_exits_0(runner):
 # ---------------------------------------------------------------------------
 # auth subcommands smoke tests
 # ---------------------------------------------------------------------------
-
-def test_auth_status_exits_0(runner):
-    result = runner.invoke(main, ["auth", "status"])
-    assert result.exit_code == 0
-
-
-def test_auth_logout_exits_0(runner):
-    result = runner.invoke(main, ["auth", "logout"])
-    assert result.exit_code == 0
-
 
 # ---------------------------------------------------------------------------
 # analyze --mock end-to-end

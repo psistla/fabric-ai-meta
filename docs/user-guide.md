@@ -98,7 +98,9 @@ Two ways:
 
 Ambient Entra credentials are picked up automatically. The CLI detects the notebook environment via the `FABRIC_NOTEBOOK_ID` environment variable. The runtime usually already provides `sempy`; the `[fabric]` extra may upgrade it.
 
-**On your laptop.** Live `--workspace` extraction and `auth login` require the Fabric notebook runtime and the `[fabric]` extra; `sempy.fabric` cannot reach a workspace from a local machine regardless of credentials. To read a real model locally, point `--pbip` at a Power BI project folder instead:
+Sample values are off by default because they cost one DAX query per column. Add `--include-sample-values` to `analyze` or `scan` to collect up to 10 distinct values per column; it also lifts the `sample_values_available` part of the readiness score.
+
+**On your laptop.** Live `--workspace` extraction requires the Fabric notebook runtime and the `[fabric]` extra; `sempy.fabric` cannot reach a workspace from a local machine regardless of credentials. To read a real model locally, point `--pbip` at a Power BI project folder instead:
 
 ```bash
 fabric-ai-meta analyze "Sales Model" --pbip path/to/Sales.SemanticModel

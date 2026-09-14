@@ -36,14 +36,14 @@ class SemanticLinkExtractor(BaseExtractor):
     Raises FabricEnvironmentError on instantiation if not running in Fabric.
     """
 
-    def __init__(self, workspace: str | None, credential=None):
+    def __init__(self, workspace: str | None, *, include_sample_values: bool = False):
         """Initialize the extractor.
 
         Args:
             workspace: Default Fabric workspace name, or None to use the
                 notebook's current workspace.
-            credential: Optional azure.identity credential (unused by sempy in
-                notebook mode: Fabric ambient credential is used automatically).
+            include_sample_values: Run one TOPN DAX query per column to collect
+                sample values. Off by default: it costs Fabric capacity units.
 
         Raises:
             FabricEnvironmentError: If not running inside a Fabric notebook runtime.
@@ -51,7 +51,7 @@ class SemanticLinkExtractor(BaseExtractor):
         if not detect_notebook_environment():
             raise FabricEnvironmentError()
         self.workspace = workspace
-        self.credential = credential
+        self.include_sample_values = include_sample_values
         # Deferred import, avoids ImportError at module load time in local envs.
         try:
             import sempy.fabric as fabric  # noqa: PLC0415
@@ -232,7 +232,11 @@ class SemanticLinkExtractor(BaseExtractor):
         ).lower()
         is_hidden = bool(row.get("Hidden", row.get("is_hidden", False)))
 
-        sample_values = self._extract_sample_values(model_name, table_name, col_name)
+        sample_values = (
+            self._extract_sample_values(model_name, table_name, col_name)
+            if self.include_sample_values
+            else []
+        )
 
         return ColumnMeta(
             name=col_name,

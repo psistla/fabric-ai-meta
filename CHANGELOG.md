@@ -9,10 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - CI now type-checks `src/fabric_ai_meta` with mypy on every supported Python version, alongside the existing ruff and pytest gates. Configuration lives in `[tool.mypy]` in `pyproject.toml`.
+- Every `export` subcommand, plugins included, accepts `--output/-o`. Previously only `prep-for-ai`, `copilot`, `capability-manifest`, and `agent-readiness` did.
+- `scan --include-sample-values`, matching `analyze`.
+
+### Fixed
+- `--include-sample-values` now does what its name says. It was accepted and ignored, while live extraction ran one `TOPN(10, DISTINCT(...))` DAX query for every column of every table on every run. Sample values are now collected only when the flag is passed, which is what the CU-cost decision always intended. `--pbip` and `--mock` are unaffected: neither has a query surface to sample from.
+- `.fabric-ai-meta.toml.example` and the user guide advertised `[extraction]`, `[output]`, and `[scoring]` keys that nothing read (`include_sample_values`, `sample_value_count`, `extraction_method`, `default_format`, `include_raw_extraction`, and every `scoring.weights.*`). They are gone from the example; a config file that still carries them keeps loading, the keys are ignored.
 
 ### Changed
-- `get_credential(method="service_principal", ...)` now raises `ValueError` when any of `tenant_id`, `client_id` or `client_secret` is missing. It previously passed `None` straight into `ClientSecretCredential`, which failed further down with a less obvious message.
+- `export capability-manifest` and `export agent-readiness` are registered through the exporter registry like every other exporter, so `discover_exporters()` and `get_exporter()` now return them too. Output files are unchanged.
+- `SemanticLinkExtractor(workspace, *, include_sample_values=False)` replaces the unused `credential=` keyword.
 - `SemanticModelMeta.workspace` and `SemanticLinkExtractor(workspace=...)` are now typed `Optional[str]`. Every command's `--workspace` already defaults to `None`, meaning "use the notebook's current workspace", so the previous `str` annotation did not describe what the code accepts. No runtime behaviour changed.
+
+### Removed
+- The `auth` command group (`login`, `status`, `logout`), `fabric_ai_meta.auth.entra.get_credential`, and the `[auth]` config section. `auth login` built an `azure-identity` credential object and discarded it: nothing in the package ever consumed one, since live extraction and writeback run under the Fabric notebook's ambient credential through `sempy` and `notebookutils`. `auth logout` printed a message. `azure-identity` leaves the `[fabric]` and `[dev]` extras.
+- `--format` on `analyze` and `scan`. It accepted exactly one value, `json`, and nothing read it. `diff --format json|text` is unaffected.
+- `TMDLClient.list_definition_files()` and `TMDLClient.find_prep_for_ai_settings()`, research-spike helpers from 1.1.0 with no callers in the package.
+- `fabric_ai_meta.auth.entra.detect_fabric_runtime`, an alias of `detect_notebook_environment` with no callers.
+- `fabric_ai_meta.config.ScoringConfig` and `ScoringWeightsConfig`. Scoring weights live in `fabric_ai_meta.analyzer.scorer.SCORING_WEIGHTS` and were never read from config.
+- `pytest-asyncio` from the `[dev]` extra; the suite has no asynchronous tests.
 
 ## [2.0.1] - 2026-08-31
 

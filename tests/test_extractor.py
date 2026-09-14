@@ -471,3 +471,36 @@ def test_bundled_fixtures_resolve_inside_the_package():
     pkg_root = os.path.dirname(os.path.abspath(fabric_ai_meta.__file__))
     assert os.path.isdir(FIXTURES_DIR)
     assert os.path.commonpath([pkg_root, FIXTURES_DIR]) == pkg_root
+
+
+def test_semantic_link_sample_values_are_opt_in():
+    """Live extraction issues no evaluate_dax by default; `include_sample_values=True`
+    runs the TOPN query per column. Guards decisions/sample-values-opt-in.md."""
+    import sys
+    import types
+    from unittest.mock import MagicMock, patch
+
+    import pandas as pd
+
+    def _run(**kwargs):
+        fake = MagicMock()
+        fake.list_tables.return_value = pd.DataFrame([{"Name": "Sales", "Hidden": False}])
+        fake.list_columns.return_value = pd.DataFrame([{"Column Name": "Region", "Data Type": "String"}])
+        fake.list_measures.return_value = pd.DataFrame()
+        fake.list_relationships.return_value = pd.DataFrame()
+        fake.evaluate_dax.return_value = pd.DataFrame({"Region": ["East", "West"]})
+        with patch.dict(sys.modules, {"sempy": types.ModuleType("sempy"), "sempy.fabric": fake}), \
+             patch("fabric_ai_meta.extractor.semantic_link.detect_notebook_environment",
+                   return_value=True):
+            from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
+            model = SemanticLinkExtractor(workspace="W", **kwargs).extract("M", "W")
+        return fake, model.tables[0].columns[0].sample_values
+
+    fake, samples = _run()
+    fake.evaluate_dax.assert_not_called()
+    assert samples == []
+
+    fake, samples = _run(include_sample_values=True)
+    fake.evaluate_dax.assert_called_once()
+    assert "TOPN(10, DISTINCT('Sales'[Region]))" in fake.evaluate_dax.call_args[0][1]
+    assert samples == ["East", "West"]

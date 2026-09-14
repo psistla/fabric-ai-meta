@@ -1,4 +1,4 @@
-"""Azure AD / Entra ID authentication helpers."""
+"""Fabric notebook runtime detection and ambient-credential helpers."""
 
 import os
 import sys
@@ -60,53 +60,3 @@ class MissingFabricDependencyError(ImportError):
             f"{distribution} is required for this command but is not installed.\n"
             f"Install the Fabric extra:  pip install 'fabric-ai-meta[fabric]'"
         )
-
-
-def get_credential(
-    method: str = "interactive",
-    tenant_id: str | None = None,
-    client_id: str | None = None,
-    client_secret: str | None = None,
-):
-    """Return an Azure credential for authenticating to Fabric services.
-
-    Args:
-        method: "interactive", "service_principal", or "notebook".
-        tenant_id: Required for service_principal.
-        client_id: Required for service_principal.
-        client_secret: Required for service_principal.
-
-    Raises:
-        ValueError: If service_principal is requested without all three of
-            tenant_id, client_id and client_secret.
-
-    Returns:
-        An azure.identity credential object, or None for notebook mode
-        (sempy.fabric picks up the ambient Fabric credential automatically).
-    """
-    if method == "notebook":
-        # sempy.fabric uses the Fabric ambient credential automatically;
-        # no explicit credential object is needed.
-        return None
-    elif method == "service_principal":
-        if not (tenant_id and client_id and client_secret):
-            raise ValueError(
-                "service_principal requires tenant_id, client_id and client_secret."
-            )
-        try:
-            from azure.identity import ClientSecretCredential
-        except ImportError as exc:
-            raise MissingFabricDependencyError("azure-identity") from exc
-
-        return ClientSecretCredential(
-            tenant_id=tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-        )
-    else:  # "interactive"
-        try:
-            from azure.identity import InteractiveBrowserCredential
-        except ImportError as exc:
-            raise MissingFabricDependencyError("azure-identity") from exc
-
-        return InteractiveBrowserCredential()
