@@ -1031,8 +1031,9 @@ def test_export_single_classifies_before_writing(monkeypatch):
         def list_models(self, workspace):
             return ["M"]
 
+    # Patch where cli looks the name up, not where it is defined.
     monkeypatch.setattr(
-        "fabric_ai_meta.extractor.factory._build_extractor",
+        "fabric_ai_meta.cli._build_extractor",
         lambda **kw: _StubExtractor(),
     )
 

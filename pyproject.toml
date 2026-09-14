@@ -68,7 +68,6 @@ mcp = [
 ]
 dev = [
     "pytest>=8.0",
-    "pytest-asyncio>=0.23",
     "pytest-cov",                      # coverage floor in CI
     "ruff>=0.5",
     "mypy>=1.10",

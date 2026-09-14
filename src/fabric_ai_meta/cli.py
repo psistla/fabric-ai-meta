@@ -12,7 +12,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from fabric_ai_meta import __version__
+from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
 from fabric_ai_meta.config import load_config
+from fabric_ai_meta.extractor.factory import _build_extractor
 
 # Ensure stdout/stderr use UTF-8 on Windows (default is cp1252), so Rich's
 # spinner glyphs and other Unicode output don't raise UnicodeEncodeError.
@@ -95,7 +97,6 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         # Step 1: Extract
         task = progress.add_task(f"Extracting '{model_name}'...", total=None)
-        from fabric_ai_meta.extractor.factory import _build_extractor
         extractor = _build_extractor(
             workspace=workspace, mock=mock, pbip=pbip, model_name=model_name
         )
@@ -105,7 +106,6 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
 
         # Step 2: Heuristic classification
         progress.update(task, description="Running heuristic classification...")
-        from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
         classify_model_in_place(model)
 
         # Step 3: Score
@@ -310,7 +310,6 @@ def scan(workspace, output, fmt, mock, llm_enrich, with_copilot, pbip):
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=None)
     model_names = extractor.list_models(workspace)
 
@@ -446,8 +445,6 @@ def _export_single(model_name: str, workspace: str, exporter, mock: bool = False
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
-    from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
 
     model = extractor.extract(model_name, workspace, with_copilot=with_copilot)
@@ -509,24 +506,15 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, model_name=model_name)
 
     model = extractor.extract(model_name, workspace)
 
-    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
     classify_model_in_place(model)
 
-    backfill = None
-    llm = None
-    if llm_enrich:
-        from fabric_ai_meta.llm import load_llm_client
-        llm = load_llm_client(cfg)
-        backfill = _run_llm_enrichment(model, cfg)
-
-    if llm is None:
-        from fabric_ai_meta.llm import load_llm_client
-        llm = load_llm_client(cfg)
+    from fabric_ai_meta.llm import load_llm_client
+    llm = load_llm_client(cfg)
+    backfill = _run_llm_enrichment(model, cfg) if llm_enrich else None
 
     prep_config = generate_prep_for_ai(model, llm, backfill=backfill)
 
@@ -561,11 +549,9 @@ def export_capability_manifest(model_name, workspace, output, mock, pbip):
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
     model = extractor.extract(model_name, workspace)
 
-    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
     classify_model_in_place(model)
 
     manifest = generate_capability_manifest(model)
@@ -601,11 +587,9 @@ def export_agent_readiness(model_name, workspace, output, mock, pbip):
         title="fabric-ai-meta"
     ))
 
-    from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
     model = extractor.extract(model_name, workspace)
 
-    from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
     classify_model_in_place(model)
 
     report = assess_agent_readiness(model)
@@ -644,16 +628,13 @@ def score(model_name, workspace, score_all, mock, pbip):
     ))
 
     def _score_one(name: str) -> tuple:
-        from fabric_ai_meta.extractor.factory import _build_extractor
         extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=name)
         m = extractor.extract(name, workspace)
-        from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
         classify_model_in_place(m)
         overall, breakdown = run_score(m)
         return overall, breakdown
 
     if score_all:
-        from fabric_ai_meta.extractor.factory import _build_extractor
         names = _build_extractor(
             workspace=workspace, mock=mock, pbip=pbip, model_name=None
         ).list_models(workspace)
@@ -732,7 +713,6 @@ def governance(workspace, report, output, mock, with_copilot, pbip, graph_necess
 
     from fabric_ai_meta.analyzer.governance import generate_governance_report, write_governance_report
     from fabric_ai_meta.analyzer.scorer import score_model as run_score
-    from fabric_ai_meta.extractor.factory import _build_extractor
     extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=None)
 
     model_names = extractor.list_models(workspace)
@@ -743,7 +723,6 @@ def governance(workspace, report, output, mock, with_copilot, pbip, graph_necess
             t = progress.add_task(f"Extracting {name}...", total=None)
             try:
                 m = extractor.extract(name, workspace, with_copilot=with_copilot)
-                from fabric_ai_meta.analyzer.pipeline import classify_model_in_place
                 classify_model_in_place(m)
                 overall, breakdown = run_score(m)
                 m.ai_readiness_score = overall
@@ -847,12 +826,6 @@ def apply_descriptions(config_path, workspace, dry_run, mock):
             from fabric_ai_meta.writeback.description_writer import MockWriter
             writer = MockWriter()
         else:
-            from fabric_ai_meta.auth.entra import (
-                FabricEnvironmentError,
-                detect_notebook_environment,
-            )
-            if not detect_notebook_environment():
-                raise FabricEnvironmentError()
             from fabric_ai_meta.writeback.description_writer import SemanticLinkWriter
             writer = SemanticLinkWriter()
 
@@ -932,15 +905,7 @@ def apply_copilot(copilot_dir, model, workspace, dry_run, mock):
             from fabric_ai_meta.writeback.copilot_writer import MockCopilotWriter
             writer = MockCopilotWriter()
         else:
-            from fabric_ai_meta.auth.entra import (
-                FabricEnvironmentError,
-                detect_notebook_environment,
-            )
-            if not detect_notebook_environment():
-                raise FabricEnvironmentError()
-            from fabric_ai_meta.writeback.copilot_writer import (
-                SemanticLinkCopilotWriter,
-            )
+            from fabric_ai_meta.writeback.copilot_writer import SemanticLinkCopilotWriter
             writer = SemanticLinkCopilotWriter()
 
         result = writer.apply_copilot(

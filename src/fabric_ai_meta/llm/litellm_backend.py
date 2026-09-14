@@ -147,28 +147,23 @@ class LiteLLMBackend(BaseLLMClient):
             )
 
         # Explicit kwargs win over config values; config supplies fallbacks.
-        cfg_provider = getattr(config, "provider", None) if config is not None else None
-        cfg_model = getattr(config, "model", None) if config is not None else None
-        cfg_cache_enabled = getattr(config, "cache_enabled", None) if config is not None else None
-        cfg_cache_dir = getattr(config, "cache_dir", None) if config is not None else None
-        cfg_max_cost_usd = getattr(config, "max_cost_per_run", None) if config is not None else None
-        cfg_base_url = getattr(config, "base_url", None) if config is not None else None
-        cfg_azure_endpoint = getattr(config, "azure_endpoint", None) if config is not None else None
-        cfg_azure_api_version = getattr(config, "azure_api_version", None) if config is not None else None
-        cfg_vertex_project = getattr(config, "vertex_project", None) if config is not None else None
-        cfg_vertex_location = getattr(config, "vertex_location", None) if config is not None else None
-        api_key_env_override = getattr(config, "api_key_env", None) if config is not None else None
+        # `getattr(None, key, None)` is None, so a missing config needs no branch.
+        def cfg(key: str):
+            return getattr(config, key, None)
 
-        provider = provider if provider is not None else (cfg_provider or "anthropic")
-        model = model if model is not None else cfg_model
-        cache_enabled = cache_enabled if cache_enabled is not None else (cfg_cache_enabled if cfg_cache_enabled is not None else True)
-        cache_dir = cache_dir if cache_dir is not None else (cfg_cache_dir or ".fabric-ai-meta-cache")
-        max_cost_usd = max_cost_usd if max_cost_usd is not None else cfg_max_cost_usd
-        base_url = base_url if base_url is not None else cfg_base_url
-        azure_endpoint = azure_endpoint if azure_endpoint is not None else cfg_azure_endpoint
-        azure_api_version = azure_api_version if azure_api_version is not None else cfg_azure_api_version
-        vertex_project = vertex_project if vertex_project is not None else cfg_vertex_project
-        vertex_location = vertex_location if vertex_location is not None else cfg_vertex_location
+        provider = provider if provider is not None else (cfg("provider") or "anthropic")
+        model = model if model is not None else cfg("model")
+        if cache_enabled is None:
+            cache_enabled = cfg("cache_enabled")
+        if cache_enabled is None:
+            cache_enabled = True
+        cache_dir = cache_dir if cache_dir is not None else (cfg("cache_dir") or ".fabric-ai-meta-cache")
+        max_cost_usd = max_cost_usd if max_cost_usd is not None else cfg("max_cost_per_run")
+        base_url = base_url if base_url is not None else cfg("base_url")
+        azure_endpoint = azure_endpoint if azure_endpoint is not None else cfg("azure_endpoint")
+        azure_api_version = azure_api_version if azure_api_version is not None else cfg("azure_api_version")
+        vertex_project = vertex_project if vertex_project is not None else cfg("vertex_project")
+        vertex_location = vertex_location if vertex_location is not None else cfg("vertex_location")
 
         super().__init__(
             cache_enabled=cache_enabled,
@@ -179,7 +174,7 @@ class LiteLLMBackend(BaseLLMClient):
         self.provider = provider
         self.model = model
         self.litellm_model = build_litellm_model_string(provider, model)
-        self.api_key = api_key or resolve_api_key(provider, api_key_env_override)
+        self.api_key = api_key or resolve_api_key(provider, cfg("api_key_env"))
         self.base_url = base_url
         self.azure_endpoint = azure_endpoint
         self.azure_api_version = azure_api_version

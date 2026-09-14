@@ -21,10 +21,6 @@ def detect_notebook_environment() -> bool:
     return False
 
 
-# Alias used throughout the spec and CLI startup
-detect_fabric_runtime = detect_notebook_environment
-
-
 class FabricEnvironmentError(Exception):
     """Raised when a live extraction command is run outside Fabric notebook runtime.
 

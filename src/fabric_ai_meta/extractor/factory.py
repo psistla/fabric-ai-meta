@@ -75,11 +75,5 @@ def _build_extractor(
             return MockExtractor(fixture_dir=FIXTURES_DIR)
         return MockExtractor(fixture_path=_fixture_path_for(model_name))
 
-    from fabric_ai_meta.auth.entra import (
-        FabricEnvironmentError,
-        detect_notebook_environment,
-    )
-    if not detect_notebook_environment():
-        raise FabricEnvironmentError()
     from fabric_ai_meta.extractor.semantic_link import SemanticLinkExtractor
     return SemanticLinkExtractor(workspace=workspace)

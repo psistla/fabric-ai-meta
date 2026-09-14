@@ -24,6 +24,16 @@ def _error(message: str) -> dict:
     return {"error": message}
 
 
+def _load(model_name: str, workspace: str, pbip: str | None):
+    """Extract one model (bundled sample unless `pbip` is given) and classify it."""
+    extractor = _build_extractor(
+        workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
+    )
+    model = extractor.extract(model_name, workspace)
+    classify_model_in_place(model)
+    return model
+
+
 # ---------------------------------------------------------------------------
 # Tool functions (called directly by tests; wrapped by FastMCP at run time)
 # ---------------------------------------------------------------------------
@@ -56,11 +66,7 @@ def analyze_model(model_name: str, workspace: str = "", pbip: str | None = None)
     """
     try:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
-        extractor = _build_extractor(
-            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
-        )
-        model = extractor.extract(model_name, workspace)
-        classify_model_in_place(model)
+        model = _load(model_name, workspace, pbip)
         overall, breakdown = _score(model)
         return {
             "model": model_name,
@@ -84,11 +90,7 @@ def score_model(model_name: str, workspace: str = "", pbip: str | None = None) -
     """
     try:
         from fabric_ai_meta.analyzer.scorer import score_model as _score
-        extractor = _build_extractor(
-            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
-        )
-        model = extractor.extract(model_name, workspace)
-        classify_model_in_place(model)
+        model = _load(model_name, workspace, pbip)
         overall, breakdown = _score(model)
         return {
             "model": model_name,
@@ -113,11 +115,7 @@ def assess_agent_readiness(model_name: str, workspace: str = "", pbip: str | Non
         from fabric_ai_meta.analyzer.agent_readiness import (
             assess_agent_readiness as _assess,
         )
-        extractor = _build_extractor(
-            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
-        )
-        model = extractor.extract(model_name, workspace)
-        classify_model_in_place(model)
+        model = _load(model_name, workspace, pbip)
         return _assess(model)
     except Exception as exc:
         return _error(str(exc))
@@ -133,11 +131,7 @@ def generate_schema(model_name: str, workspace: str = "", pbip: str | None = Non
     """
     try:
         from fabric_ai_meta.generator.schema import generate_ai_ready_schema
-        extractor = _build_extractor(
-            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
-        )
-        model = extractor.extract(model_name, workspace)
-        classify_model_in_place(model)
+        model = _load(model_name, workspace, pbip)
         return generate_ai_ready_schema(model)
     except Exception as exc:
         return _error(str(exc))
@@ -186,11 +180,7 @@ def guide_query(
     """
     try:
         from fabric_ai_meta.analyzer.query_guidance import guide_query as _guide_query
-        extractor = _build_extractor(
-            workspace=workspace, mock=(pbip is None), pbip=pbip, model_name=model_name
-        )
-        model = extractor.extract(model_name, workspace)
-        classify_model_in_place(model)
+        model = _load(model_name, workspace, pbip)
         return _guide_query(model, measure=measure, column=column, dimensions=dimensions)
     except Exception as exc:
         return _error(str(exc))
