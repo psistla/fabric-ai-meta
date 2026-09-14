@@ -57,7 +57,7 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
         A fully populated Config object.
     """
     try:
-        import tomllib
+        import tomllib  # type: ignore[import-not-found]  # stdlib from 3.11; tomli below
     except ImportError:
         import tomli as tomllib  # type: ignore[no-redef]
 
