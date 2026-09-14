@@ -121,49 +121,21 @@ def _run_analysis(model_name: str, workspace: str, output: str, fmt: str,
 
         # Step 5: Generate outputs
         progress.update(task, description="Generating output files...")
-        written = []
-
-        # ai-ready-schema.json
-        schema = generate_ai_ready_schema(model)
-        p = os.path.join(out_dir, "ai-ready-schema.json")
-        _write_json(p, schema)
-        written.append(("ai-ready-schema.json", p))
-
-        # langchain-tool.json
-        lc = to_langchain_tool_definition(model)
-        p = os.path.join(out_dir, "langchain-tool.json")
-        _write_json(p, lc)
-        written.append(("langchain-tool.json", p))
-
-        # openai-function.json
-        oa = to_openai_function(model)
-        p = os.path.join(out_dir, "openai-function.json")
-        _write_json(p, oa)
-        written.append(("openai-function.json", p))
-
-        # semantic-kernel-plugin.json
-        sk = to_semantic_kernel_plugin(model)
-        p = os.path.join(out_dir, "semantic-kernel-plugin.json")
-        _write_json(p, sk)
-        written.append(("semantic-kernel-plugin.json", p))
-
-        # readiness-score.json
-        score_data = {"model": model_name, "score": overall, "breakdown": breakdown}
-        p = os.path.join(out_dir, "readiness-score.json")
-        _write_json(p, score_data)
-        written.append(("readiness-score.json", p))
-
-        # measure-dependency-graph.json
         all_measures = [m for t in model.tables for m in t.measures]
-        dep_graph = build_dependency_graph(all_measures)
-        p = os.path.join(out_dir, "measure-dependency-graph.json")
-        _write_json(p, dep_graph)
-        written.append(("measure-dependency-graph.json", p))
-
-        # extraction-raw.json
-        p = os.path.join(out_dir, "extraction-raw.json")
-        _write_json(p, model.to_dict())
-        written.append(("extraction-raw.json", p))
+        outputs = {
+            "ai-ready-schema.json": generate_ai_ready_schema(model),
+            "langchain-tool.json": to_langchain_tool_definition(model),
+            "openai-function.json": to_openai_function(model),
+            "semantic-kernel-plugin.json": to_semantic_kernel_plugin(model),
+            "readiness-score.json": {"model": model_name, "score": overall, "breakdown": breakdown},
+            "measure-dependency-graph.json": build_dependency_graph(all_measures),
+            "extraction-raw.json": model.to_dict(),
+        }
+        written = []
+        for fname, payload in outputs.items():
+            p = os.path.join(out_dir, fname)
+            _write_json(p, payload)
+            written.append((fname, p))
 
         progress.update(task, description="Done.")
 

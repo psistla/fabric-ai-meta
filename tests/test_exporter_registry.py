@@ -2,7 +2,7 @@
 
 import json
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -136,14 +136,23 @@ class TestDiscoverExporters:
             assert "langchain" in registry  # built-ins still there
 
     def test_broken_plugin_does_not_crash_discovery(self):
-        # A misbehaving entry point (returns a non-class, or non-BaseExporter
-        # subclass) should be skipped silently, leaving built-ins intact.
-        with patch(
-            "fabric_ai_meta.generator.registry._iter_plugin_exporter_classes",
-            return_value=iter([("broken", "not a class")]),
-        ):
+        # A misbehaving entry point (load() raises, returns a non-class, or a
+        # non-BaseExporter class) is skipped silently, leaving built-ins intact.
+        def _ep(name, load):
+            ep = MagicMock()
+            ep.name = name
+            ep.load.side_effect = load
+            return ep
+
+        eps = [
+            _ep("raises", lambda: (_ for _ in ()).throw(RuntimeError("boom"))),
+            _ep("not-a-class", lambda: "not a class"),
+            _ep("wrong-base", lambda: dict),
+        ]
+        with patch("fabric_ai_meta.generator.registry.entry_points", return_value=eps):
             registry = discover_exporters()
             assert "langchain" in registry
+            assert not {"raises", "not-a-class", "wrong-base"} & set(registry)
 
 
 # ── get_exporter ───────────────────────────────────────────────────────────

@@ -4,7 +4,6 @@ Loads settings from a TOML file (default: .fabric-ai-meta.toml).
 Falls back to built-in defaults if the file is not found.
 """
 
-import sys
 from dataclasses import dataclass, field
 
 
@@ -83,13 +82,10 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
     Returns:
         A fully populated Config object.
     """
-    if sys.version_info >= (3, 11):
+    try:
         import tomllib
-    else:
-        try:
-            import tomllib  # type: ignore[import-not-found]
-        except ImportError:
-            import tomli as tomllib  # type: ignore[no-redef]
+    except ImportError:
+        import tomli as tomllib  # type: ignore[no-redef]
 
     try:
         with open(path, "rb") as fh:

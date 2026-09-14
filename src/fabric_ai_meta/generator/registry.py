@@ -26,13 +26,7 @@ def _iter_plugin_exporter_classes() -> Iterable[tuple[str, type[BaseExporter]]]:
     Plugins that fail to load are skipped with no error; broken plugins must
     not crash discovery for healthy ones.
     """
-    try:
-        eps = entry_points(group=ENTRY_POINT_GROUP)
-    except TypeError:
-        # Python 3.9 compatibility shim; we target 3.10+ so this is defensive.
-        eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[attr-defined,arg-type]
-
-    for ep in eps:
+    for ep in entry_points(group=ENTRY_POINT_GROUP):
         try:
             cls = ep.load()
         except Exception:
@@ -54,11 +48,8 @@ def discover_exporters() -> dict[str, type[BaseExporter]]:
         registry[cls.name] = cls
 
     for _ep_name, cls in _iter_plugin_exporter_classes():
-        if not (isinstance(cls, type) and issubclass(cls, BaseExporter)):
-            continue
-        if not cls.name:
-            continue
-        registry[cls.name] = cls
+        if cls.name:
+            registry[cls.name] = cls
 
     return registry
 
