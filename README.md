@@ -157,6 +157,7 @@ Issues and pull requests welcome. Before opening one:
 pip install -e ".[dev]"
 pytest tests/ -q     # 671 tests, no Fabric runtime or network needed
 ruff check .
+mypy                 # config in pyproject.toml, same gate as CI
 ```
 
 New exporters ship as [plugins](https://github.com/psistla/fabric-ai-meta#custom-exporters) rather than PRs here. Sample models under `src/fabric_ai_meta/fixtures/` and doc fixes are the easiest first contributions.
