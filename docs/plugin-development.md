@@ -1,6 +1,6 @@
 # Plugin Development Guide
 
-fabric-ai-meta ships four built-in exporters (`langchain`, `openai`, `semantic-kernel`, `autogen`). Anyone can add more by publishing a Python package that registers a `BaseExporter` subclass under the `fabric_ai_meta.exporters` entry-point group. No fork required; install the plugin and it appears as `fabric-ai-meta export <name>`.
+fabric-ai-meta ships seven built-in exporters (`langchain`, `openai`, `semantic-kernel`, `autogen`, `copilot`, `capability-manifest`, `agent-readiness`). Anyone can add more by publishing a Python package that registers a `BaseExporter` subclass under the `fabric_ai_meta.exporters` entry-point group. No fork required; install the plugin and it appears as `fabric-ai-meta export <name>`.
 
 This guide walks through the contract, the entry-point registration, a complete worked example, and how plugins interact with the built-in registry.
 

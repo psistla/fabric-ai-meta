@@ -4,7 +4,8 @@ Loads settings from a TOML file (default: .fabric-ai-meta.toml).
 Falls back to built-in defaults if the file is not found.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
+from typing import TypeVar
 
 
 @dataclass
@@ -41,6 +42,9 @@ class OutputConfig:
     output_dir: str = "./output"
 
 
+_Section = TypeVar("_Section", AuthConfig, ExtractionConfig, LLMConfig, OutputConfig)
+
+
 @dataclass
 class Config:
     auth: AuthConfig = field(default_factory=AuthConfig)
@@ -72,35 +76,19 @@ def load_config(path: str = ".fabric-ai-meta.toml") -> Config:
     except FileNotFoundError:
         return Config()
 
-    auth_data = data.get("auth", {})
-    ext_data = data.get("extraction", {})
-    llm_data = data.get("llm", {})
-    out_data = data.get("output", {})
-
     return Config(
-        auth=AuthConfig(
-            method=auth_data.get("method", "interactive"),
-            tenant_id=auth_data.get("tenant_id"),
-            client_id=auth_data.get("client_id"),
-            client_secret=auth_data.get("client_secret"),
-        ),
-        extraction=ExtractionConfig(
-            default_workspace=ext_data.get("default_workspace", "Production Analytics"),
-        ),
-        llm=LLMConfig(
-            provider=llm_data.get("provider", "anthropic"),
-            model=llm_data.get("model", "claude-sonnet-4-6"),
-            api_key_env=llm_data.get("api_key_env", "ANTHROPIC_API_KEY"),
-            cache_enabled=llm_data.get("cache_enabled", True),
-            cache_dir=llm_data.get("cache_dir", ".fabric-ai-meta-cache"),
-            max_cost_per_run=llm_data.get("max_cost_per_run", 5.00),
-            base_url=llm_data.get("base_url"),
-            azure_endpoint=llm_data.get("azure_endpoint"),
-            azure_api_version=llm_data.get("azure_api_version"),
-            vertex_project=llm_data.get("vertex_project"),
-            vertex_location=llm_data.get("vertex_location"),
-        ),
-        output=OutputConfig(
-            output_dir=out_data.get("output_dir", "./output"),
-        ),
+        auth=_section(AuthConfig, data.get("auth", {})),
+        extraction=_section(ExtractionConfig, data.get("extraction", {})),
+        llm=_section(LLMConfig, data.get("llm", {})),
+        output=_section(OutputConfig, data.get("output", {})),
     )
+
+
+def _section(cls: type[_Section], table: dict) -> _Section:
+    """Build one config dataclass from its TOML table.
+
+    Keys the dataclass does not declare are ignored, so a config file written
+    for an older release keeps loading. Defaults come from the dataclass itself.
+    """
+    known = {f.name for f in fields(cls)}
+    return cls(**{k: v for k, v in table.items() if k in known})

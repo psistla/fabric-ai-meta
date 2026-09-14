@@ -6,6 +6,8 @@ plugin registry alongside any third-party plugins. The function-style API
 `to_autogen_tool`) is preserved unchanged so existing user code keeps working.
 """
 
+from fabric_ai_meta.analyzer.agent_readiness import assess_agent_readiness
+from fabric_ai_meta.analyzer.capability_manifest import generate_capability_manifest
 from fabric_ai_meta.generator.base import BaseExporter
 from fabric_ai_meta.generator.export_autogen import to_autogen_tool
 from fabric_ai_meta.generator.export_copilot import CopilotExporter
@@ -50,10 +52,30 @@ class AutoGenExporter(BaseExporter):
         return to_autogen_tool(model)
 
 
+class CapabilityManifestExporter(BaseExporter):
+    name = "capability-manifest"
+    output_filename = "capability-manifest.json"
+    description = "Capability manifest: which measures this model can answer"
+
+    def generate(self, model):
+        return generate_capability_manifest(model)
+
+
+class AgentReadinessExporter(BaseExporter):
+    name = "agent-readiness"
+    output_filename = "agent-readiness.json"
+    description = "Agent-readiness report: ranked findings and fixes for this model"
+
+    def generate(self, model):
+        return assess_agent_readiness(model)
+
+
 BUILTIN_EXPORTERS: tuple[type[BaseExporter], ...] = (
     LangChainExporter,
     OpenAIExporter,
     SemanticKernelExporter,
     AutoGenExporter,
     CopilotExporter,
+    CapabilityManifestExporter,
+    AgentReadinessExporter,
 )

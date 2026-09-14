@@ -427,12 +427,13 @@ def export_group():
 
 
 def _export_single(model_name: str, workspace: str, exporter, mock: bool = False,
-                   *, with_copilot: bool = False, pbip: str | None = None) -> None:
+                   *, with_copilot: bool = False, pbip: str | None = None,
+                   output: str | None = None) -> None:
     """Run a single `BaseExporter` against the extracted model and write its output."""
     cfg = load_config()
     if not pbip:
         workspace = workspace or cfg.extraction.default_workspace
-    output = cfg.output.output_dir
+    output = output or cfg.output.output_dir
 
     console.print(Panel(
         f"[bold]export {exporter.name}[/bold]  model=[cyan]{model_name}[/cyan]  "
@@ -460,17 +461,19 @@ def _register_exporter_commands() -> None:
             @click.command(name=ep_name, help=exporter_cls.description or f"Export {ep_name} format.")
             @click.argument("model_name")
             @click.option("--workspace", "-w", default=None)
+            @click.option("--output", "-o", default=None, help="Output directory.")
             @click.option("--mock", is_flag=True, default=False,
                           help="Use MockExtractor with fixture data.")
             @click.option("--pbip", default=None, type=click.Path(exists=True),
                           help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
-            def _cmd(model_name, workspace, mock, pbip):
+            def _cmd(model_name, workspace, output, mock, pbip):
                 _resolve_source(mock, pbip, workspace)
                 _export_single(
                     model_name, workspace, exporter_cls(),
                     mock=mock,
                     with_copilot=exporter_cls.requires_copilot or bool(pbip),
                     pbip=pbip,
+                    output=output,
                 )
             return _cmd
 
@@ -518,82 +521,6 @@ def export_prep_for_ai(model_name, workspace, output, mock, llm_enrich):
     _ensure_dir(out_dir)
     path = os.path.join(out_dir, "prep-for-ai-config.json")
     _write_json(path, dataclasses.asdict(prep_config))
-    console.print(f"[green]Written:[/green] {path}")
-
-
-@export_group.command("capability-manifest")
-@click.argument("model_name")
-@click.option("--workspace", "-w", default=None)
-@click.option("--output", "-o", default=None, help="Output directory.")
-@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
-@click.option("--pbip", default=None, type=click.Path(exists=True),
-              help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
-def export_capability_manifest(model_name, workspace, output, mock, pbip):
-    """Export a capability manifest: which measures this model can answer."""
-    from fabric_ai_meta.analyzer.capability_manifest import generate_capability_manifest
-
-    _resolve_source(mock, pbip, workspace)
-    cfg = load_config()
-    if not pbip:
-        workspace = workspace or cfg.extraction.default_workspace
-    output = output or cfg.output.output_dir
-
-    console.print(Panel(
-        f"[bold]export capability-manifest[/bold]  model=[cyan]{model_name}[/cyan]  "
-        f"workspace=[cyan]{workspace or pbip}[/cyan]  mock=[cyan]{mock}[/cyan]",
-        title="fabric-ai-meta"
-    ))
-
-    extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
-    model = extractor.extract(model_name, workspace)
-
-    classify_model_in_place(model)
-
-    manifest = generate_capability_manifest(model)
-
-    slug = _slugify(model_name)
-    out_dir = os.path.join(output, slug)
-    _ensure_dir(out_dir)
-    path = os.path.join(out_dir, "capability-manifest.json")
-    _write_json(path, manifest)
-    console.print(f"[green]Written:[/green] {path}")
-
-
-@export_group.command("agent-readiness")
-@click.argument("model_name")
-@click.option("--workspace", "-w", default=None)
-@click.option("--output", "-o", default=None, help="Output directory.")
-@click.option("--mock", is_flag=True, default=False, help="Use MockExtractor with fixture data.")
-@click.option("--pbip", default=None, type=click.Path(exists=True),
-              help="Read a local *.SemanticModel folder (no Fabric, no workspace).")
-def export_agent_readiness(model_name, workspace, output, mock, pbip):
-    """Export an agent-readiness report: ranked findings and fixes for this model."""
-    from fabric_ai_meta.analyzer.agent_readiness import assess_agent_readiness
-
-    _resolve_source(mock, pbip, workspace)
-    cfg = load_config()
-    if not pbip:
-        workspace = workspace or cfg.extraction.default_workspace
-    output = output or cfg.output.output_dir
-
-    console.print(Panel(
-        f"[bold]export agent-readiness[/bold]  model=[cyan]{model_name}[/cyan]  "
-        f"workspace=[cyan]{workspace or pbip}[/cyan]  mock=[cyan]{mock}[/cyan]",
-        title="fabric-ai-meta"
-    ))
-
-    extractor = _build_extractor(workspace=workspace, mock=mock, pbip=pbip, model_name=model_name)
-    model = extractor.extract(model_name, workspace)
-
-    classify_model_in_place(model)
-
-    report = assess_agent_readiness(model)
-
-    slug = _slugify(model_name)
-    out_dir = os.path.join(output, slug)
-    _ensure_dir(out_dir)
-    path = os.path.join(out_dir, "agent-readiness.json")
-    _write_json(path, report)
     console.print(f"[green]Written:[/green] {path}")
 
 
